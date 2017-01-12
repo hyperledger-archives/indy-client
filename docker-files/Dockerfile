@@ -6,9 +6,7 @@ MAINTAINER Andrey Zheregelya
 # It also starts CLI as entrypoint by default
 # And also contains tester script
 
-# Where install sovrin: still using old packages.
-# TODO: move to sovrin-client when it will be ready
-ARG install_sovrin="pip3 install --no-cache-dir sovrin"
+ARG install_sovrin="pip3 install --no-cache-dir sovrin-client"
 
 RUN apt-get update \
     && apt-get install python3.5 libsodium18 libgmp3-dev flex bison libssl-dev bsdmainutils python3-pip -y \

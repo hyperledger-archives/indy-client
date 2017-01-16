@@ -8,4 +8,7 @@ __license__ = "Apache 2.0"
 
 __all__ = ['__version_info__', '__version__', '__author__', '__license__']
 
-__dependencies__ = {}
+__dependencies__ = {
+    "anoncreds": ">=0.1.11",
+    "sovrin_common": ">=0.0.1"
+}

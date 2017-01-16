@@ -2,7 +2,11 @@
 
 import sys
 import os
+
+import subprocess
 from setuptools import setup, find_packages, __version__
+from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 v = sys.version_info
 if sys.version_info < (3, 5):
@@ -30,6 +34,36 @@ METADATA = os.path.join(SETUP_DIRNAME, 'sovrin_client', '__metadata__.py')
 # Load the metadata using exec() so we don't trigger an import of ioflo.__init__
 exec(compile(open(METADATA).read(), METADATA, 'exec'))
 
+BASE_DIR = os.path.join(os.path.expanduser("~"), ".sovrin")
+CONFIG_FILE = os.path.join(BASE_DIR, "sovrin_config.py")
+
+if not os.path.exists(BASE_DIR):
+    os.makedirs(BASE_DIR)
+
+
+if not os.path.exists(CONFIG_FILE):
+    with open(CONFIG_FILE, 'w') as f:
+        msg = "# Here you can create config entries according to your " \
+              "needs.\n " \
+              "# For help, refer config.py in the sovrin package.\n " \
+              "# Any entry you add here would override that from config " \
+              "example\n"
+        f.write(msg)
+
+def post_install():
+    subprocess.run(['python post-setup.py'], shell=True)
+
+
+class PostInstall(install):
+    def run(self):
+        install.run(self)
+        post_install()
+
+
+class PostInstallDev(develop):
+    def run(self):
+        develop.run(self)
+        post_install()
 
 setup(
     name='sovrin-client',
@@ -40,12 +74,18 @@ setup(
     author_email='dev@evernym.us',
     license=__license__,
     keywords='Sovrin Client',
-    install_requires=['sovrin-common'],
+    packages=find_packages(exclude=['test', 'test.*', 'docs', 'docs*']) + [
+        'sample'],
+    package_data={
+        '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
+             '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
+    include_package_data=True,
+    install_requires=['sovrin-common', 'anoncreds'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest', 'sovrin-node'],
-    packages=find_packages(exclude=['test', 'test.*',
-                                      'docs', 'docs*']),
-    package_data={
-        '':       ['*.txt',  '*.md', '*.rst', '*.json', '*.conf', '*.html',
-                   '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL']},
+    scripts=['scripts/sovrin', 'scripts/change_node_ha' ,'scripts/add_new_node'],
+    cmdclass={
+        'install': PostInstall,
+        'develop': PostInstallDev
+    }
 )

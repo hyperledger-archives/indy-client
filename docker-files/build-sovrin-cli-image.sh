@@ -3,9 +3,15 @@
 # Let this helper script be here. But the main helper should be in special ci repo.
 
 # Get parameter of current git repo to download sovrin code
-curr_branch=$(git rev-parse --abbrev-ref HEAD)
-curr_commit=$(git rev-parse HEAD)
-curr_url=$(git config --get remote.origin.url)
+function construct_repo_string()
+{
+  local package_name="$1"
+  local curr_branch=$(git rev-parse --abbrev-ref HEAD)
+  local curr_commit=$(git rev-parse HEAD)
+  local curr_url=$(git config --get remote.origin.url)
+  local repo_string="git+$curr_url@$curr_commit#egg=$package_name"
+  echo "$repo_string"
+}
 
 package_name="sovrin-client"
 repo_string="git+$curr_url@$curr_commit#egg=$package_name"
@@ -14,7 +20,7 @@ do_dev_version=0
 img_tag="sovrin-client-pub"
 folder='./'
 
-while getopts "dr:f:t:" opt; do
+while getopts "dr:f:t:c:" opt; do
   case $opt in
     d)
       do_dev_version=1
@@ -24,10 +30,17 @@ while getopts "dr:f:t:" opt; do
       repo_string="$OPTARG"
       ;;
     f)
-      folder="$OPTARG"
+      client_folder="$OPTARG"
+      ;;
+    c)
+      common_folder="$OPTARG"
       ;;
     t)
       img_tag="$OPTARG"
+      ;;
+    *)
+      echo "Undefined option $opt. Exit"
+      exit 1
       ;;
   esac
 done
@@ -35,7 +48,11 @@ done
 shift $((OPTIND-1))
 
 if [ $do_dev_version -eq 1 ] ; then
-  install_sovrin_cmd="pip3 install --no-cache-dir -e $repo_string"
+  cd "$client_folder" && client_repo_string=$(construct_repo_string "sovrin_client") ; cd -
+  cd "$common_folder" && common_repo_string=$(construct_repo_string "sovrin_common") ; cd -
+
+  install_sovrin_client="pip3 install --no-cache-dir -e $client_repo_string"
+  install_sovrin_common="pip3 install --no-cache-dir -e $common_repo_string"
   docker build -t "$img_tag" --build-arg install_sovrin="$install_sovrin_cmd" "$folder"
 else
   docker build -t "$img_tag" "$folder"

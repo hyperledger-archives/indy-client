@@ -6,7 +6,8 @@ MAINTAINER Andrey Zheregelya
 # It also starts CLI as entrypoint by default
 # And also contains tester script
 
-ARG install_sovrin="pip3 install --no-cache-dir sovrin-client"
+ARG install_sovrin_common="pip3 install --no-cache-dir sovrin-common"
+ARG install_sovrin_client="pip3 install --no-cache-dir sovrin-client"
 
 RUN apt-get update \
     && apt-get install python3.5 libsodium18 libgmp3-dev flex bison libssl-dev bsdmainutils python3-pip -y \
@@ -23,6 +24,7 @@ RUN wget https://crypto.stanford.edu/pbc/files/pbc-0.5.14.tar.gz \
 
 RUN pip3 install --upgrade pip wheel setuptools \
     && pip3.5 install Charm-Crypto==0.43 \
-    && $install_sovrin
+    && $install_sovrin_common \
+    && $install_sovrin_client
 
 ENTRYPOINT ["sovrin"]

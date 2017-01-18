@@ -2,9 +2,9 @@ from typing import Dict
 
 from plenum.common.txn import STEWARD
 from plenum.common.types import Identifier
+from sovrin_common.auth import Authoriser
 
 from sovrin_common.identity import Identity
-from sovrin_common.txn import SPONSOR
 
 
 class Sponsoring:
@@ -16,7 +16,7 @@ class Sponsoring:
         self._sponsored = {}  # type: Dict[Identifier, Identity]
 
     def addSponsoredIdentity(self, idy: Identity):
-        if idy.role and idy.role not in (SPONSOR, STEWARD):
+        if idy.role and not Authoriser.isValidRole(idy.role ):
             raise AttributeError("invalid role: {}".format(idy.role))
         if idy.identifier in self._sponsored:
             del self._sponsored[idy.identifier]

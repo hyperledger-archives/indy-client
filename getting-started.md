@@ -38,23 +38,15 @@ So when Alice clicks *Get Transcript*, she will normally end up installing an ap
 For this guide, however, we’ll be using a command - line interface instead of an app, so we can see what happens behind the scenes. We will pretend to be a particularly curious and technically adventurous Alice…
 
 ## Install Sovrin
+**Coming soon:** We are in the process of creating new vm images for Ubuntu and Windows and also docker image to make it easy for you to play with Sovrin. 
 
-If you use EC2 or Azure, you may want to create a VM to experiment with Sovrin(see [instructions](http://bit.ly/2dtTm4n)). Otherwise, you can install sovrin on your workstation. Try opening a shell(command prompt) and typing either this:
+Check out the info about [prerequisites](http://bit.ly/2d1o7we); there are a few dominoes you might have to line up.
 
 ```
 $ pip install -U --no-cache-dir sovrin-client
 ```
 
-... or (if you are docker - centric):
-
-```
-$ docker run-it sovrinfoundation/sovrin
-pip install -U --no-cache-dir sovrin-client
-```
-
-If you get an error, check out the info about [prerequisites](http://bit.ly/2d1o7we); there are a few dominoes you might have to line up.
-
-The install puts some python modules on your system.Most importantly, it gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
+The install puts some python modules on your system. Most importantly, it gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
 
 **Run the Sovrin CLI**
 

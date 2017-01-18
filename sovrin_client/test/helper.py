@@ -2,9 +2,12 @@ import os
 import shutil
 
 import pyorient
-from plenum.client.wallet import Wallet
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
+from plenum.common.signer_did import DidSigner
+from plenum.common.signer_simple import SimpleSigner
+from plenum.common.txn import REQNACK
+from plenum.common.types import OP_FIELD_NAME, f
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.common.eventually import eventually
 from plenum.test.helper import initDirWithGenesisTxns
@@ -13,6 +16,7 @@ from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
 from plenum.test.cli.helper import newCLI as newPlenumCLI
 
+from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import TestCLI
 from sovrin_common.config_util import getConfig
 from sovrin_common.constants import Environment
@@ -139,3 +143,47 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
             with Looper(debug=False) as looper:
                 yield new()
     return _
+
+
+def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
+            addVerkey=True, role=None):
+    wallet = Wallet(name)
+    signer = DidSigner() if useDid else SimpleSigner()
+    idr, _ = wallet.addIdentifier(signer=signer)
+    verkey = wallet.getVerkey(idr) if addVerkey else None
+    createNym(looper, idr, creatorClient, creatorWallet, verkey=verkey,
+              role=role)
+    return wallet
+
+
+def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):
+    newWallet = addRole(looper, client, wallet, name=name, role=role)
+    c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
+    looper.add(c)
+    looper.run(c.ensureConnectedToNodes())
+    c.registerObserver(newWallet.handleIncomingReply)
+    return c, newWallet
+
+
+def checkNacks(client, reqId, contains='', nodeCount=4):
+    logger.debug("looking for :{}".format(reqId))
+    reqs = [x for x, _ in client.inBox if x[OP_FIELD_NAME] == REQNACK and
+            x[f.REQ_ID.nm] == reqId]
+    for r in reqs:
+        logger.debug("printing r :{}".format(r))
+        assert f.REASON.nm in r
+        assert contains in r[f.REASON.nm], '{} not in {}'.format(contains,
+                                                                 r[f.REASON.nm])
+    assert len(reqs) == nodeCount
+
+
+def submitAndCheckNacks(looper, client, wallet, op, identifier,
+                        contains='UnauthorizedClientRequest'):
+    req = wallet.signOp(op, identifier=identifier)
+    wallet.pendRequest(req)
+    reqs = wallet.preparePending()
+    client.submitReqs(*reqs)
+    looper.run(eventually(checkNacks,
+                          client,
+                          req.reqId,
+                          contains, retryWait=1, timeout=15))

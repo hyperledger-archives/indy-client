@@ -484,6 +484,8 @@ class SovrinCli(PlenumCli):
             newVerKey = matchedVars.get('new_ver_key')
             if matchedVars.get('verkey') and newVerKey is None:
                 newVerKey = ''
+            elif newVerKey is not None:
+                newVerKey = newVerKey.strip()
             self._addNym(nym, role, newVerKey=newVerKey)
             return True
 
@@ -1114,8 +1116,8 @@ class SovrinCli(PlenumCli):
                     self._activeWallet = None
                 # Using `_activeClient` instead of `activeClient` since using
                 # `_activeClient` will initialize a client if not done already
-                if self._activeClient:
-                    self.print("Disconnecting from {}".format(envName))
+                if self.activeEnv:
+                    self.print("Disconnecting from {}".format(self.activeEnv))
                     self._activeClient = None
                 self.config.poolTransactionsFile = self.envs[envName].poolLedger
                 self.config.domainTransactionsFile = \
@@ -1126,7 +1128,7 @@ class SovrinCli(PlenumCli):
                 self._setPrompt(self.currPromptText.replace("{}{}".format(
                     PROMPT_ENV_SEPARATOR, oldEnv), ""))
 
-                if oldEnv:
+                if oldEnv or not self._activeWallet:
                     self.restoreLastActiveWallet("{}*{}".format(
                         WALLET_FILE_NAME_PREFIX, envName))
 

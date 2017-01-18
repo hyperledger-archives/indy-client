@@ -21,7 +21,7 @@ from plenum.common.verifier import DidVerifier
 from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.verifier import Verifier
-from plenum.test.exceptions import NotConnectedToAny
+from plenum.common.exceptions import NotConnectedToAny
 from sovrin_client.agent.agent_issuer import AgentIssuer
 from sovrin_client.agent.agent_prover import AgentProver
 from sovrin_client.agent.agent_verifier import AgentVerifier

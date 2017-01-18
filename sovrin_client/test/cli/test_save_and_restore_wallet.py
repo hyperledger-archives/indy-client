@@ -1,5 +1,6 @@
 import os
 from os.path import basename
+from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
@@ -24,15 +25,15 @@ def testPersistentWalletName():
     walletFileName = Cli.getPersistentWalletFileName(
         cliName=cliName, currPromptText="sovrin@test",
         walletName="Default")
-    assert "keyring_Default_test" == walletFileName
-    assert "Default" == Cli.getWalletKeyName(walletFileName)
+    assert "keyring_default_test" == walletFileName
+    assert "default" == Cli.getWalletKeyName(walletFileName)
 
     # User creates new wallet (keyring)
     walletFileName = Cli.getPersistentWalletFileName(
         cliName=cliName, currPromptText="sovrin@test",
         walletName="MyVault")
-    assert "keyring_MyVault_test" == walletFileName
-    assert "MyVault" == Cli.getWalletKeyName(walletFileName)
+    assert "keyring_myvault_test" == walletFileName
+    assert "myvault" == Cli.getWalletKeyName(walletFileName)
 
 
 def checkWalletFilePersisted(filePath):
@@ -96,8 +97,16 @@ def _connectTo(envName, do, cli):
     prompt_is("{}@{}".format(cli.name, envName))
 
 
-def connectTo(envName, do, cli, activeWalletPresents, identifiers):
+def connectTo(envName, do, cli, activeWalletPresents, identifiers,
+              firstTimeConnect=False):
+    currActiveWallet = cli._activeWallet
     _connectTo(envName, do, cli)
+    if currActiveWallet is None and firstTimeConnect:
+        do(None, expect=[
+            "New keyring Default created",
+            'Active keyring set to "Default"']
+        )
+
     if activeWalletPresents:
         assert cli._activeWallet is not None
         assert len(cli._activeWallet.identifiers) == identifiers
@@ -116,13 +125,31 @@ def switchEnv(newEnvName, do, cli, checkIfWalletRestored=False,
         checkWalletRestored(restoredWalletKeyName, cli, restoredIdentifiers)
 
 
-def testSaveAndRestoreWallet(do, be, cliForMultiNodePools):
+def exit(do):
+    with pytest.raises(Exit):
+        do('exit', expect='Goodbye.')
+
+
+def restartCli(CliBuilder, be, do, expectedRestoredWalletName,
+               expectedIdentifiers):
+    cli = yield from CliBuilder("alice")
+    be(cli)
+    do(None, expect=[
+        'Running Sovrin',
+        'Saved keyring "{}" restored'.format(expectedRestoredWalletName),
+        'Active keyring set to "{}"'.format(expectedRestoredWalletName)
+    ], within=5)
+    assert cli._activeWallet is not None
+    assert len(cli._activeWallet.identifiers) == expectedIdentifiers
+
+
+def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, CliBuilder):
     be(cliForMultiNodePools)
     # No wallet should have been restored
     assert cliForMultiNodePools._activeWallet is None
 
     connectTo("pool1", do, cliForMultiNodePools,
-              activeWalletPresents=True, identifiers=0)
+              activeWalletPresents=True, identifiers=0, firstTimeConnect=True)
     createNewKey(do, cliForMultiNodePools, keyringName="Default")
 
     switchEnv("pool2", do, cliForMultiNodePools, checkIfWalletRestored=False)
@@ -132,7 +159,7 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools):
     createNewKey(do, cliForMultiNodePools, keyringName="mykr0")
     useKeyring("Default", do)
     createNewKey(do, cliForMultiNodePools, keyringName="Default")
-
+    sleep(20)
     switchEnv("pool1", do, cliForMultiNodePools, checkIfWalletRestored=True,
               restoredWalletKeyName="Default", restoredIdentifiers=1)
     createNewKeyring("mykr1", do)
@@ -149,6 +176,8 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools):
                                      cliForMultiNodePools.walletFileName)
     switchEnv("pool1", do, cliForMultiNodePools, checkIfWalletRestored=True,
               restoredWalletKeyName="mykr1", restoredIdentifiers=1)
-    baseName = basename(filePath)
     useKeyring(filePath, do, expectedName="mykr0",
-               expectedMsgs=["Saved keyring {} restored".format(baseName)])
+               expectedMsgs=['Saved keyring "Default" restored'])
+    exit(do)
+
+    restartCli(CliBuilder, be, do, "Default", 1)

@@ -43,16 +43,6 @@ BASE_DIR = os.path.join(os.path.expanduser("~"), ".sovrin")
 if not os.path.exists(BASE_DIR):
     os.makedirs(BASE_DIR)
 
-# copy sample files
-SAMPLE_INVITATIONS_DIR = os.path.dirname(sample.__file__)
-INVITATION_DIR = os.path.join(BASE_DIR, "sample")
-os.makedirs(INVITATION_DIR, exist_ok=True)
-files = glob.iglob(os.path.join(SAMPLE_INVITATIONS_DIR, "*.sovrin"))
-for file in files:
-    if os.path.isfile(file):
-        shutil.copy2(file, INVITATION_DIR)
-
-
 # create sovrin_config.py if not already exists
 CONFIG_FILE = os.path.join(BASE_DIR, "sovrin_config.py")
 if not os.path.exists(CONFIG_FILE):

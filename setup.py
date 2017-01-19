@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import glob
-import shutil
 import sys
 import os
 
@@ -9,7 +7,7 @@ from setuptools import setup, find_packages, __version__
 from setuptools.command.develop import develop
 from setuptools.command.install import install
 
-import sample
+from sovrin_common.setup_util import Setup
 
 v = sys.version_info
 if sys.version_info < (3, 5):
@@ -37,11 +35,11 @@ METADATA = os.path.join(SETUP_DIRNAME, 'sovrin_client', '__metadata__.py')
 # Load the metadata using exec() so we don't trigger an import of ioflo.__init__
 exec(compile(open(METADATA).read(), METADATA, 'exec'))
 
-
 # create base dir if not already exists
 BASE_DIR = os.path.join(os.path.expanduser("~"), ".sovrin")
-if not os.path.exists(BASE_DIR):
-    os.makedirs(BASE_DIR)
+for path in (BASE_DIR):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 # create sovrin_config.py if not already exists
 CONFIG_FILE = os.path.join(BASE_DIR, "sovrin_config.py")
@@ -70,6 +68,7 @@ class PostInstallDev(develop):
         develop.run(self)
         post_install()
 
+
 setup(
     name='sovrin-client',
     version=__version__,
@@ -88,7 +87,8 @@ setup(
     install_requires=['sovrin-common', 'anoncreds'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest', 'sovrin-node'],
-    scripts=['scripts/sovrin', 'scripts/change_node_ha' ,'scripts/add_new_node'],
+    scripts=['scripts/sovrin', 'scripts/change_node_ha',
+             'scripts/add_new_node'],
     cmdclass={
         'install': PostInstall,
         'develop': PostInstallDev

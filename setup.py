@@ -7,8 +7,6 @@ from setuptools import setup, find_packages, __version__
 from setuptools.command.develop import develop
 from setuptools.command.install import install
 
-from sovrin_common.setup_util import Setup
-
 v = sys.version_info
 if sys.version_info < (3, 5):
     msg = "FAIL: Requires Python 3.5 or later, " \
@@ -37,7 +35,8 @@ exec(compile(open(METADATA).read(), METADATA, 'exec'))
 
 # create base dir if not already exists
 BASE_DIR = os.path.join(os.path.expanduser("~"), ".sovrin")
-for path in (BASE_DIR):
+SAMPLE_DIR = os.path.join(BASE_DIR, ".sovrin")
+for path in [BASE_DIR, SAMPLE_DIR]:
     if not os.path.exists(path):
         os.makedirs(path)
 

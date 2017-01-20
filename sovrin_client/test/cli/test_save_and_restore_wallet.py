@@ -137,7 +137,28 @@ def restartCli(cli, be, do, expectedRestoredWalletName,
     assert len(cli._activeWallet.identifiers) == expectedIdentifiers
 
 
-def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, aliceMultiNodePools):
+def restartCliWithCorruptedWalletFile(cli, be, do, filePath):
+    with open(filePath, "a") as myfile:
+        myfile.write("appended text to corrupt wallet file")
+
+    be(cli)
+    _connectTo("pool1", do, cli)
+    do(None,
+       expect=[
+           'error occurred while restoring wallet',
+           'New keyring Default_',
+           'Active keyring set to "Default_',
+       ],
+       not_expect=[
+           'Saved keyring "Default" restored',
+           'New keyring Default created',
+           'Active keyring set to "Default"'
+    ], within=5)
+
+
+def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
+                             aliceMultiNodePools,
+                             earlMultiNodePools):
     be(cliForMultiNodePools)
     # No wallet should have been restored
     assert cliForMultiNodePools._activeWallet is None
@@ -172,6 +193,17 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, aliceMultiNodePools):
               restoredWalletKeyName="mykr1", restoredIdentifiers=1)
     useKeyring(filePath, do, expectedName="mykr0",
                expectedMsgs=['Saved keyring "Default" restored'])
+
+    # exit from current cli so that active wallet gets saved
     exitFromCli(do)
 
+    # different tests for restoring saved wallet
+    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getKeyringsBaseDir(),
+                                     cliForMultiNodePools.walletFileName)
     restartCli(aliceMultiNodePools, be, do, "Default", 2)
+    restartCliWithCorruptedWalletFile(earlMultiNodePools, be, do, filePath)
+
+
+def testRestoreWalletFile(aliceCLI):
+    path = "tmp_wallet_restore_issue"
+    aliceCLI.restoreWalletByPath(path)

@@ -1109,6 +1109,7 @@ def savedKeyringRestored():
     return ['Saved keyring {keyring-name} restored']
 
 
+# TODO: Need to refactor following three fixture to reuse code
 @pytest.yield_fixture(scope="module")
 def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
                          tdirWithPoolTxns, tdirWithDomainTxns, tconf):
@@ -1135,6 +1136,23 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                              multiPoolNodesCreated) ("alice")
+
+    def reset():
+        tconf.ENVS = oldENVS
+        tconf.poolTransactionsFile = oldPoolTxnFile
+        tconf.domainTransactionsFile = oldDomainTxnFile
+
+    request.addfinalizer(reset)
+
+@pytest.yield_fixture(scope="module")
+def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
+                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+    oldENVS = tconf.ENVS
+    oldPoolTxnFile = tconf.poolTransactionsFile
+    oldDomainTxnFile = tconf.domainTransactionsFile
+
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+                             multiPoolNodesCreated) ("earl")
 
     def reset():
         tconf.ENVS = oldENVS

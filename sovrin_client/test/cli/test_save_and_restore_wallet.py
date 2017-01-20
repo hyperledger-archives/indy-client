@@ -184,8 +184,8 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
               restoredWalletKeyName="Default", restoredIdentifiers=2)
     createNewKeyring("mykr0", do,
                      expectedMsgs = [
-                         "mykr0 conflicts with an existing keyring name",
-                         "Please choose a new name"])
+                         '"mykr0" conflicts with an existing keyring',
+                         'Please choose a new name.'])
 
     filePath = Cli.getWalletFilePath(cliForMultiNodePools.getKeyringsBaseDir(),
                                      cliForMultiNodePools.walletFileName)

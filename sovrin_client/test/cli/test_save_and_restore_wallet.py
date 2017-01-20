@@ -4,7 +4,7 @@ from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
-from sovrin_client.test.cli.helper import prompt_is
+from sovrin_client.test.cli.helper import prompt_is, exitFromCli
 
 
 def performExit(do):
@@ -125,17 +125,11 @@ def switchEnv(newEnvName, do, cli, checkIfWalletRestored=False,
         checkWalletRestored(restoredWalletKeyName, cli, restoredIdentifiers)
 
 
-def exit(do):
-    with pytest.raises(Exit):
-        do('exit', expect='Goodbye.')
-
-
-def restartCli(CliBuilder, be, do, expectedRestoredWalletName,
+def restartCli(cli, be, do, expectedRestoredWalletName,
                expectedIdentifiers):
-    cli = yield from CliBuilder("alice")
     be(cli)
+    _connectTo("pool1", do, cli)
     do(None, expect=[
-        'Running Sovrin',
         'Saved keyring "{}" restored'.format(expectedRestoredWalletName),
         'Active keyring set to "{}"'.format(expectedRestoredWalletName)
     ], within=5)
@@ -143,7 +137,7 @@ def restartCli(CliBuilder, be, do, expectedRestoredWalletName,
     assert len(cli._activeWallet.identifiers) == expectedIdentifiers
 
 
-def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, CliBuilder):
+def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, aliceMultiNodePools):
     be(cliForMultiNodePools)
     # No wallet should have been restored
     assert cliForMultiNodePools._activeWallet is None
@@ -159,7 +153,7 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, CliBuilder):
     createNewKey(do, cliForMultiNodePools, keyringName="mykr0")
     useKeyring("Default", do)
     createNewKey(do, cliForMultiNodePools, keyringName="Default")
-    sleep(20)
+    sleep(10)
     switchEnv("pool1", do, cliForMultiNodePools, checkIfWalletRestored=True,
               restoredWalletKeyName="Default", restoredIdentifiers=1)
     createNewKeyring("mykr1", do)
@@ -178,6 +172,6 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools, CliBuilder):
               restoredWalletKeyName="mykr1", restoredIdentifiers=1)
     useKeyring(filePath, do, expectedName="mykr0",
                expectedMsgs=['Saved keyring "Default" restored'])
-    exit(do)
+    exitFromCli(do)
 
-    restartCli(CliBuilder, be, do, "Default", 1)
+    restartCli(aliceMultiNodePools, be, do, "Default", 2)

@@ -19,7 +19,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
     jobCertClaimRequested, bankBasicClaimSent, bankKYCClaimSent, \
-    setPromptAndKeyring, poolNodesStarted
+    setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
 from sovrin_client.test.cli.helper import newCLI
 

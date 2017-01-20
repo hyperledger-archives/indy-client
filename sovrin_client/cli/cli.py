@@ -32,12 +32,15 @@ from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, ClaimProofRequest
 from sovrin_client.client.wallet.node import Node
+from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_common.auth import Authoriser
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
     LinkNotFound, NotConnectedToNetwork, ClaimDefNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
-    SPONSOR, TXN_ID, REF, getTxnOrderedFields
+    SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
+    START
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
 
@@ -95,6 +98,7 @@ class SovrinCli(PlenumCli):
             'send_cred_def',
             'send_isr_key',
             'send_node',
+            'send_pool_upg',
             'add_genesis',
             'show_file',
             'conn'
@@ -124,6 +128,7 @@ class SovrinCli(PlenumCli):
         completers["send_cred_def"] = WordCompleter(["send", "CLAIM_DEF"])
         completers["send_isr_key"] = WordCompleter(["send", "ISSUER_KEY"])
         completers["send_node"] = WordCompleter(["send", "NODE"])
+        completers["send_pool_upg"] = WordCompleter(["send", "POOL_UPGRADE"])
         completers["add_genesis"] = WordCompleter(
             ["add", "genesis", "transaction"])
         completers["show_file"] = WordCompleter(["show"])
@@ -156,6 +161,7 @@ class SovrinCli(PlenumCli):
                         self._sendGetNymAction,
                         self._sendAttribAction,
                         self._sendNodeAction,
+                        self._sendPoolUpgAction,
                         self._sendClaimDefAction,
                         self._sendIssuerKeyAction,
                         self._addGenesisAction,
@@ -370,6 +376,17 @@ class SovrinCli(PlenumCli):
             return False
         return role
 
+    def _getRole(self, matchedVars):
+        role = matchedVars.get(ROLE)
+        if role is not None and role.strip() == '':
+            role = None
+        if not Authoriser.isValidRole(role):
+            self.print("Invalid role. Valid roles are: {}".
+                       format(", ".join(map(lambda r: r if r else '',
+                                            Authoriser.ValidRoles))), Token.Error)
+            return False
+        return role
+
     def _getNym(self, nym):
         identity = Identity(identifier=nym)
         req = self.activeWallet.requestIdentity(
@@ -486,6 +503,23 @@ class SovrinCli(PlenumCli):
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
                                     req.key, self.activeClient, chk)
 
+    def _sendPoolUpgTxn(self, name, version, action, sha256, schedule=None,
+                        timeout=None):
+        upgrade = Upgrade(name, version, action, sha256, schedule=schedule,
+                          trustee=self.activeIdentifier, timeout=timeout)
+        self.activeWallet.doPoolUpgrade(upgrade)
+        reqs = self.activeWallet.preparePending()
+        req, = self.activeClient.submitReqs(*reqs)
+        self.print("Sending pool upgrade {} for version {}".
+                   format(name, version))
+
+        def chk(reply, error, *args, **kwargs):
+            assert self.activeWallet.getPoolUpgrade(upgrade.key).seqNo is not None
+            self.print("Pool upgrade successful",  Token.BoldBlue)
+
+        self.looper.loop.call_later(.2, self._ensureReqCompleted,
+                                    req.key, self.activeClient, chk)
+
     @staticmethod
     def parseAttributeString(attrs):
         attrInput = {}
@@ -544,6 +578,37 @@ class SovrinCli(PlenumCli):
                 self._sendNodeTxn(nym, data)
             except:
                 self.print('"data" must be in proper format', Token.Error)
+            return True
+
+    def _sendPoolUpgAction(self, matchedVars):
+        if matchedVars.get('send_pool_upg') == 'send POOL_UPGRADE':
+            if not self.canMakeSovrinRequest:
+                return True
+            name = matchedVars.get(NAME).strip()
+            version = matchedVars.get(VERSION).strip()
+            action = matchedVars.get(ACTION).strip()
+            sha256 = matchedVars.get(SHA256).strip()
+            timeout = matchedVars.get(TIMEOUT)
+            schedule = matchedVars.get(SCHEDULE)
+            if action == START:
+                if not schedule:
+                    self.print('{} need to be provided'.format(SCHEDULE),
+                               Token.Error)
+                    return True
+                if not timeout:
+                    self.print('{} need to be provided'.format(TIMEOUT),
+                               Token.Error)
+                    return True
+            try:
+                if schedule:
+                    schedule = ast.literal_eval(schedule.strip())
+            except:
+                self.print('"schedule" must be in proper format', Token.Error)
+                return True
+            if timeout:
+                timeout = int(timeout.strip())
+            self._sendPoolUpgTxn(name, version, action, sha256,
+                                 schedule=schedule, timeout=timeout)
             return True
 
     def _sendClaimDefAction(self, matchedVars):
@@ -1100,7 +1165,9 @@ class SovrinCli(PlenumCli):
                            format(claimReq.name, matchingLink.name))
 
                 self.agent.loop.call_soon(asyncio.ensure_future,
-                                          self._showMatchingClaimProof(claimReq, attributes, matchingLink))
+                                          self._showMatchingClaimProof(claimReq,
+                                                                       attributes,
+                                                                       matchingLink))
             return True
 
     def _showClaim(self, matchedVars):

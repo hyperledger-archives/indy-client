@@ -13,24 +13,24 @@ def prompt_is(prompt):
     return x
 
 
-@pytest.fixture(scope="module")
-def poolNodesStarted(be, do, poolCLI):
-    be(poolCLI)
-
-    do('new node all', within=10,
-       expect=['Alpha now connected to Beta',
-               'Alpha now connected to Gamma',
-               'Alpha now connected to Delta',
-               'Beta now connected to Alpha',
-               'Beta now connected to Gamma',
-               'Beta now connected to Delta',
-               'Gamma now connected to Alpha',
-               'Gamma now connected to Beta',
-               'Gamma now connected to Delta',
-               'Delta now connected to Alpha',
-               'Delta now connected to Beta',
-               'Delta now connected to Gamma'])
-    return poolCLI
+# @pytest.fixture(scope="module")
+# def poolNodesStarted(be, do, poolCLI):
+#     be(poolCLI)
+#
+#     do('new node all', within=10,
+#        expect=['Alpha now connected to Beta',
+#                'Alpha now connected to Gamma',
+#                'Alpha now connected to Delta',
+#                'Beta now connected to Alpha',
+#                'Beta now connected to Gamma',
+#                'Beta now connected to Delta',
+#                'Gamma now connected to Alpha',
+#                'Gamma now connected to Beta',
+#                'Gamma now connected to Delta',
+#                'Delta now connected to Alpha',
+#                'Delta now connected to Beta',
+#                'Delta now connected to Gamma'])
+#     return poolCLI
 
 
 @pytest.fixture(scope="module")

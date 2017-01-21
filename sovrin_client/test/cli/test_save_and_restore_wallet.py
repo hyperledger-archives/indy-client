@@ -1,3 +1,4 @@
+import logging
 import os
 from os.path import basename
 from time import sleep
@@ -206,4 +207,5 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
 
 def testRestoreWalletFile(aliceCLI):
     path = "tmp_wallet_restore_issue"
-    aliceCLI.restoreWalletByPath(path)
+    wallet = aliceCLI.restoreWalletByPath(path)
+    assert wallet is not None

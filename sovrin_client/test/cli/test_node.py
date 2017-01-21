@@ -7,7 +7,7 @@ from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
 from plenum.common.types import CLIENT_STACK_SUFFIX
 from plenum.common.util import randomSeed, randomString
-from sovrin_client.test.cli.test_tutorial import poolNodesStarted, philCli
+from sovrin_client.test.cli.test_tutorial import philCli
 
 
 newStewardSeed = randomSeed()

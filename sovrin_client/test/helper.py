@@ -11,11 +11,11 @@ from plenum.common.types import OP_FIELD_NAME, f
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.common.eventually import eventually
 from plenum.test.helper import initDirWithGenesisTxns
-from plenum.test.test_client import genTestClient
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
 from plenum.test.cli.helper import newCLI as newPlenumCLI
 
+from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import TestCLI
 from sovrin_common.config_util import getConfig
@@ -23,7 +23,7 @@ from sovrin_common.constants import Environment
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client
-from sovrin_node.test.helper import TestNode
+from sovrin_node.test.helper import TestNode, genTestClient
 
 logger = getlogger()
 
@@ -154,6 +154,35 @@ def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
     createNym(looper, idr, creatorClient, creatorWallet, verkey=verkey,
               role=role)
     return wallet
+
+
+def suspendRole(looper, actingClient, actingWallet, did):
+    idy = Identity(identifier=did, role=None)
+    if actingWallet.getSponsoredIdentity(did):
+        actingWallet.updateSponsoredIdentity(idy)
+    else:
+        actingWallet.addSponsoredIdentity(idy)
+    reqs = actingWallet.preparePending()
+    actingClient.submitReqs(*reqs)
+
+    def chk():
+        assert actingWallet.getSponsoredIdentity(did).seqNo is not None
+
+    looper.run(eventually(chk, retryWait=1, timeout=5))
+
+
+def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
+                      schedule, timeout, sha256):
+    upgrade = Upgrade(name, action, schedule, version, sha256, timeout,
+                      senderWallet.defaultId)
+    senderWallet.doPoolUpgrade(upgrade)
+    reqs = senderWallet.preparePending()
+    senderClient.submitReqs(*reqs)
+
+    def check():
+        assert senderWallet._upgrades[upgrade.key].seqNo
+
+    looper.run(eventually(check, timeout=4))
 
 
 def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):

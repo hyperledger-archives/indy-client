@@ -1127,6 +1127,7 @@ def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
 
     request.addfinalizer(reset)
 
+
 @pytest.yield_fixture(scope="module")
 def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
                          tdirWithPoolTxns, tdirWithDomainTxns, tconf):
@@ -1144,6 +1145,7 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
     request.addfinalizer(reset)
 
+
 @pytest.yield_fixture(scope="module")
 def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
                          tdirWithPoolTxns, tdirWithDomainTxns, tconf):
@@ -1160,3 +1162,53 @@ def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
         tconf.domainTransactionsFile = oldDomainTxnFile
 
     request.addfinalizer(reset)
+
+
+@pytest.yield_fixture(scope="module")
+def trusteeCLI(CliBuilder):
+    yield from CliBuilder("newTrustee")
+
+
+@pytest.fixture(scope="module")
+def trusteeMap(trusteeWallet):
+    return {
+        'trusteeSeed': bytes(trusteeWallet._signerById(
+            trusteeWallet.defaultId).sk).decode(),
+        'trusteeIdr': trusteeWallet.defaultId,
+    }
+
+
+@pytest.fixture(scope="module")
+def trusteeCli(be, do, trusteeMap, poolNodesStarted,
+               connectedToTest, nymAddedOut, trusteeCLI):
+    be(trusteeCLI)
+    do('new key with seed {trusteeSeed}', expect=[
+        'Identifier for key is {trusteeIdr}',
+        'Current identifier set to {trusteeIdr}'],
+       mapper=trusteeMap)
+
+    if not trusteeCLI._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    return trusteeCLI
+
+
+@pytest.fixture(scope="module")
+def poolNodesStarted(be, do, poolCLI):
+    be(poolCLI)
+
+    do('new node all', within=6,
+       expect=['Alpha now connected to Beta',
+               'Alpha now connected to Gamma',
+               'Alpha now connected to Delta',
+               'Beta now connected to Alpha',
+               'Beta now connected to Gamma',
+               'Beta now connected to Delta',
+               'Gamma now connected to Alpha',
+               'Gamma now connected to Beta',
+               'Gamma now connected to Delta',
+               'Delta now connected to Alpha',
+               'Delta now connected to Beta',
+               'Delta now connected to Gamma'])
+    return poolCLI

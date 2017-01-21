@@ -1,6 +1,6 @@
 import pytest
 
-from sovrin_client.test.cli.test_tutorial import prompt_is, poolNodesStarted
+from sovrin_client.test.cli.test_tutorial import prompt_is
 from plenum.common.eventually import eventually
 from plenum.cli.cli import Exit
 

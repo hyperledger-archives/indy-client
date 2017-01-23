@@ -1,6 +1,6 @@
-# Sovrin -- identity for all
+# Sovrin Client
 
-Sovrin Identity Network public/permissioned distributed ledger
+Sovrin Client to interact with Sovrin Network (public/permissioned distributed ledger)
 
 This codebase contains the code to run the CLI that interacts with the ledger.
 

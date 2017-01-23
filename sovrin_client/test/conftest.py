@@ -27,12 +27,12 @@ from ledger.serializers.compact_serializer import CompactSerializer
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR
+    ALIAS, SERVICES, VALIDATOR, TYPE
 from plenum.test.plugin.helper import getPluginPath
 from plenum.test.conftest import patchPluginManager
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import STEWARD, NYM, SPONSOR
+from sovrin_common.txn import STEWARD, NYM, SPONSOR, TRUSTEE
 from sovrin_common.txn import TXN_TYPE, TARGET_NYM, TXN_ID, ROLE, \
     getTxnOrderedFields
 from sovrin_common.config_util import getConfig
@@ -88,11 +88,13 @@ def updatedPoolTxnData(poolTxnData):
     data = poolTxnData
     trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
-    t = {"dest": signer.verkey,
-         "role": "TRUSTEE",
-         "type": "NYM",
-         "alias": "Trustee1",
-         "txnId": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4a"}
+    t = {
+        TARGET_NYM: signer.verkey,
+        ROLE: TRUSTEE,
+        TYPE: NYM,
+        ALIAS: "Trustee1",
+        TXN_ID: "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4a"
+    }
     data["seeds"]["Trustee1"] = trusteeSeed
     data["txns"].insert(0, t)
     return data

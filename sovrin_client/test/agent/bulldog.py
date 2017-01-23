@@ -10,7 +10,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildBulldogWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_node.test.conftest import primes
+from sovrin_client.test.conftest import primes
 from sovrin_client.test.helper import TestClient
 from sovrin_client.test.agent.bulldog_helper import bulldogLogger
 

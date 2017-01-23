@@ -206,6 +206,7 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
 
 
 def testRestoreWalletFile(aliceCLI):
-    path = "tmp_wallet_restore_issue"
-    wallet = aliceCLI.restoreWalletByPath(path)
+    curPath = os.path.dirname(os.path.realpath(__file__))
+    fileName = "tmp_wallet_restore_issue"
+    wallet = aliceCLI.restoreWalletByPath(os.path.join(curPath, fileName))
     assert wallet is not None

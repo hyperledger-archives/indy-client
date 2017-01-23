@@ -86,7 +86,8 @@ class SovrinCli(PlenumCli):
         # set attributes
         self._agent = None
 
-    def getCliVersion(self):
+    @staticmethod
+    def getCliVersion():
         return __version__
 
     @property
@@ -339,7 +340,6 @@ class SovrinCli(PlenumCli):
                                               self._handleNotConnectedToAnyEnv)
             self.looper.add(self._agent)
         return self._agent
-
 
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))

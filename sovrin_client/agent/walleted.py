@@ -140,16 +140,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     # use `verifySignature` instead
     def verifyAndGetLink(self, msg):
         body, (frm, ha) = msg
-        # key = body.get(f.IDENTIFIER.nm)
-        #
-        # signature = body.get(f.SIG.nm)
-        # verified = verifySig(key, signature, body)
-        # if not self.verifySignature(body):
-        #     self.logAndSendErrorResp(frm, body, "Signature Rejected",
-        #                              "Signature verification failed for msg: {}"
-        #                              .format(str(msg)))
-        #     return None
-
         nonce = body.get(NONCE)
         try:
             return self.linkFromNonce(nonce,

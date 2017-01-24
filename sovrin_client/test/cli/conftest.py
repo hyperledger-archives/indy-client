@@ -170,8 +170,7 @@ def thriftMap(agentIpAddress, thriftAgentPort):
 @pytest.fixture(scope="module")
 def loadInviteOut(nextCommandsToTryUsageLine):
     return ["1 link invitation found for {inviter}.",
-            "Creating Link for {inviter}.",
-            "Generating Identifier and Signing key."] + \
+            "Creating Link for {inviter}."] + \
            nextCommandsToTryUsageLine + \
            ['accept invitation from "{inviter}"',
             'show link "{inviter}"']

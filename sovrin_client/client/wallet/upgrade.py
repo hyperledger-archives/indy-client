@@ -1,19 +1,22 @@
 from plenum.common.txn import TXN_TYPE, NAME, VERSION
 from plenum.common.types import Identifier
 from sovrin_common.generates_request import GeneratesRequest
-from sovrin_common.txn import POOL_UPGRADE, ACTION, SCHEDULE, SHA256, TIMEOUT
+from sovrin_common.txn import POOL_UPGRADE, ACTION, SCHEDULE, SHA256, TIMEOUT, \
+    START, JUSTIFICATION
 from sovrin_common.types import Request
 
 
 class Upgrade(GeneratesRequest):
     def __init__(self, name: str, version: str, action: str, sha256: str,
-                 trustee: Identifier, schedule: dict=None, timeout=None):
+                 trustee: Identifier, schedule: dict=None, timeout=None,
+                 justification=None):
         self.name = name
         self.version = version
         self.action = action
         self.schedule = schedule
         self.sha256 = sha256
         self.timeout = timeout
+        self.justification = justification
         self.trustee = trustee
         self.seqNo = None
 
@@ -23,10 +26,18 @@ class Upgrade(GeneratesRequest):
             NAME: self.name,
             VERSION: self.version,
             ACTION: self.action,
-            SCHEDULE: self.schedule,
-            SHA256: self.sha256,
-            TIMEOUT: self.timeout
+            SHA256: self.sha256
         }
+        if self.action == START:
+            op.update({
+                SCHEDULE: self.schedule,
+                TIMEOUT: self.timeout
+            })
+
+        if self.action == START:
+            op.update({
+                JUSTIFICATION: self.justification
+            })
         return op
 
     @property

@@ -40,7 +40,7 @@ from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
     SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
-    START
+    START, JUSTIFICATION
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
 
@@ -504,9 +504,10 @@ class SovrinCli(PlenumCli):
                                     req.key, self.activeClient, chk)
 
     def _sendPoolUpgTxn(self, name, version, action, sha256, schedule=None,
-                        timeout=None):
+                        justification=None, timeout=None):
         upgrade = Upgrade(name, version, action, sha256, schedule=schedule,
-                          trustee=self.activeIdentifier, timeout=timeout)
+                          trustee=self.activeIdentifier, timeout=timeout,
+                          justification=justification)
         self.activeWallet.doPoolUpgrade(upgrade)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
@@ -590,6 +591,7 @@ class SovrinCli(PlenumCli):
             sha256 = matchedVars.get(SHA256).strip()
             timeout = matchedVars.get(TIMEOUT)
             schedule = matchedVars.get(SCHEDULE)
+            justification = matchedVars.get(JUSTIFICATION)
             if action == START:
                 if not schedule:
                     self.print('{} need to be provided'.format(SCHEDULE),
@@ -608,7 +610,8 @@ class SovrinCli(PlenumCli):
             if timeout:
                 timeout = int(timeout.strip())
             self._sendPoolUpgTxn(name, version, action, sha256,
-                                 schedule=schedule, timeout=timeout)
+                                 schedule=schedule, timeout=timeout,
+                                 justification=justification)
             return True
 
     def _sendClaimDefAction(self, matchedVars):

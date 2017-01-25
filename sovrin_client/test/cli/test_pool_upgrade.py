@@ -48,8 +48,6 @@ def testPoolUpgradeSent(poolUpgradeScheduled):
     pass
 
 
-# TODO: This test fails due to invalid regex. Fix it LH and change regex too by
-#  removing timeout
 def testPoolUpgradeCancelled(poolUpgradeCancelled, poolNodesStarted):
     nodes = poolNodesStarted.nodes.values()
     poolNodesStarted.looper.run(

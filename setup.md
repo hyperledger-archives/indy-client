@@ -44,7 +44,7 @@ And the second is
 ReqReplyStore = "file"
 ```
 
-#### Start Sovrin client CLI (command line interface)
+### Start Sovrin client CLI (command line interface)
 Once installed, you can play with the command-line interface by running Sovrin from a terminal.
 
 Note: For Windows, we recommended using either [cmder](http://cmder.net/) or [conemu](https://conemu.github.io/).

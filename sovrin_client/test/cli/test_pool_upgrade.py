@@ -4,7 +4,7 @@ import pytest
 
 from plenum.common.eventually import eventually
 from plenum.common.txn import VERSION
-from sovrin_common.txn import ACTION, CANCEL
+from sovrin_common.txn import ACTION, CANCEL, JUSTIFICATION
 from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \
     checkNoUpgradeScheduled
 from sovrin_node.test.upgrade.conftest import validUpgrade
@@ -36,8 +36,10 @@ def poolUpgradeCancelled(poolUpgradeScheduled, be, do, trusteeCli,
                          validUpgrade, trusteeMap):
     validUpgrade = copy(validUpgrade)
     validUpgrade[ACTION] = CANCEL
+    validUpgrade[JUSTIFICATION] = '"not gonna give you one"'
+
     do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
-       'action={action}',
+       'action={action} justification={justification}',
        within=10,
        expect=['Pool upgrade successful'], mapper=validUpgrade)
 

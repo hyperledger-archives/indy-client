@@ -147,8 +147,9 @@ SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
                        "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
                        "\s*(?P<sha256_key>sha256=)\s*(?P<sha256>[a-f0-9]+)" \
                        "(\s+ (?P<action_key>action=)\s*(?P<action>start|cancel))" \
+                       '(\s+ (?P<justification_key>justification=)\s*(?P<justification>\"[a-zA-z0-9-_\s]+\") \s*)? ' \
                        "(\s+ (?P<schedule_key>schedule=)\s*(?P<schedule>\{\s*.*\}) \s*)? " \
-                       "(\s+ (?P<timeout_key>timeout=) \s* (?P<timeout>[0-9+]+))?)"
+                       "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)"
 
 
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)

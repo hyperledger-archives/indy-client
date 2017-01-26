@@ -181,3 +181,23 @@ def testSetAttribute(grammar):
 
 def testSendClaim(grammar):
     getMatchedVariables(grammar, 'send claim Job-Application to Acme')
+
+
+def testSendPoolUpgrade(grammar):
+    # Testing for start
+    getMatchedVariables(grammar, "send POOL_UPGRADE name=upgrade-13 "
+                                 "version=0.0.6 sha256=aad1242 action=start "
+                                 "schedule={'AtDfpKFe1RPgcr5nnYBw1Wxkgyn8Zjyh5MzFoEUTeoV3': "
+                                 "'2017-01-25T12:49:05.258870+00:00', "
+                                 "'4yC546FFzorLPgTNTc6V43DnpFrR8uHvtunBxb2Suaa2': "
+                                 "'2017-01-25T12:33:53.258870+00:00', "
+                                 "'JpYerf4CssDrH76z7jyQPJLnZ1vwYgvKbvcp16AB5RQ': "
+                                 "'2017-01-25T12:44:01.258870+00:00', "
+                                 "'DG5M4zFm33Shrhjj6JB7nmx9BoNJUq219UXDfvwBDPe2': "
+                                 "'2017-01-25T12:38:57.258870+00:00'} "
+                                 "timeout=10")
+
+    # Testing for cancel
+    getMatchedVariables(grammar, 'send POOL_UPGRADE name=upgrade-13 version=0.0.6 '
+                                 'sha256=aad1242 action=cancel '
+                                 'justification="not gonna give you"')

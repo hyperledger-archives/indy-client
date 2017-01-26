@@ -52,19 +52,23 @@ fn nym_with_malformed_request_fails() {
     ximpl!()
 }
 
+#[test]
 fn attr_with_valid_params_succeeds() {
     ximpl!()
 }
 
+#[test]
 fn attr_with_invalid_params_fails() {
     // Things to check: non-existent NYM or a NYM that we don't own; an attrib that's null.
     ximpl!()
 }
 
+#[test]
 fn get_attr_with_valid_params_succeeds() {
     ximpl!()
 }
 
+#[test]
 fn get_attr_with_invalid_params_fails() {
     // Things to check: non-existent NYM or a NYM that we don't own; an attrib that's null.
     ximpl!()

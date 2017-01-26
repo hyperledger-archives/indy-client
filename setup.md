@@ -31,6 +31,8 @@ python setup.py pytest
 pip install -U --no-cache-dir sovrin-client
 ```
 
+Note. The tests create Sovrin nodes (dont worry, all nodes are created in the same process) which require OrientDB to be running. You can install OrientDB from [here](https://github.com/sovrin-foundation/sovrin-common/blob/master/orientdb_installation.md).
+
 #### Configuration
 A Sovrin client can be configured to use flat files or OrientDB for persistence. To use files instead of OrientDB you need to add 2 entries 
 in your configuration located at `~/.sovrin/sovrin_config.py`.

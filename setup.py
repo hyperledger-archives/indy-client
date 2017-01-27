@@ -78,7 +78,7 @@ setup(
     license=__license__,
     keywords='Sovrin Client',
     packages=find_packages(exclude=['test', 'test.*', 'docs', 'docs*']) + [
-        'sample'],
+        'sample', 'data'],
     package_data={
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},

@@ -25,11 +25,13 @@ mod tests;
 ///
 /// @return the id of the client on success (in which case the number will be non-negative),
 ///     or an error code on failure (in which case the number will be negative).
+#[no_mangle]
 pub extern fn init_client(host_and_port: &str) -> i32 {
     0
 }
 
 /// Release a client to free its resources. This call is idempotent.
+#[no_mangle]
 pub extern fn release_client(client_id: i32) -> i32 {
     0
 }

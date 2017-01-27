@@ -3,6 +3,10 @@ name = "sovclient"
 version = "0.1.0"
 authors = ["Daniel Hardman <daniel.hardman@gmail.com>"]
 
+[lib]
+name = "sovclient"
+crate-type = ["dylib"]
+
 [dependencies]
 libc = "0.2.0"
 

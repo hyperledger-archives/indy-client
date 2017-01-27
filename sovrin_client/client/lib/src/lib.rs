@@ -51,7 +51,7 @@ pub extern fn set_did(client_id: i32, dest: &str, verkey: &str, xref: &str, data
 
 /// Look up information about a DID.
 #[no_mangle]
-pub fn get_did(client_id: i32, did: &str) {
+pub extern fn get_did(client_id: i32, did: &str) {
 }
 
 /// Set an arbitrary attribute for a DID.
@@ -62,30 +62,30 @@ pub fn get_did(client_id: i32, did: &str) {
 ///     office; it should be null for data that has any privacy constraints.
 /// @param enc: the encrypted bytes of the attribute value.
 #[no_mangle]
-pub fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &str) {
+pub extern fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &str) {
 }
 
 /// Get an arbitrary attribute for a DID.
 #[no_mangle]
-pub fn get_attr(client_id: i32) {
+pub extern fn get_attr(client_id: i32) {
 }
 
 /// Define a schema on the ledger (e.g., for a claim type or proof type).
 #[no_mangle]
-pub fn set_schema(client_id: i32) {
+pub extern fn set_schema(client_id: i32) {
 }
 
 /// Retrieve the definition for a particular schema, as stored on the ledger.
 #[no_mangle]
-pub fn get_schema(client_id: i32) {
+pub extern fn get_schema(client_id: i32) {
 }
 
 #[no_mangle]
-pub fn set_issuer_key(client_id: i32) {
+pub extern fn set_issuer_key(client_id: i32) {
 }
 
 #[no_mangle]
-pub fn get_issuer_key(client_id: i32) {
+pub extern fn get_issuer_key(client_id: i32) {
 }
 
 // TODO: NODE, PROPOSE, CANCEL, EXECUTE, VOTE, CONFIG, DECRY

@@ -68,6 +68,8 @@ class SovrinCli(PlenumCli):
     name = 'sovrin'
     properName = 'Sovrin'
     fullName = 'Sovrin Identity platform'
+    githubUrl = 'https://github.com/sovrin-foundation/sovrin-client'
+
     NodeClass = nodeClass
     ClientClass = Client
     _genesisTransactions = []

@@ -241,24 +241,24 @@ Now lets say you want to run 4 nodes on 4 different machines as
 For this
 On machine with IP 191.177.76.26 you will run
 ```
-~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 1 --ips '191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45'
+~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 1 --ips 191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45
 This node with name Node1 will use ports 9701 and 9702 for nodestack and clientstack respectively
 ```
 
 On machine with IP 22.185.194.102 you will run
 ```
-~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 2 --ips '191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45'
+~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 2 --ips 191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45
 This node with name Node2 will use ports 9703 and 9704 for nodestack and clientstack respectively
 ```
 
 On machine with IP 247.81.153.79 you will run
 ```
-~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 3 --ips '191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45'
+~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 3 --ips 191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45
 This node with name Node3 will use ports 9705 and 9706 for nodestack and clientstack respectively
 ```
 
 On machine with IP 93.125.199.45 you will run
 ```
-~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 4 --ips '191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45'
+~$ generate_sovrin_pool_transactions --nodes 4 --clients 5 --nodeNum 4 --ips 191.177.76.26,22.185.194.102,247.81.153.79,93.125.199.45
 This node with name Node4 will use ports 9707 and 9708 for nodestack and clientstack respectively
 ```

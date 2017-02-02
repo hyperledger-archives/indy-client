@@ -3,6 +3,8 @@ from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
+from plenum.common.util import createDirIfNotExists
+from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import prompt_is, exitFromCli
 
 
@@ -12,7 +14,6 @@ def performExit(do):
 
 
 def testPersistentWalletName():
-    cliName = "sovrin"
 
     # Connects to "test" environment
     walletFileName = Cli._normalizedWalletFileName("test")
@@ -203,7 +204,13 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
 
 
 def testRestoreWalletFile(aliceCLI):
-    curPath = os.path.dirname(os.path.realpath(__file__))
+    import shutil
     fileName = "tmp_wallet_restore_issue"
-    wallet = aliceCLI.restoreWalletByPath(os.path.join(curPath, fileName))
-    assert wallet is not None
+    curPath = os.path.dirname(os.path.realpath(__file__))
+    walletFilePath = os.path.join(curPath, fileName)
+    keyringsDir = aliceCLI.getKeyringsBaseDir()
+    createDirIfNotExists(keyringsDir)
+    shutil.copy2(walletFilePath, keyringsDir)
+    targetWalletFilePath = os.path.join(keyringsDir, fileName)
+    wallet = aliceCLI.restoreWalletByPath(targetWalletFilePath)
+    assert wallet is not None and isinstance(wallet, Wallet)

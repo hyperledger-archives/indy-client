@@ -673,12 +673,12 @@ class SovrinCli(PlenumCli):
         self.print("\n{}".format(USAGE_TEXT))
         self.printUsageMsgs(msgs)
 
-    def getWalletNotExistsForGivenContextMsg(self, context):
+    def getWalletNotExistsForGivenContextMsg(self, filePath):
         return \
             "Given wallet file ({}) doesn't belong to current environment. " \
             "\nPlease connect to that environment or disconnect " \
             "if given wallet file doesn't belong to any environment " \
-            "and then retry.".format(context)
+            "and then retry.".format(filePath)
 
     def _loadFile(self, matchedVars):
         if matchedVars.get('load_file') == 'load':
@@ -1274,6 +1274,10 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    def updateEnvNameInWallet(self):
+        if self._activeWallet.getEnvName is None:
+            self._activeWallet.env = self.getActiveEnv
+            
     def getStatus(self):
         # TODO: This needs to show active keyring and active identifier
         if not self.activeEnv:
@@ -1436,7 +1440,6 @@ class SovrinCli(PlenumCli):
             self._printNotConnectedEnvMessage()
             return False
         return True
-
 
 class DummyClient:
     def submitReqs(self, *reqs):

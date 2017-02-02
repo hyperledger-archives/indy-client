@@ -4,6 +4,25 @@ from plenum.common.eventually import eventually
 from sovrin_client.test.cli.helper import checkConnectedToEnv, prompt_is
 
 
+@pytest.fixture(scope="module")
+def aliceCli(aliceCLI):
+    return aliceCLI
+
+
+def testDisconnect(do, be, poolNodesCreated, aliceCli):
+    be(aliceCli)
+    do(None, expect=prompt_is("sovrin"))
+    do('disconnect', within=1, expect=['Not connected to any environment.'])
+    do(None, expect=prompt_is("sovrin"))
+    do('connect test', within=5, expect=["Connected to test"])
+    do(None, expect=prompt_is("sovrin@test"))
+    do('disconnect', within=1, expect=[
+        'Disconnecting from test ...',
+        'Disconnected from test'
+    ])
+    do(None, expect=prompt_is("sovrin"))
+
+
 def testConnectEnv(poolNodesCreated, looper, notConnectedStatus):
     poolCLI = poolNodesCreated
     notConnectedMsgs = notConnectedStatus
@@ -48,14 +67,3 @@ def testSusanConnectsToDifferentPools(do, be, cliForMultiNodePools):
     do(None, expect=prompt_is("sovrin@pool2"))
     do('connect pool1', within=5, expect=["Connected to pool1"])
     do(None, expect=prompt_is("sovrin@pool1"))
-
-
-def testDisconnect(do, be, cliForMultiNodePools):
-    be(cliForMultiNodePools)
-    do(None, expect=prompt_is("sovrin"))
-    do('disconnect', within=1, expect=['Not connected to any environment.'])
-    do('connect pool1', within=5, expect=["Connected to pool1"])
-    do('disconnect', within=1, expect=[
-        'Disconnecting from pool1 ...',
-        'Disconnected from pool1'
-    ])

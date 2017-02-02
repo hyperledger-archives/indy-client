@@ -48,3 +48,14 @@ def testSusanConnectsToDifferentPools(do, be, cliForMultiNodePools):
     do(None, expect=prompt_is("sovrin@pool2"))
     do('connect pool1', within=5, expect=["Connected to pool1"])
     do(None, expect=prompt_is("sovrin@pool1"))
+
+
+def testDisconnect(do, be, cliForMultiNodePools):
+    be(cliForMultiNodePools)
+    do(None, expect=prompt_is("sovrin"))
+    do('disconnect', within=1, expect=['Not connected to any environment.'])
+    do('connect pool1', within=5, expect=["Connected to pool1"])
+    do('disconnect', within=1, expect=[
+        'Disconnecting from pool1 ...',
+        'Disconnected from pool1'
+    ])

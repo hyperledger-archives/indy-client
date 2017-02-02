@@ -104,7 +104,8 @@ class SovrinCli(PlenumCli):
             'send_pool_upg',
             'add_genesis',
             'show_file',
-            'conn'
+            'conn',
+            'disconn',
             'load_file',
             'show_link',
             'sync_link',
@@ -138,6 +139,7 @@ class SovrinCli(PlenumCli):
         completers["load_file"] = WordCompleter(["load"])
         completers["show_link"] = WordCompleter(["show", "link"])
         completers["conn"] = WordCompleter(["connect"])
+        completers["disconn"] = WordCompleter(["disconnect"])
         completers["env_name"] = WordCompleter(list(self.config.ENVS.keys()))
         completers["sync_link"] = WordCompleter(["sync"])
         completers["ping_target"] = WordCompleter(["ping"])
@@ -172,6 +174,7 @@ class SovrinCli(PlenumCli):
                         self._loadFile,
                         self._showLink,
                         self._connectTo,
+                        self._disconnect,
                         self._syncLink,
                         self._pingTarget,
                         self._showClaim,
@@ -669,6 +672,13 @@ class SovrinCli(PlenumCli):
     def printUsage(self, msgs):
         self.print("\n{}".format(USAGE_TEXT))
         self.printUsageMsgs(msgs)
+
+    def getWalletNotExistsForGivenContextMsg(self, context):
+        return \
+            "Given wallet file ({}) doesn't belong to current environment. " \
+            "\nPlease connect to that environment or disconnect " \
+            "if given wallet file doesn't belong to any environment " \
+            "and then retry.".format(context)
 
     def _loadFile(self, matchedVars):
         if matchedVars.get('load_file') == 'load':
@@ -1207,6 +1217,30 @@ class SovrinCli(PlenumCli):
                                            self.envs[envName].poolLedger)):
             return "Do not have information to connect to {}".format(envName)
 
+    def _disconnect(self, matchedVars):
+        if matchedVars.get('disconn') == 'disconnect':
+            self._disconnectFromCurrentEnv()
+            return True
+
+    def _disconnectFromCurrentEnv(self, toConnectToNewEnv=None):
+        oldEnv = self.activeEnv
+        if oldEnv:
+            self._saveActiveWallet()
+            self._wallets = {}
+            self._activeWallet = None
+            self.print("Disconnecting from {} ...".format(self.activeEnv))
+            self._activeClient = None
+            self.activeEnv = None
+            self.config.poolTransactionsFile = None
+            self.config.domainTransactionsFile = None
+            self._setPrompt(self.currPromptText.replace("{}{}".format(
+                PROMPT_ENV_SEPARATOR, oldEnv), ""))
+            self.print("Disconnected from {}".format(oldEnv), Token.BoldGreen)
+            self.restoreLastActiveWallet()
+        else:
+            if not toConnectToNewEnv:
+                self.print("Not connected to any environment.")
+
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':
             envName = matchedVars.get('env_name')
@@ -1218,19 +1252,13 @@ class SovrinCli(PlenumCli):
                 oldEnv = self.activeEnv
                 isAnyWalletExistsForNewEnv = \
                     self.isAnyWalletFileExistsForGivenEnv(envName)
+
                 if oldEnv or isAnyWalletExistsForNewEnv:
-                    self._saveActiveWallet()
-                    self._wallets = {}
-                    self._activeWallet = None
-                # Using `_activeClient` instead of `activeClient` since using
-                # `_activeClient` will initialize a client if not done already
-                if self.activeEnv:
-                    self.print("Disconnecting from {}".format(self.activeEnv))
-                    self._activeClient = None
+                    self._disconnectFromCurrentEnv(envName)
+
                 self.config.poolTransactionsFile = self.envs[envName].poolLedger
                 self.config.domainTransactionsFile = \
                     self.envs[envName].domainLedger
-
                 # Prompt has to be changed, so it show the environment too
                 self.activeEnv = envName
                 self._setPrompt(self.currPromptText.replace("{}{}".format(

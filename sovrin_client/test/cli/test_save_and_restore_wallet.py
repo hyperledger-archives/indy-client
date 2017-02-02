@@ -187,10 +187,10 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
     useKeyring(filePath, do, expectedName="mykr0",
                expectedMsgs=[
                    "Given wallet file ({}) doesn't "
-                   "belong to current environment. "
-                   "Please connect to that environment or restart cli "
+                   "belong to current environment. ".format(filePath),
+                   "Please connect to that environment or disconnect "
                    "if given wallet file doesn't belong to any "
-                   "environment and then retry.".format(filePath)])
+                   "environment and then retry."])
 
     # exit from current cli so that active wallet gets saved
     exitFromCli(do)

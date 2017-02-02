@@ -1,6 +1,4 @@
-import logging
 import os
-from os.path import basename
 from time import sleep
 
 import pytest
@@ -17,23 +15,18 @@ def testPersistentWalletName():
     cliName = "sovrin"
 
     # Connects to "test" environment
-    walletFileName = Cli.getPersistentWalletFileName(
-        cliName=cliName, currPromptText="sovrin@test")
-    assert "keyring_test" == walletFileName
+    walletFileName = Cli._normalizedWalletFileName("test")
+    assert "test.wallet" == walletFileName
     assert "test" == Cli.getWalletKeyName(walletFileName)
 
     # New default wallet (keyring) gets created
-    walletFileName = Cli.getPersistentWalletFileName(
-        cliName=cliName, currPromptText="sovrin@test",
-        walletName="Default")
-    assert "keyring_default_test" == walletFileName
+    walletFileName = Cli._normalizedWalletFileName("Default")
+    assert "default.wallet" == walletFileName
     assert "default" == Cli.getWalletKeyName(walletFileName)
 
     # User creates new wallet (keyring)
-    walletFileName = Cli.getPersistentWalletFileName(
-        cliName=cliName, currPromptText="sovrin@test",
-        walletName="MyVault")
-    assert "keyring_myvault_test" == walletFileName
+    walletFileName = Cli._normalizedWalletFileName("MyVault")
+    assert "myvault.wallet" == walletFileName
     assert "myvault" == Cli.getWalletKeyName(walletFileName)
 
 
@@ -41,7 +34,7 @@ def checkWalletFilePersisted(filePath):
     assert os.path.exists(filePath)
 
 
-def checkWalletRestored(expectedWalletKeyName, cli,
+def checkWalletRestored(cli, expectedWalletKeyName,
                        expectedIdentifiers):
 
     cli.lastCmdOutput == "Saved keyring {} restored".format(
@@ -52,10 +45,8 @@ def checkWalletRestored(expectedWalletKeyName, cli,
 
 
 def getWalletFilePath(cli):
-    activeWalletName = cli._activeWallet.name if cli._activeWallet else ""
-    fileName = Cli.getPersistentWalletFileName(
-        cli.name, cli.currPromptText, activeWalletName)
-    return Cli.getWalletFilePath(cli.getKeyringsBaseDir(), fileName)
+    fileName = cli.getPersistentWalletFileName()
+    return Cli.getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
 
 
 def getOldIdentifiersForActiveWallet(cli):
@@ -119,11 +110,12 @@ def switchEnv(newEnvName, do, cli, checkIfWalletRestored=False,
               restoredWalletKeyName=None, restoredIdentifiers=0):
     walletFilePath = getWalletFilePath(cli)
     _connectTo(newEnvName, do, cli)
-    # check wallet should have been persisted
 
+    # check wallet should have been persisted
     checkWalletFilePersisted(walletFilePath)
+
     if checkIfWalletRestored:
-        checkWalletRestored(restoredWalletKeyName, cli, restoredIdentifiers)
+        checkWalletRestored(cli, restoredWalletKeyName, restoredIdentifiers)
 
 
 def restartCli(cli, be, do, expectedRestoredWalletName,
@@ -188,20 +180,25 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
                          '"mykr0" conflicts with an existing keyring',
                          'Please choose a new name.'])
 
-    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getKeyringsBaseDir(),
+    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
                                      cliForMultiNodePools.walletFileName)
     switchEnv("pool1", do, cliForMultiNodePools, checkIfWalletRestored=True,
               restoredWalletKeyName="mykr1", restoredIdentifiers=1)
     useKeyring(filePath, do, expectedName="mykr0",
-               expectedMsgs=['Saved keyring "Default" restored'])
+               expectedMsgs=[
+                   "Given wallet file ({}) doesn't "
+                   "belong to current environment. "
+                   "Please connect to that environment or restart cli "
+                   "if given wallet file doesn't belong to any "
+                   "environment and then retry.".format(filePath)])
 
     # exit from current cli so that active wallet gets saved
     exitFromCli(do)
 
     # different tests for restoring saved wallet
-    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getKeyringsBaseDir(),
+    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
                                      cliForMultiNodePools.walletFileName)
-    restartCli(aliceMultiNodePools, be, do, "Default", 2)
+    restartCli(aliceMultiNodePools, be, do, "mykr1", 1)
     restartCliWithCorruptedWalletFile(earlMultiNodePools, be, do, filePath)
 
 

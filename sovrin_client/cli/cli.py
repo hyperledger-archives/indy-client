@@ -1224,22 +1224,28 @@ class SovrinCli(PlenumCli):
 
     def _disconnectFromCurrentEnv(self, toConnectToNewEnv=None):
         oldEnv = self.activeEnv
-        if oldEnv:
-            self._saveActiveWallet()
-            self._wallets = {}
-            self._activeWallet = None
+        if not oldEnv and not toConnectToNewEnv:
+            self.print("Not connected to any environment.")
+            return True
+
+        if not toConnectToNewEnv:
             self.print("Disconnecting from {} ...".format(self.activeEnv))
-            self._activeClient = None
-            self.activeEnv = None
-            self.config.poolTransactionsFile = None
-            self.config.domainTransactionsFile = None
-            self._setPrompt(self.currPromptText.replace("{}{}".format(
-                PROMPT_ENV_SEPARATOR, oldEnv), ""))
+
+        self._saveActiveWallet()
+        self._wallets = {}
+        self._activeWallet = None
+        self._activeClient = None
+        self.activeEnv = None
+        self.config.poolTransactionsFile = None
+        self.config.domainTransactionsFile = None
+        self._setPrompt(self.currPromptText.replace("{}{}".format(
+            PROMPT_ENV_SEPARATOR, oldEnv), ""))
+
+        if not toConnectToNewEnv:
             self.print("Disconnected from {}".format(oldEnv), Token.BoldGreen)
+
+        if toConnectToNewEnv is None:
             self.restoreLastActiveWallet()
-        else:
-            if not toConnectToNewEnv:
-                self.print("Not connected to any environment.")
 
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':

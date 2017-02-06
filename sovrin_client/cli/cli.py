@@ -484,14 +484,12 @@ class SovrinCli(PlenumCli):
         req, = self.activeClient.submitReqs(*reqs)
         self.print("Adding attributes {} for {}".format(data, nym))
 
-        def chk(reply, error, *args, **kwargs):
-
-            assert self.activeWallet.getAttribute(attrib).seqNo is not None
+        def out(reply, error, *args, **kwargs):
             self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
-                                    req.key, self.activeClient, chk)
+                                    req.key, self.activeClient, out)
 
     def _sendNodeTxn(self, nym, data):
         node = Node(nym, data, self.activeIdentifier)
@@ -501,13 +499,12 @@ class SovrinCli(PlenumCli):
         self.print("Sending node request {} by {}".format(nym,
                                                           self.activeIdentifier))
 
-        def chk(reply, error, *args, **kwargs):
-            assert self.activeWallet.getNode(node.id).seqNo is not None
+        def out(reply, error, *args, **kwargs):
             self.print("Node request complete {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
-                                    req.key, self.activeClient, chk)
+                                    req.key, self.activeClient, out)
 
     def _sendPoolUpgTxn(self, name, version, action, sha256, schedule=None,
                         justification=None, timeout=None):
@@ -520,12 +517,11 @@ class SovrinCli(PlenumCli):
         self.print("Sending pool upgrade {} for version {}".
                    format(name, version))
 
-        def chk(reply, error, *args, **kwargs):
-            assert self.activeWallet.getPoolUpgrade(upgrade.key).seqNo is not None
+        def out(reply, error, *args, **kwargs):
             self.print("Pool upgrade successful",  Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
-                                    req.key, self.activeClient, chk)
+                                    req.key, self.activeClient, out)
 
     @staticmethod
     def parseAttributeString(attrs):
@@ -656,8 +652,6 @@ class SovrinCli(PlenumCli):
                        " Sovrin distributed ledger\n", Token.BoldBlue,
                        newline=False)
             self.print("{}".format(str(ipk)))
-            # self.print("Sequence number is {}".format(reply[F.seqNo.name]),
-            #           Token.BoldBlue)
 
             return True
 

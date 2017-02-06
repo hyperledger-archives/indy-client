@@ -42,6 +42,7 @@ class Wallet(PWallet, Sponsoring):
         self._attributes = {}  # type: Dict[(str, Identifier,
         # Optional[Identifier]), Attribute]
 
+        self.env = None     # Helps to know associated environment
         self._nodes = {}
         self._upgrades = {}
 

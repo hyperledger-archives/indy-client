@@ -100,6 +100,8 @@ SHOW_FILE_REG_EX = "(\s*(?P<show_file>show) " \
 
 CONNECT_REG_EX = "(\s*(?P<conn>connect) \s+ (?P<env_name>[A-Za-z0-9-]+)\s*)"
 
+DISCONNECT_REG_EX = "(\s*(?P<disconn>disconnect))"
+
 LOAD_FILE_REG_EX = "(\s*(?P<load_file>load) " \
                    "\s+ (?P<file_path>[A-Za-z0-9+-.=/]+)\s*)"
 
@@ -172,6 +174,7 @@ LOAD_FILE_FORMATTED_REG_EX = getPipedRegEx(LOAD_FILE_REG_EX)
 SHOW_LINK_FORMATTED_REG_EX = getPipedRegEx(SHOW_LINK_REG_EX)
 ADD_ATTRS_PROVER_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRS_PROVER_REG_EX)
 CONNECT_FORMATTED_REG_EX = getPipedRegEx(CONNECT_REG_EX)
+DISCONNECT_FORMATTED_REG_EX = getPipedRegEx(DISCONNECT_REG_EX)
 SYNC_LINK_FORMATTED_REG_EX = getPipedRegEx(SYNC_LINK_REG_EX)
 ACCEPT_LINK_FORMATTED_REG_EX = getPipedRegEx(ACCEPT_LINK_REG_EX)
 SHOW_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REG_EX)

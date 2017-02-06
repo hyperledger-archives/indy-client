@@ -201,3 +201,9 @@ def testSendPoolUpgrade(grammar):
     getMatchedVariables(grammar, 'send POOL_UPGRADE name=upgrade-13 version=0.0.6 '
                                  'sha256=aad1242 action=cancel '
                                  'justification="not gonna give you"')
+
+
+def testDisconnect(grammar):
+    matchedVars = getMatchedVariables(
+        grammar, "disconnect")
+    assertCliTokens(matchedVars, {"disconn": "disconnect"})

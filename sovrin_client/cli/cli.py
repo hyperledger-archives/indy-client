@@ -11,7 +11,7 @@ import asyncio
 
 import base58
 from plenum.cli.cli import Cli as PlenumCli
-from plenum.cli.constants import PROMPT_ENV_SEPARATOR
+from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
@@ -35,6 +35,7 @@ from sovrin_client.client.wallet.node import Node
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.auth import Authoriser
+from sovrin_common.config import ENVS
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
     LinkNotFound, NotConnectedToNetwork, ClaimDefNotFound
 from sovrin_common.identity import Identity
@@ -673,13 +674,6 @@ class SovrinCli(PlenumCli):
         self.print("\n{}".format(USAGE_TEXT))
         self.printUsageMsgs(msgs)
 
-    def getWalletNotExistsForGivenContextMsg(self, filePath):
-        return \
-            "Given wallet file ({}) doesn't belong to current environment. " \
-            "\nPlease connect to that environment or disconnect " \
-            "if given wallet file doesn't belong to any environment " \
-            "and then retry.".format(filePath)
-
     def _loadFile(self, matchedVars):
         if matchedVars.get('load_file') == 'load':
             if not self.agent:
@@ -1247,6 +1241,13 @@ class SovrinCli(PlenumCli):
         if toConnectToNewEnv is None:
             self.restoreLastActiveWallet()
 
+    def printWarningIfActiveWalletIsIncompatible(self):
+        if self._activeWallet:
+            if not self.checkIfWalletBelongsToCurrentContext(self._activeWallet):
+                self.print(self.getWalletContextMistmatchMsg, Token.BoldOrange)
+                self.print("Any changes made to this keyring won't "
+                           "be persisted.", Token.BoldOrange)
+
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':
             envName = matchedVars.get('env_name')
@@ -1273,6 +1274,8 @@ class SovrinCli(PlenumCli):
                 if isAnyWalletExistsForNewEnv:
                     self.restoreLastActiveWallet()
 
+                self.printWarningIfActiveWalletIsIncompatible()
+
                 self._buildClientIfNotExists(self.config)
                 self.print("Connecting to {}...".format(envName), Token.BoldGreen)
 
@@ -1280,9 +1283,15 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    def getAllEnvDirNamesForKeyrings(self):
+        lst = list(ENVS.keys())
+        lst.append(NO_ENV)
+        return lst
+
     def updateEnvNameInWallet(self):
-        if self._activeWallet.getEnvName is None:
-            self._activeWallet.env = self.getActiveEnv
+        if not self._activeWallet.getEnvName:
+            self._activeWallet.env = self.activeEnv if self.activeEnv \
+                else NO_ENV
             
     def getStatus(self):
         # TODO: This needs to show active keyring and active identifier
@@ -1445,6 +1454,10 @@ class SovrinCli(PlenumCli):
         if not self.activeEnv:
             self._printNotConnectedEnvMessage()
             return False
+        if not self.checkIfWalletBelongsToCurrentContext(self._activeWallet):
+            self.print(self.getWalletContextMistmatchMsg, Token.BoldOrange)
+            return False
+
         return True
 
 class DummyClient:

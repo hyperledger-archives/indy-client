@@ -27,12 +27,12 @@ from ledger.serializers.compact_serializer import CompactSerializer
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR
+    ALIAS, SERVICES, VALIDATOR, TYPE
 from plenum.test.plugin.helper import getPluginPath
 from plenum.test.conftest import patchPluginManager
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import STEWARD, NYM, SPONSOR
+from sovrin_common.txn import STEWARD, NYM, SPONSOR, TRUSTEE
 from sovrin_common.txn import TXN_TYPE, TARGET_NYM, TXN_ID, ROLE, \
     getTxnOrderedFields
 from sovrin_common.config_util import getConfig
@@ -70,7 +70,7 @@ def primes2():
 # noinspection PyUnresolvedReferences
 from plenum.test.conftest import tdir, counter, nodeReg, up, ready, \
     whitelist, concerningLogLevels, logcapture, keySharedNodes, \
-    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData as ptd, dirName, \
+    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
     poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
     txnPoolNodesLooper, nodeAndClientInfoFilePath, conf
@@ -84,15 +84,17 @@ def tconf(conf, tdir):
 
 
 @pytest.fixture(scope="module")
-def poolTxnData(nodeAndClientInfoFilePath):
-    data = ptd(nodeAndClientInfoFilePath)
-    trusteeSeed = 'this is trustee seed not steward'
+def updatedPoolTxnData(poolTxnData):
+    data = poolTxnData
+    trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
-    t = {"dest": signer.verkey,
-         "role": "TRUSTEE",
-         "type": "NYM",
-         "alias": "Trustee1",
-         "txnId": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4a"}
+    t = {
+        TARGET_NYM: signer.verkey,
+        ROLE: TRUSTEE,
+        TYPE: NYM,
+        ALIAS: "Trustee1",
+        TXN_ID: "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4a"
+    }
     data["seeds"]["Trustee1"] = trusteeSeed
     data["txns"].insert(0, t)
     return data
@@ -104,15 +106,15 @@ def poolTxnTrusteeNames():
 
 
 @pytest.fixture(scope="module")
-def poolTxnTrusteeData(poolTxnTrusteeNames, poolTxnData):
+def trusteeData(poolTxnTrusteeNames, updatedPoolTxnData):
     name = poolTxnTrusteeNames[0]
-    seed = poolTxnData["seeds"][name]
+    seed = updatedPoolTxnData["seeds"][name]
     return name, seed.encode()
 
 
 @pytest.fixture(scope="module")
-def trusteeWallet(poolTxnTrusteeData):
-    name, sigseed = poolTxnTrusteeData
+def trusteeWallet(trusteeData):
+    name, sigseed = trusteeData
     wallet = Wallet('trustee')
     signer = SimpleSigner(seed=sigseed)
     wallet.addIdentifier(signer=signer)
@@ -362,3 +364,6 @@ def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
     ensureClientConnectedToNodesAndPoolLedgerSame(looper, newSteward,
                                                   *nodeSet)
     return newSteward, newStewardWallet, newNode
+
+
+

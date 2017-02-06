@@ -1,14 +1,10 @@
 import pytest
-from plenum.common.txn import TYPE, NONCE, IDENTIFIER
-from plenum.common.types import f
-from plenum.common.util import getTimeBasedId
 from plenum.common.eventually import eventually
 
-from sovrin_client.agent.msg_constants import ACCEPT_INVITE
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
-from sovrin_client.test.cli.helper import getFileLines, prompt_is
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, exitFromCli
 
 
 def getSampleLinkInvitation():
@@ -35,24 +31,24 @@ def getSampleLinkInvitation():
                "VsXdSmBJ7yEfQBm8bSJuj6/4CRNI39fFul6DcDA=="
     }
 
-@pytest.fixture(scope="module")
-def poolNodesStarted(be, do, poolCLI):
-    be(poolCLI)
-
-    do('new node all', within=6,
-       expect=['Alpha now connected to Beta',
-               'Alpha now connected to Gamma',
-               'Alpha now connected to Delta',
-               'Beta now connected to Alpha',
-               'Beta now connected to Gamma',
-               'Beta now connected to Delta',
-               'Gamma now connected to Alpha',
-               'Gamma now connected to Beta',
-               'Gamma now connected to Delta',
-               'Delta now connected to Alpha',
-               'Delta now connected to Beta',
-               'Delta now connected to Gamma'])
-    return poolCLI
+# @pytest.fixture(scope="module")
+# def poolNodesStarted(be, do, poolCLI):
+#     be(poolCLI)
+#
+#     do('new node all', within=6,
+#        expect=['Alpha now connected to Beta',
+#                'Alpha now connected to Gamma',
+#                'Alpha now connected to Delta',
+#                'Beta now connected to Alpha',
+#                'Beta now connected to Gamma',
+#                'Beta now connected to Delta',
+#                'Gamma now connected to Alpha',
+#                'Gamma now connected to Beta',
+#                'Gamma now connected to Delta',
+#                'Delta now connected to Alpha',
+#                'Delta now connected to Beta',
+#                'Delta now connected to Gamma'])
+#     return poolCLI
 
 
 @pytest.fixture(scope="module")
@@ -201,6 +197,13 @@ def aliceCli(preRequisite, be, do, aliceCLI, newKeyringOut, aliceMap):
     be(aliceCLI)
     setPromptAndKeyring(do, "Alice", newKeyringOut, aliceMap)
     return aliceCLI
+
+
+@pytest.fixture(scope="module")
+def susanCli(preRequisite, be, do, susanCLI, newKeyringOut, susanMap):
+    be(susanCLI)
+    setPromptAndKeyring(do, "Susan", newKeyringOut, susanMap)
+    return susanCLI
 
 
 def testNotConnected(be, do, aliceCli, notConnectedStatus):
@@ -921,5 +924,20 @@ def bankKYCClaimSent(be, do, aliceCli, thriftMap,
                       totalClaimDefs=2, totalClaimsRcvd=2)
 
 
-def testAliceSendBankKYCClaim(bankKYCClaimSent):
-    pass
+def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
+    be(cli)
+    connectIfNotAlreadyConnected(do, connectedToTest, cli, {})
+    do(None, expect=[
+        'Saved keyring "Alice" restored',
+        'Active keyring set to "Alice"'
+    ], within=5)
+    assert cli._activeWallet is not None
+    assert len(cli._activeWallet._links) == 3
+    assert len(cli._activeWallet.identifiers) == 4
+
+
+def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
+                              connectedToTest):
+    be(aliceCli)
+    exitFromCli(do)
+    restartCliAndTestWalletRestoration(be, do, susanCli, connectedToTest)

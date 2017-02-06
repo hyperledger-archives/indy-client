@@ -2,6 +2,9 @@ import json
 import os
 from _sha256 import sha256
 
+import pytest
+
+from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
 from plenum.common.port_dispenser import genHa
@@ -188,3 +191,8 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
             with Looper(debug=False) as looper:
                 yield new()
     return _
+
+
+def exitFromCli(do):
+    with pytest.raises(Exit):
+        do('exit', expect='Goodbye.')

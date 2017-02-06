@@ -18,7 +18,7 @@ CLIENT_GRAMS_USE_KEYPAIR_FORMATTED_REG_EX = getPipedRegEx(
 # TODO we can genericize the other TXN types in the same way
 TXN_NYM = "(\s* (?P<{cmdName}>{cmd}\s+NYM) " \
           "\s+ (?P<dest>dest=) \s* (?P<dest_id>[A-Za-z0-9+=/]*)" \
-          "(\s+ (?P<role_key>role=) \s* (?P<role>TRUSTEE|TGB|SPONSOR|STEWARD))?" \
+          "(\s+ (?P<role_key>role=) \s* (?P<role>TRUSTEE|TGB|SPONSOR|STEWARD|))?" \
           "(\s+ (?P<ver_key>verkey=) \s* (?P<new_ver_key>[~A-Za-z0-9+=/]*))?)"
 
 SEND_NYM_REG_EX = TXN_NYM.format(cmdName='send_nym', cmd='send')
@@ -100,6 +100,8 @@ SHOW_FILE_REG_EX = "(\s*(?P<show_file>show) " \
 
 CONNECT_REG_EX = "(\s*(?P<conn>connect) \s+ (?P<env_name>[A-Za-z0-9-]+)\s*)"
 
+DISCONNECT_REG_EX = "(\s*(?P<disconn>disconnect))"
+
 LOAD_FILE_REG_EX = "(\s*(?P<load_file>load) " \
                    "\s+ (?P<file_path>[A-Za-z0-9+-.=/]+)\s*)"
 
@@ -142,6 +144,16 @@ SEND_NODE_REG_EX = "(\s* (?P<send_node>send\s+NODE) " \
     "\s+ data=(?P<data>\{\s*.*\}) \s*) "
 
 
+SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
+                       "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
+                       "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
+                       "\s*(?P<sha256_key>sha256=)\s*(?P<sha256>[a-f0-9]+)" \
+                       "(\s+ (?P<action_key>action=)\s*(?P<action>start|cancel))" \
+                       '(\s+ (?P<justification_key>justification=)\s*(?P<justification>\"[a-zA-z0-9-_\s]+\") \s*)? ' \
+                       "(\s+ (?P<schedule_key>schedule=)\s*(?P<schedule>\{\s*.*\}) \s*)? " \
+                       "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)"
+
+
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
 GET_NYM_FORMATTED_REG_EX = getPipedRegEx(GET_NYM_REG_EX)
 ADD_ATTRIB_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRIB_REG_EX)
@@ -162,6 +174,7 @@ LOAD_FILE_FORMATTED_REG_EX = getPipedRegEx(LOAD_FILE_REG_EX)
 SHOW_LINK_FORMATTED_REG_EX = getPipedRegEx(SHOW_LINK_REG_EX)
 ADD_ATTRS_PROVER_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRS_PROVER_REG_EX)
 CONNECT_FORMATTED_REG_EX = getPipedRegEx(CONNECT_REG_EX)
+DISCONNECT_FORMATTED_REG_EX = getPipedRegEx(DISCONNECT_REG_EX)
 SYNC_LINK_FORMATTED_REG_EX = getPipedRegEx(SYNC_LINK_REG_EX)
 ACCEPT_LINK_FORMATTED_REG_EX = getPipedRegEx(ACCEPT_LINK_REG_EX)
 SHOW_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REG_EX)
@@ -171,3 +184,4 @@ SET_ATTRIBUTE_FORMATTED_REG_EX = getPipedRegEx(SET_ATTRIBUTE_REG_EX)
 PING_TARGET_FORMATTED_REG_EX = getPipedRegEx(PING_TARGET_REG_EX)
 SEND_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SEND_CLAIM_REG_EX)
 SEND_NODE_FORMATTED_REG_EX = getPipedRegEx(SEND_NODE_REG_EX)
+SEND_POOL_UPG_FORMATTED_REG_EX = getPipedRegEx(SEND_POOL_UPG_REG_EX)

@@ -11,7 +11,7 @@ import asyncio
 
 import base58
 from plenum.cli.cli import Cli as PlenumCli
-from plenum.cli.constants import PROMPT_ENV_SEPARATOR, WALLET_FILE_NAME_PREFIX
+from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
@@ -32,12 +32,16 @@ from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, ClaimProofRequest
 from sovrin_client.client.wallet.node import Node
+from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_common.auth import Authoriser
+from sovrin_common.config import ENVS
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
     LinkNotFound, NotConnectedToNetwork, ClaimDefNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
-    SPONSOR, TXN_ID, REF, getTxnOrderedFields
+    SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
+    START, JUSTIFICATION
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
 
@@ -65,6 +69,8 @@ class SovrinCli(PlenumCli):
     name = 'sovrin'
     properName = 'Sovrin'
     fullName = 'Sovrin Identity platform'
+    githubUrl = 'https://github.com/sovrin-foundation/sovrin-client'
+
     NodeClass = nodeClass
     ClientClass = Client
     _genesisTransactions = []
@@ -83,7 +89,8 @@ class SovrinCli(PlenumCli):
         # set attributes
         self._agent = None
 
-    def getCliVersion(self):
+    @staticmethod
+    def getCliVersion():
         return __version__
 
     @property
@@ -95,9 +102,11 @@ class SovrinCli(PlenumCli):
             'send_cred_def',
             'send_isr_key',
             'send_node',
+            'send_pool_upg',
             'add_genesis',
             'show_file',
-            'conn'
+            'conn',
+            'disconn',
             'load_file',
             'show_link',
             'sync_link',
@@ -124,12 +133,14 @@ class SovrinCli(PlenumCli):
         completers["send_cred_def"] = WordCompleter(["send", "CLAIM_DEF"])
         completers["send_isr_key"] = WordCompleter(["send", "ISSUER_KEY"])
         completers["send_node"] = WordCompleter(["send", "NODE"])
+        completers["send_pool_upg"] = WordCompleter(["send", "POOL_UPGRADE"])
         completers["add_genesis"] = WordCompleter(
             ["add", "genesis", "transaction"])
         completers["show_file"] = WordCompleter(["show"])
         completers["load_file"] = WordCompleter(["load"])
         completers["show_link"] = WordCompleter(["show", "link"])
         completers["conn"] = WordCompleter(["connect"])
+        completers["disconn"] = WordCompleter(["disconnect"])
         completers["env_name"] = WordCompleter(list(self.config.ENVS.keys()))
         completers["sync_link"] = WordCompleter(["sync"])
         completers["ping_target"] = WordCompleter(["ping"])
@@ -156,6 +167,7 @@ class SovrinCli(PlenumCli):
                         self._sendGetNymAction,
                         self._sendAttribAction,
                         self._sendNodeAction,
+                        self._sendPoolUpgAction,
                         self._sendClaimDefAction,
                         self._sendIssuerKeyAction,
                         self._addGenesisAction,
@@ -163,6 +175,7 @@ class SovrinCli(PlenumCli):
                         self._loadFile,
                         self._showLink,
                         self._connectTo,
+                        self._disconnect,
                         self._syncLink,
                         self._pingTarget,
                         self._showClaim,
@@ -334,7 +347,6 @@ class SovrinCli(PlenumCli):
             self.looper.add(self._agent)
         return self._agent
 
-
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))
         self._printNotConnectedEnvMessage()
@@ -367,6 +379,17 @@ class SovrinCli(PlenumCli):
         if role and role not in validRoles:
             self.print("Invalid role. Valid roles are: {}".
                        format(", ".join(validRoles)), Token.Error)
+            return False
+        return role
+
+    def _getRole(self, matchedVars):
+        role = matchedVars.get(ROLE)
+        if role is not None and role.strip() == '':
+            role = None
+        if not Authoriser.isValidRole(role):
+            self.print("Invalid role. Valid roles are: {}".
+                       format(", ".join(map(lambda r: r if r else '',
+                                            Authoriser.ValidRoles))), Token.Error)
             return False
         return role
 
@@ -461,14 +484,12 @@ class SovrinCli(PlenumCli):
         req, = self.activeClient.submitReqs(*reqs)
         self.print("Adding attributes {} for {}".format(data, nym))
 
-        def chk(reply, error, *args, **kwargs):
-
-            assert self.activeWallet.getAttribute(attrib).seqNo is not None
+        def out(reply, error, *args, **kwargs):
             self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
-                                    req.key, self.activeClient, chk)
+                                    req.key, self.activeClient, out)
 
     def _sendNodeTxn(self, nym, data):
         node = Node(nym, data, self.activeIdentifier)
@@ -478,13 +499,29 @@ class SovrinCli(PlenumCli):
         self.print("Sending node request {} by {}".format(nym,
                                                           self.activeIdentifier))
 
-        def chk(reply, error, *args, **kwargs):
-            assert self.activeWallet.getNode(node.id).seqNo is not None
+        def out(reply, error, *args, **kwargs):
             self.print("Node request complete {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
-                                    req.key, self.activeClient, chk)
+                                    req.key, self.activeClient, out)
+
+    def _sendPoolUpgTxn(self, name, version, action, sha256, schedule=None,
+                        justification=None, timeout=None):
+        upgrade = Upgrade(name, version, action, sha256, schedule=schedule,
+                          trustee=self.activeIdentifier, timeout=timeout,
+                          justification=justification)
+        self.activeWallet.doPoolUpgrade(upgrade)
+        reqs = self.activeWallet.preparePending()
+        req, = self.activeClient.submitReqs(*reqs)
+        self.print("Sending pool upgrade {} for version {}".
+                   format(name, version))
+
+        def out(reply, error, *args, **kwargs):
+            self.print("Pool upgrade successful",  Token.BoldBlue)
+
+        self.looper.loop.call_later(.2, self._ensureReqCompleted,
+                                    req.key, self.activeClient, out)
 
     @staticmethod
     def parseAttributeString(attrs):
@@ -546,6 +583,39 @@ class SovrinCli(PlenumCli):
                 self.print('"data" must be in proper format', Token.Error)
             return True
 
+    def _sendPoolUpgAction(self, matchedVars):
+        if matchedVars.get('send_pool_upg') == 'send POOL_UPGRADE':
+            if not self.canMakeSovrinRequest:
+                return True
+            name = matchedVars.get(NAME).strip()
+            version = matchedVars.get(VERSION).strip()
+            action = matchedVars.get(ACTION).strip()
+            sha256 = matchedVars.get(SHA256).strip()
+            timeout = matchedVars.get(TIMEOUT)
+            schedule = matchedVars.get(SCHEDULE)
+            justification = matchedVars.get(JUSTIFICATION)
+            if action == START:
+                if not schedule:
+                    self.print('{} need to be provided'.format(SCHEDULE),
+                               Token.Error)
+                    return True
+                if not timeout:
+                    self.print('{} need to be provided'.format(TIMEOUT),
+                               Token.Error)
+                    return True
+            try:
+                if schedule:
+                    schedule = ast.literal_eval(schedule.strip())
+            except:
+                self.print('"schedule" must be in proper format', Token.Error)
+                return True
+            if timeout:
+                timeout = int(timeout.strip())
+            self._sendPoolUpgTxn(name, version, action, sha256,
+                                 schedule=schedule, timeout=timeout,
+                                 justification=justification)
+            return True
+
     def _sendClaimDefAction(self, matchedVars):
         if matchedVars.get('send_cred_def') == 'send CLAIM_DEF':
             if not self.canMakeSovrinRequest:
@@ -582,8 +652,6 @@ class SovrinCli(PlenumCli):
                        " Sovrin distributed ledger\n", Token.BoldBlue,
                        newline=False)
             self.print("{}".format(str(ipk)))
-            # self.print("Sequence number is {}".format(reply[F.seqNo.name]),
-            #           Token.BoldBlue)
 
             return True
 
@@ -1100,7 +1168,9 @@ class SovrinCli(PlenumCli):
                            format(claimReq.name, matchingLink.name))
 
                 self.agent.loop.call_soon(asyncio.ensure_future,
-                                          self._showMatchingClaimProof(claimReq, attributes, matchingLink))
+                                          self._showMatchingClaimProof(claimReq,
+                                                                       attributes,
+                                                                       matchingLink))
             return True
 
     def _showClaim(self, matchedVars):
@@ -1135,6 +1205,43 @@ class SovrinCli(PlenumCli):
                                            self.envs[envName].poolLedger)):
             return "Do not have information to connect to {}".format(envName)
 
+    def _disconnect(self, matchedVars):
+        if matchedVars.get('disconn') == 'disconnect':
+            self._disconnectFromCurrentEnv()
+            return True
+
+    def _disconnectFromCurrentEnv(self, toConnectToNewEnv=None):
+        oldEnv = self.activeEnv
+        if not oldEnv and not toConnectToNewEnv:
+            self.print("Not connected to any environment.")
+            return True
+
+        if not toConnectToNewEnv:
+            self.print("Disconnecting from {} ...".format(self.activeEnv))
+
+        self._saveActiveWallet()
+        self._wallets = {}
+        self._activeWallet = None
+        self._activeClient = None
+        self.activeEnv = None
+        self.config.poolTransactionsFile = None
+        self.config.domainTransactionsFile = None
+        self._setPrompt(self.currPromptText.replace("{}{}".format(
+            PROMPT_ENV_SEPARATOR, oldEnv), ""))
+
+        if not toConnectToNewEnv:
+            self.print("Disconnected from {}".format(oldEnv), Token.BoldGreen)
+
+        if toConnectToNewEnv is None:
+            self.restoreLastActiveWallet()
+
+    def printWarningIfActiveWalletIsIncompatible(self):
+        if self._activeWallet:
+            if not self.checkIfWalletBelongsToCurrentContext(self._activeWallet):
+                self.print(self.getWalletContextMistmatchMsg, Token.BoldOrange)
+                self.print("Any changes made to this keyring won't "
+                           "be persisted.", Token.BoldOrange)
+
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':
             envName = matchedVars.get('env_name')
@@ -1145,28 +1252,23 @@ class SovrinCli(PlenumCli):
             else:
                 oldEnv = self.activeEnv
                 isAnyWalletExistsForNewEnv = \
-                    self.isAnyWalletFileExistsForEnv(envName)
+                    self.isAnyWalletFileExistsForGivenEnv(envName)
+
                 if oldEnv or isAnyWalletExistsForNewEnv:
-                    self._saveActiveWallet()
-                    self._wallets = {}
-                    self._activeWallet = None
-                # Using `_activeClient` instead of `activeClient` since using
-                # `_activeClient` will initialize a client if not done already
-                if self.activeEnv:
-                    self.print("Disconnecting from {}".format(self.activeEnv))
-                    self._activeClient = None
+                    self._disconnectFromCurrentEnv(envName)
+
                 self.config.poolTransactionsFile = self.envs[envName].poolLedger
                 self.config.domainTransactionsFile = \
                     self.envs[envName].domainLedger
-
                 # Prompt has to be changed, so it show the environment too
                 self.activeEnv = envName
                 self._setPrompt(self.currPromptText.replace("{}{}".format(
                     PROMPT_ENV_SEPARATOR, oldEnv), ""))
 
                 if isAnyWalletExistsForNewEnv:
-                    self.restoreLastActiveWallet("{}*{}".format(
-                        WALLET_FILE_NAME_PREFIX, envName))
+                    self.restoreLastActiveWallet()
+
+                self.printWarningIfActiveWalletIsIncompatible()
 
                 self._buildClientIfNotExists(self.config)
                 self.print("Connecting to {}...".format(envName), Token.BoldGreen)
@@ -1175,6 +1277,16 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    def getAllEnvDirNamesForKeyrings(self):
+        lst = list(ENVS.keys())
+        lst.append(NO_ENV)
+        return lst
+
+    def updateEnvNameInWallet(self):
+        if not self._activeWallet.getEnvName:
+            self._activeWallet.env = self.activeEnv if self.activeEnv \
+                else NO_ENV
+            
     def getStatus(self):
         # TODO: This needs to show active keyring and active identifier
         if not self.activeEnv:
@@ -1336,8 +1448,11 @@ class SovrinCli(PlenumCli):
         if not self.activeEnv:
             self._printNotConnectedEnvMessage()
             return False
-        return True
+        if not self.checkIfWalletBelongsToCurrentContext(self._activeWallet):
+            self.print(self.getWalletContextMistmatchMsg, Token.BoldOrange)
+            return False
 
+        return True
 
 class DummyClient:
     def submitReqs(self, *reqs):

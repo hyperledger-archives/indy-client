@@ -114,7 +114,6 @@ class Client(PlenumClient):
             for name in self._observers:
                 try:
                     self._observers[name](name, reqId, frm, result, numReplies)
-                    raise RuntimeError
                 except Exception as ex:
                     # TODO: All errors should not be shown on CLI, or maybe we
                     # show errors with different color according to the

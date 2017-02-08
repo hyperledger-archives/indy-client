@@ -4,6 +4,7 @@ from os.path import expanduser, exists
 from logging import getLogger
 
 from sovrin_common.config_util import getConfig
+from sovrin_common.config import agentLoggingLevel
 
 
 def getBulldogLogger():
@@ -19,11 +20,11 @@ def getBulldogLogger():
                 pass
 
         log = getLogger()
-        log.setLevel(logging.DEBUG)
+        log.setLevel(agentLoggingLevel)
 
         formatter = logging.Formatter('%(asctime)s %(message)s')
         fileHandler = logging.FileHandler(filePath, mode='a')
-        fileHandler.setLevel(logging.DEBUG)
+        fileHandler.setLevel(agentLoggingLevel)
         fileHandler.setFormatter(formatter)
         log.addHandler(fileHandler)
 

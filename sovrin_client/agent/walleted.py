@@ -41,9 +41,10 @@ from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.txn import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
+from sovrin_common.config import agentLoggingLevel
 
 logger = getlogger()
-
+logger.setLevel(agentLoggingLevel)
 
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     """

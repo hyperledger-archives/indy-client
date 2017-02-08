@@ -86,7 +86,7 @@ pub extern fn get_verkey(client_id: i32, did: *const c_char) -> *mut c_char {
     check_useful_str_with_null_as_error!(did);
     if did.len() != 40 { return null_ptr_as_c_str() }
 
-    let s = CString::new(r#""MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCABMC""#).unwrap();
+    let s = CString::new(r#"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCABMC"#).unwrap();
     // Transfer ownership of this string to the c caller; Rust is no longer responsible.
     s.into_raw()
 }

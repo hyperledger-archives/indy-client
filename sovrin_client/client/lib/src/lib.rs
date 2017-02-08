@@ -7,12 +7,22 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
+
 // To make it easy to use C data types, import the libc crate.
 extern crate libc;
-use libc::{c_int, size_t};
+
+
+use libc::{c_int, size_t, c_char};
+use std::ffi::{CStr, CString};
+use std::mem;
+use std::ptr;
 
 mod internal;
 mod tests;
+mod constants;
+
+use constants::*;
+use internal::*;
 
 
 /// Create a client handle that manages state such as a connection to the ledger, propagated errors,
@@ -26,13 +36,26 @@ mod tests;
 /// @return the id of the client on success (in which case the number will be non-negative),
 ///     or an error code on failure (in which case the number will be negative).
 #[no_mangle]
-pub extern fn init_client(host_and_port: &str) -> i32 {
-    0
+pub extern fn init_client(host_and_port: *const c_char) -> i32 {
+    let val = match string_from_c_ptr(host_and_port) {
+        None => return BAD_HOST_AND_PORT,
+        Some(val) => val
+    };
+    if val.is_empty() { return BAD_HOST_AND_PORT }
+
+    println!("Got valid client {}", val);
+
+    // All error conditions have been tested; add the client to our internal list and return
+    // its index.
+
+    0 // for now, hard-code the index of 0.
 }
 
-/// Release a client to free its resources. This call is idempotent.
+/// Release a client to free its resources. This call is idempotent. On success, return 0.
+/// On failure, return an error.
 #[no_mangle]
 pub extern fn release_client(client_id: i32) -> i32 {
+    let client = get_client_from_id(client_id);
     0
 }
 
@@ -48,12 +71,92 @@ pub extern fn release_client(client_id: i32) -> i32 {
 /// Only a steward can create new sponsors; only other trustees can create a new trustee.
 #[no_mangle]
 pub extern fn set_did(client_id: i32, dest: &str, verkey: &str, xref: &str, data: &str, role: &str) -> i32 {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return BAD_CLIENT }
+
     0
 }
 
-/// Look up information about a DID.
+/// Find the current verification key for a given DID. Returns a base-58-encoded string on success,
+/// an empty string if there is no current key for the DID (it is under guardianship), or null if
+/// the client or DID is invalid.
+///
+/// @param client_id: An opaque numeric handle returned by init_client() and not yet closed by
+///     release_client().
+///
+/// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
+/// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_did(client_id: i32, did: &str) {
+pub extern fn get_verkey(client_id: i32, did: *const c_char) -> *mut c_char {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return null_ptr_as_c_str() }
+    println!("about to parse did");
+    let did_val = match string_from_c_ptr(did) {
+        None => return null_ptr_as_c_str(),
+        Some(val) => val
+    };
+    println!("after to parse did");
+    if did_val.len() != 40 { return null_ptr_as_c_str() }
+
+    let s = CString::new(r#""MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCABMC""#).unwrap();
+    // Transfer ownership of this string to the c caller; Rust is no longer responsible.
+    s.into_raw()
+}
+
+/// Look up information about a DID; return a full DDO if the DID exists, or null if the client or
+/// DID are invalid.
+///
+/// This answers the same question as get_verkey(), and many more. It is substantially less
+/// efficient because the data it returns is "heavy" and requires parsing, so it should only be
+/// used if the extra data is necessary.
+///
+/// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
+/// must call free_str() once the string has been read and is no longer needed, else memory will leak.
+#[no_mangle]
+pub extern fn get_ddo(client_id: i32, did: &str) -> *mut c_char {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return null_ptr_as_c_str() }
+
+    let s = CString::new(r#"{
+    "@context": "https://example.org/did/v1",
+    "id": "did:sov:21tDAKCERh95uGgKbJNHYp",
+    "equiv-id": [
+        "did:sov:33ad7beb1abc4a26b89246",
+        "did:sov:f336a645f5a941b7ab8oac"
+    ],
+    "verkey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCABMC",
+    "control": [
+        "self",
+        "did:sov:bsAdB81oHKaCmLTsgajtp9AoAHE9ei4",
+        "did:sov:21tDAKCERh95uGgKbJNHYpE8WEogrsf"
+    ],
+    "service": {
+        "openid": "https://openid.example.com/456",
+        "xdi": "https://xdi.example.com/123"
+    },
+    "type": "http://schema.org/Person",
+    "creator": "did:sov:21tDAKCERh95uGgKbJNHYpE8WEogrsf",
+    "created": "2002-10-10T17:00:00Z",
+    "updated": "2016-10-17T02:41:00Z",
+    "signature": {
+        "type": "LinkedDataSignature2015",
+        "created": "2016-02-08T16:02:20Z",
+        "Creator": "did:sov:21tDAKCERh95uGgKbJNHYpE8WEogrsf/keys/1",
+        "signatureValue": "IOmA4R7TfhkYTYW87z640O3GYFldw0yqie9Wl1kZ5OBYNAKOwG5uOsPRK8/2C4STOWF+83cMcbZ3CBMq2/gi25s="
+    }
+}"#).unwrap();
+    s.into_raw()
+}
+
+/// Free a pointer previously allocated by a function that returns a string from the library.
+/// Calling this function with a null pointer is a no-op.
+#[no_mangle]
+pub extern fn free_str(c_ptr: *mut c_char) {
+    if !c_ptr.is_null() {
+        // convert the pointer back to `CString`
+        // it will be automatically dropped immediately
+        unsafe { CString::from_raw(c_ptr); }
+    }
 }
 
 /// Set an arbitrary attribute for a DID.
@@ -64,30 +167,67 @@ pub extern fn get_did(client_id: i32, did: &str) {
 ///     office; it should be null for data that has any privacy constraints.
 /// @param enc: the encrypted bytes of the attribute value.
 #[no_mangle]
-pub extern fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &str) {
+pub extern fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &str) -> i32 {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return BAD_CLIENT }
+    0
 }
 
 /// Get an arbitrary attribute for a DID.
+///
+/// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
+/// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_attr(client_id: i32) {
+pub extern fn get_attr(client_id: i32, attr_name: *const c_char) -> *mut c_char {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return null_ptr_as_c_str() }
+    let attr_val = match string_from_c_ptr(attr_name) {
+        None => return null_ptr_as_c_str(),
+        Some(val) => val
+    };
+    if attr_val.is_empty() { return null_ptr_as_c_str() }
+    let s = CString::new(r#"attrval"#).unwrap();
+    return s.into_raw();
 }
 
 /// Define a schema on the ledger (e.g., for a claim type or proof type).
 #[no_mangle]
-pub extern fn set_schema(client_id: i32) {
+pub extern fn set_schema(client_id: i32) -> i32 {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return BAD_CLIENT }
+    0
 }
 
 /// Retrieve the definition for a particular schema, as stored on the ledger.
+///
+/// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
+/// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_schema(client_id: i32) {
+pub extern fn get_schema(client_id: i32) -> *mut c_char {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return null_ptr_as_c_str() }
+    let s = CString::new(r#"schema"#).unwrap();
+    return s.into_raw();
 }
 
 #[no_mangle]
-pub extern fn set_issuer_key(client_id: i32) {
+pub extern fn set_issuer_key(client_id: i32) -> i32 {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return BAD_CLIENT }
+    0
 }
 
+/// Gets the key for the issuer of a claim? Not sure how this fits. It's a transaction type in the
+/// overall transaction catalog; need research on use case.
+///
+/// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
+/// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_issuer_key(client_id: i32) {
+pub extern fn get_issuer_key(client_id: i32) -> *mut c_char {
+    let client = get_client_from_id(client_id);
+    if client.is_none() { return null_ptr_as_c_str() }
+    let s = CString::new(r#"issuerkey"#).unwrap();
+    return s.into_raw();
 }
 
 // TODO: NODE, PROPOSE, CANCEL, EXECUTE, VOTE, CONFIG, DECRY

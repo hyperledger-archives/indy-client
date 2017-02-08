@@ -2,6 +2,13 @@
 
 use super::*; // refer to exported functions the same way lib consumers do.
 use internal::*; // refer to internal impl details without decoration
+use constants::*;
+
+extern crate libc;
+use libc::{c_int, size_t, c_char};
+use std::ffi::{CStr, CString};
+use std::ptr;
+
 
 // A macro to make stubs less verbose. There's probably a more idiomatic way to do this...
 macro_rules! ximpl {
@@ -14,6 +21,7 @@ macro_rules! ximpl {
 // but a certain amount of redundancy may be useful, especially if the client lib has distinct
 // codepaths for different transaction and parameter inputs.)
 
+/*
 #[test]
 fn new_nym_succeeds() {
     // We might just do one simple create scenario and call it good. Alternatively, we could get
@@ -181,19 +189,37 @@ fn calling_any_external_func_with_bad_client_id_fails() {
     // an invalid value, we should fail immediately and gracefully. This is a test of our plumbing.
     ximpl!()
 }
+*/
 
+#[test]
+fn allocate_and_free_str_round_trip() {
+    let sample_did = CString::new("x").unwrap();
+    let raw = sample_did.into_raw(); // Rust stops tracking ownership
+    let s = get_verkey(0, raw);
+    free_str(s);
+}
+
+#[test]
+fn init_client_with_empty_str() {
+    let empty = CString::new("").unwrap();
+    let n = init_client(empty.as_ptr());
+    assert_eq!(n, BAD_HOST_AND_PORT);
+}
+
+#[test]
+fn init_client_with_null_ptr() {
+    let p: *const c_char = ptr::null();
+    let n = init_client(p);
+    assert_eq!(n, BAD_HOST_AND_PORT);
+}
+
+/*
 #[test]
 fn base_58_matches_ledger_base_58() {
     // Prove that
     ximpl!()
 }
-
-#[test]
-fn wrap_msg_empty() {
-    // This test just shows that we can write a test that passes. It invokes stubbed out functions
-    // but is otherwise uninteresting.
-    encrypt_msg("".as_bytes(), "".as_bytes(), "".as_bytes())
-}
+*/
 
 
 // --------- About Fixtures ---------

@@ -377,6 +377,19 @@ def testShowSyncedFaberInviteWithEndpoint(be, do, aliceCLI, faberMap,
        mapper=faberMap)
 
 
+def testPingBeforeAccept(be, do, aliceCli, faberMap, connectedToTest,
+                         faberInviteSyncedWithEndpoint):
+    be(aliceCli)
+    connectIfNotAlreadyConnected(do, connectedToTest, aliceCli, faberMap)
+    do('ping {inviter}',
+       within=3,
+       expect=[
+           'Ping sent.',
+           'Error processing ping. Link is not yet created.'
+       ],
+       mapper=faberMap)
+
+
 def testAcceptNotExistsLink(be, do, aliceCli, linkNotExists, faberMap):
     be(aliceCli)
     do('accept invitation from {inviter-not-exists}',

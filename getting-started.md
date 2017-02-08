@@ -268,7 +268,7 @@ Attempting to sync...
 Synchronizing...
     Link Faber College synced
 
-Pinging target endpoint: ('127.0.0.1', 5555)
+Pinging target endpoint: ('54.70.102.199', 5555)
     Ping sent.
     Pong received.
 
@@ -303,7 +303,7 @@ Link
     Signing key: <hidden>
     Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
     Target Verification key: <same as target>
-    Target endpoint: 127.0.0.1:5555
+    Target endpoint: 54.70.102.199:5555
     Invitation nonce: b1134a647eb818069c089e7694f63e6d
     Invitation status: Accepted
     Available Claim(s): Transcript
@@ -326,7 +326,7 @@ At this point Alice is connected to Faber College, and can interact in a secure 
 ALICE> ping Faber
 Expanding Faber to "Faber College"
 
-Pinging target endpoint: ('127.0.0.1', 5555)
+Pinging target endpoint: ('54.70.102.199', 5555)
     Ping sent.
     Pong received.
 ```
@@ -414,7 +414,7 @@ ALICE> show sample/acme-job-application.sovrin
     "name": "Acme Corp",
     "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
-    "endpoint": "127.0.0.1:1213"
+    "endpoint": "54.70.102.199:6666"
   },
   "claim-requests": [{
     "name": "Job-Application",
@@ -459,7 +459,7 @@ Link (not yet accepted)
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <unknown, waiting for sync>
-    Target endpoint: 127.0.0.1:1213
+    Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: not verified, target verkey unknown
     Claim Requests: Job-Application
@@ -479,7 +479,7 @@ Attempting to sync...
 Synchronizing...
     Link Acme Corp synced
 
-Pinging target endpoint: ('127.0.0.1', 6666)
+Pinging target endpoint: ('54.70.102.199', 6666)
     Ping sent.
     Pong received.
 
@@ -594,7 +594,7 @@ Link
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <same as target>
-    Target endpoint: 127.0.0.1:6666
+    Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: Accepted
     Claim Request(s): Job-Application
@@ -686,7 +686,7 @@ Attempting to sync...
 Synchronizing...
     Link Thrift Bank synced
 
-Pinging target endpoint: ('127.0.0.1', 7777)
+Pinging target endpoint: ('54.70.102.199', 7777)
     Ping sent.
     Pong received.
 

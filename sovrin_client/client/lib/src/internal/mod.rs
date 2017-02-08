@@ -1,5 +1,6 @@
 extern crate libc;
 
+
 use libc::{c_int, size_t, c_char};
 use std::ffi::{CStr, CString};
 use std::panic;
@@ -24,6 +25,9 @@ impl Client {
 static THE_ONLY_CLIENT_RIGHT_NOW: Client = Client {};
 
 pub fn get_client_from_id(client_id: i32) -> Option<&'static Client> {
+    // Right now, this next line is a useless optimization. But when we have a client array,
+    // it will save a mutex on error cases.
+    if client_id < 0 { return None }
     if client_id == 0 { return Some(&THE_ONLY_CLIENT_RIGHT_NOW) }
     None
 }
@@ -95,6 +99,39 @@ pub fn string_from_c_ptr(cstr: *const c_char) -> Option<String> {
     }
     None
 }
+
+
+macro_rules! check_client {
+    ($x:ident, $e:expr) => {
+        let client = get_client_from_id($x);
+        if client.is_none() { return $e }
+    }
+}
+
+
+macro_rules! check_client_with_null_as_error {
+    ($x:ident) => { check_client!($x, null_ptr_as_c_str()) }
+}
+
+
+macro_rules! check_client_with_num_as_error {
+    ($x:ident) => { check_client!($x, BAD_FIRST_ARG) }
+}
+
+macro_rules! check_useful_str {
+    ($x:ident, $e:expr) => {
+        let $x = match string_from_c_ptr($x) {
+            None => return $e,
+            Some(val) => val
+        };
+        if $x.is_empty() { return $e }
+    }
+}
+
+macro_rules! check_useful_str_with_null_as_error {
+    ($x:ident) => { check_useful_str!($x, null_ptr_as_c_str()) }
+}
+
 
 /// Use public key cryptography to encrypt a message for a particular recipient.
 pub fn encrypt_msg(msg: &[u8], src_priv_key: &[u8], tgt_pub_key: &[u8]) {

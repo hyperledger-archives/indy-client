@@ -17,7 +17,9 @@ use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
 
+#[macro_use]
 mod internal;
+
 mod tests;
 mod constants;
 
@@ -37,13 +39,7 @@ use internal::*;
 ///     or an error code on failure (in which case the number will be negative).
 #[no_mangle]
 pub extern fn init_client(host_and_port: *const c_char) -> i32 {
-    let val = match string_from_c_ptr(host_and_port) {
-        None => return BAD_HOST_AND_PORT,
-        Some(val) => val
-    };
-    if val.is_empty() { return BAD_HOST_AND_PORT }
-
-    println!("Got valid client {}", val);
+    check_useful_str!(host_and_port, BAD_FIRST_ARG);
 
     // All error conditions have been tested; add the client to our internal list and return
     // its index.
@@ -59,7 +55,6 @@ pub extern fn release_client(client_id: i32) -> i32 {
     0
 }
 
-
 /// Write a new DID to the ledger, or update an existing DID's attributes.
 /// @param dest: the DID that will be created or modified--or a DID alias.
 /// @param verkey: the verkey for the new DID. Optional; if empty/null, defaults to same value as dest.
@@ -70,10 +65,9 @@ pub extern fn release_client(client_id: i32) -> i32 {
 ///     null empty. (The latter can only be one by a trustee.)
 /// Only a steward can create new sponsors; only other trustees can create a new trustee.
 #[no_mangle]
-pub extern fn set_did(client_id: i32, dest: &str, verkey: &str, xref: &str, data: &str, role: &str) -> i32 {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return BAD_CLIENT }
-
+pub extern fn set_did(client_id: i32, did: *const c_char, verkey: *const c_char, xref: *const c_char, data: *const c_char, role: *const c_char) -> i32 {
+    check_client_with_num_as_error!(client_id);
+    check_useful_str!(did, BAD_SECOND_ARG);
     0
 }
 
@@ -88,15 +82,9 @@ pub extern fn set_did(client_id: i32, dest: &str, verkey: &str, xref: &str, data
 /// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
 pub extern fn get_verkey(client_id: i32, did: *const c_char) -> *mut c_char {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return null_ptr_as_c_str() }
-    println!("about to parse did");
-    let did_val = match string_from_c_ptr(did) {
-        None => return null_ptr_as_c_str(),
-        Some(val) => val
-    };
-    println!("after to parse did");
-    if did_val.len() != 40 { return null_ptr_as_c_str() }
+    check_client_with_null_as_error!(client_id);
+    check_useful_str_with_null_as_error!(did);
+    if did.len() != 40 { return null_ptr_as_c_str() }
 
     let s = CString::new(r#""MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCABMC""#).unwrap();
     // Transfer ownership of this string to the c caller; Rust is no longer responsible.
@@ -113,9 +101,9 @@ pub extern fn get_verkey(client_id: i32, did: *const c_char) -> *mut c_char {
 /// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
 /// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_ddo(client_id: i32, did: &str) -> *mut c_char {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return null_ptr_as_c_str() }
+pub extern fn get_ddo(client_id: i32, did: *const c_char) -> *mut c_char {
+    check_client_with_null_as_error!(client_id);
+    check_useful_str_with_null_as_error!(did);
 
     let s = CString::new(r#"{
     "@context": "https://example.org/did/v1",
@@ -167,9 +155,8 @@ pub extern fn free_str(c_ptr: *mut c_char) {
 ///     office; it should be null for data that has any privacy constraints.
 /// @param enc: the encrypted bytes of the attribute value.
 #[no_mangle]
-pub extern fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &str) -> i32 {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return BAD_CLIENT }
+pub extern fn set_attr(client_id: i32, did: *const c_char, hash: &[u8], raw: &[u8], enc: &[u8]) -> i32 {
+    check_client_with_num_as_error!(client_id);
     0
 }
 
@@ -178,23 +165,20 @@ pub extern fn set_attr(client_id: i32, dest: &str, hash: &str, raw: &str, enc: &
 /// Returns a C-style const char * that was allocated by the lib and must be freed by it. The caller
 /// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
-pub extern fn get_attr(client_id: i32, attr_name: *const c_char) -> *mut c_char {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return null_ptr_as_c_str() }
-    let attr_val = match string_from_c_ptr(attr_name) {
-        None => return null_ptr_as_c_str(),
-        Some(val) => val
-    };
-    if attr_val.is_empty() { return null_ptr_as_c_str() }
+pub extern fn get_attr(client_id: i32, did: *const c_char, attr_name: *const c_char) -> *mut c_char {
+    check_client_with_null_as_error!(client_id);
+    check_useful_str_with_null_as_error!(did);
+    check_useful_str_with_null_as_error!(attr_name);
     let s = CString::new(r#"attrval"#).unwrap();
     return s.into_raw();
 }
 
 /// Define a schema on the ledger (e.g., for a claim type or proof type).
+/// @param schema: json in the style of schema.org, json-ld, etc.
 #[no_mangle]
-pub extern fn set_schema(client_id: i32) -> i32 {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return BAD_CLIENT }
+pub extern fn set_schema(client_id: i32, schema: *const c_char) -> i32 {
+    check_client_with_num_as_error!(client_id);
+    check_useful_str!(schema, BAD_SECOND_ARG);
     0
 }
 
@@ -204,16 +188,14 @@ pub extern fn set_schema(client_id: i32) -> i32 {
 /// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
 pub extern fn get_schema(client_id: i32) -> *mut c_char {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return null_ptr_as_c_str() }
+    check_client_with_null_as_error!(client_id);
     let s = CString::new(r#"schema"#).unwrap();
     return s.into_raw();
 }
 
 #[no_mangle]
-pub extern fn set_issuer_key(client_id: i32) -> i32 {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return BAD_CLIENT }
+pub extern fn set_issuer_key(client_id: i32, issuer_key: &[u8]) -> i32 {
+    check_client_with_num_as_error!(client_id);
     0
 }
 
@@ -224,8 +206,7 @@ pub extern fn set_issuer_key(client_id: i32) -> i32 {
 /// must call free_str() once the string has been read and is no longer needed, else memory will leak.
 #[no_mangle]
 pub extern fn get_issuer_key(client_id: i32) -> *mut c_char {
-    let client = get_client_from_id(client_id);
-    if client.is_none() { return null_ptr_as_c_str() }
+    check_client_with_null_as_error!(client_id);
     let s = CString::new(r#"issuerkey"#).unwrap();
     return s.into_raw();
 }

@@ -203,14 +203,14 @@ fn allocate_and_free_str_round_trip() {
 fn init_client_with_empty_str() {
     let empty = CString::new("").unwrap();
     let n = init_client(empty.as_ptr());
-    assert_eq!(n, BAD_HOST_AND_PORT);
+    assert_eq!(n, BAD_FIRST_ARG);
 }
 
 #[test]
 fn init_client_with_null_ptr() {
     let p: *const c_char = ptr::null();
     let n = init_client(p);
-    assert_eq!(n, BAD_HOST_AND_PORT);
+    assert_eq!(n, BAD_FIRST_ARG);
 }
 
 /*

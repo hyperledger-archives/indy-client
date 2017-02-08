@@ -203,6 +203,7 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
     restartCliWithCorruptedWalletFile(earlMultiNodePools, be, do, filePath)
 
 
+@pytest.mark.skip(reason='SOV-174')
 def testRestoreWalletFile(aliceCLI):
     import shutil
     fileName = "tmp_wallet_restore_issue"

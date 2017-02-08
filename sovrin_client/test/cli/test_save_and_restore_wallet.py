@@ -4,6 +4,7 @@ from time import sleep
 import pytest
 from plenum.cli.cli import Exit, Cli
 from plenum.common.util import createDirIfNotExists
+
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import prompt_is, exitFromCli
 
@@ -150,6 +151,7 @@ def restartCliWithCorruptedWalletFile(cli, be, do, filePath):
     ], within=5)
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-385')
 def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
                              aliceMultiNodePools,
                              earlMultiNodePools):

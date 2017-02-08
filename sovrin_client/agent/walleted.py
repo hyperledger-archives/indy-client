@@ -41,9 +41,10 @@ from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.txn import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
+from sovrin_common.config import agentLoggingLevel
 
 logger = getlogger()
-
+logger.setLevel(agentLoggingLevel)
 
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     """
@@ -278,6 +279,17 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if typ == ACCEPT_INVITE and link is None:
             localIdr = self.wallet.defaultId
         else:
+            # if accept invite is not the message type
+            # and we are still missing link, then return the error
+            if link is None:
+                linkNotCreated = '    Error processing {}. ' \
+                                 'Link is not yet created.'.format(typ)
+                self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
+                                          linkNotCreated,
+                                          self.wallet.defaultId,
+                                          frm)
+                return
+
             localIdr = link.localIdentifier
 
         if typ in self.lockedMsgs:
@@ -326,11 +338,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def _handlePong(self, msg):
         body, (frm, ha) = msg
         identifier = body.get(IDENTIFIER)
-        li = self._getLinkByTarget(getCryptonym(identifier))
-        if li:
-            self.notifyMsgListener("    Pong received.")
+        if identifier:
+            li = self._getLinkByTarget(getCryptonym(identifier))
+            if li:
+                self.notifyMsgListener("    Pong received.")
+            else:
+                self.notifyMsgListener("    Pong received from unknown endpoint.")
         else:
-            self.notifyMsgListener("    Pong received from unknown endpoint.")
+            self.notifyMsgListener('    Identifier is not yet set.')
 
     def _handleNewAvailableClaimsDataResponse(self, msg):
         body, _ = msg

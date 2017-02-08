@@ -121,7 +121,7 @@ class Client(PlenumClient):
                     # a malformed message should not result in an error message
                     # being shown on the cli since the clients would anyway
                     # collect enough replies from other nodes.
-                    logger.error("Observer threw an exception", exc_info=ex)
+                    logger.debug("Observer threw an exception", exc_info=ex)
             if isinstance(self.reqRepStore, ClientReqRepStoreOrientDB):
                 self.reqRepStore.setConsensus(identifier, reqId)
             if result[TXN_TYPE] == NYM:

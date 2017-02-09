@@ -377,7 +377,7 @@ Alice sees the attributes the transcript contains. These attributes are known be
 ```
 ALICE> request claim Transcript
 Found claim Transcript in link Faber College
-Getting Keys for the Claim Definition from Sovrin
+Getting Keys for the Schema from Sovrin
 Requesting claim Transcript from Faber College...
 
 Signature accepted.
@@ -629,7 +629,7 @@ Next, she requests it:
 ```
 ALICE> request claim Job-Certificate
 Found claim Job-Certificate in link Acme Corp
-Getting Keys for the Claim Definition from Sovrin
+Getting Keys for the Schema from Sovrin
 Requesting claim Job-Certificate from Acme Corp...
 
 Signature accepted.
@@ -792,9 +792,9 @@ Response from Thrift Bank (69.9 ms):
 
 The following operations show how Transcripts are defined on the ledger, such that they can later be issued with reference to a known schema.
 ```
-faber> use Claim-Defs-Keyring
+faber> use Schema-Keyring
  
-faber> new claim definition
+faber> new schema
 name = "Transcript"
 version = "1.2"
 attributes = {
@@ -805,9 +805,9 @@ attributes = {
     "status": "string"
 }
 
-Claim definition Transcript v1 .2 added to Claim-Defs-Keyring
+Schema Transcript v1 .2 added to Schema-Keyring
  
-faber> add keys of type CL for claim definition Transcript version 1.2
+faber> add keys of type CL for schema Transcript version 1.2
 Keys added
  
 faber> show pending 2 pending
@@ -827,7 +827,7 @@ A similar process is followed by Acme Corp. to define a Job Application.
 $ sovrin
 sovrin> prompt
 acme
-acme> new claim definition
+acme> new schema
 name = "Job-Application"
 version = "0.1"
 attributes = {
@@ -847,7 +847,7 @@ attributes = {
     }]
 }
 
-Claim definition Job-Application v0 .1 added
+Schema Job-Application v0 .1 added
  
 acme> show pending 1 pending
 ...

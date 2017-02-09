@@ -22,7 +22,7 @@ from prompt_toolkit.layout.lexers import SimpleLexer
 from pygments.token import Token
 
 from anoncreds.protocol.globals import KEYS
-from anoncreds.protocol.types import ClaimDefinition, ID
+from anoncreds.protocol.types import Schema, ID
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
@@ -37,7 +37,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.auth import Authoriser
 from sovrin_common.config import ENVS
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
-    LinkNotFound, NotConnectedToNetwork, ClaimDefNotFound
+    LinkNotFound, NotConnectedToNetwork, SchemaNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
     SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
@@ -130,7 +130,7 @@ class SovrinCli(PlenumCli):
         completers["send_nym"] = WordCompleter(["send", "NYM"])
         completers["send_get_nym"] = WordCompleter(["send", "GET_NYM"])
         completers["send_attrib"] = WordCompleter(["send", "ATTRIB"])
-        completers["send_cred_def"] = WordCompleter(["send", "CLAIM_DEF"])
+        completers["send_schema"] = WordCompleter(["send", "SCHEMA"])
         completers["send_isr_key"] = WordCompleter(["send", "ISSUER_KEY"])
         completers["send_node"] = WordCompleter(["send", "NODE"])
         completers["send_pool_upg"] = WordCompleter(["send", "POOL_UPGRADE"])
@@ -168,7 +168,7 @@ class SovrinCli(PlenumCli):
                         self._sendAttribAction,
                         self._sendNodeAction,
                         self._sendPoolUpgAction,
-                        self._sendClaimDefAction,
+                        self._sendSchemaAction,
                         self._sendIssuerKeyAction,
                         self._addGenesisAction,
                         self._showFile,
@@ -616,21 +616,22 @@ class SovrinCli(PlenumCli):
                                  justification=justification)
             return True
 
-    def _sendClaimDefAction(self, matchedVars):
-        if matchedVars.get('send_cred_def') == 'send CLAIM_DEF':
+    def _sendSchemaAction(self, matchedVars):
+        if matchedVars.get('send_schema') == 'send SCHEMA':
             if not self.canMakeSovrinRequest:
                 return True
 
-            claimDef = self.agent.issuer.genClaimDef(name=matchedVars.get(NAME),
-                                                     version=matchedVars.get(VERSION),
-                                                     ttrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")],
-                                                     typ=matchedVars.get(TYPE))
+            schema = self.agent.issuer.genSchema(
+                name=matchedVars.get(NAME),
+                version=matchedVars.get(VERSION),
+                ttrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")],
+                typ=matchedVars.get(TYPE))
 
             self.print("The following credential definition is published"
                        "to the Sovrin distributed ledger\n", Token.BoldBlue,
                        newline=False)
-            self.print("{}".format(str(claimDef)))
-            self.print("Sequence number is {}".format(claimDef.id),
+            self.print("{}".format(str(schema)))
+            self.print("Sequence number is {}".format(schema.id),
                        Token.BoldBlue)
 
             return True
@@ -640,10 +641,10 @@ class SovrinCli(PlenumCli):
             if not self.canMakeSovrinRequest:
                 return True
             reference = int(matchedVars.get(REF))
-            id = ID(claimDefId=reference)
+            id = ID(schemaId=reference)
             try:
                 self.agent.issuer.genKeys(id)
-            except ClaimDefNotFound:
+            except SchemaNotFound:
                 self.print("Reference {} not found".format(reference),
                            Token.BoldOrange)
 
@@ -1002,7 +1003,7 @@ class SovrinCli(PlenumCli):
         return matchingLinksWithClaimReq[0]
 
     def _getOneLinkAndAvailableClaim(self, claimName, printMsgs: bool = True) -> \
-            (Link, ClaimDefinition):
+            (Link, Schema):
         matchingLinksWithAvailableClaim = self.activeWallet. \
             getMatchingLinksWithAvailableClaim(claimName)
 
@@ -1066,11 +1067,11 @@ class SovrinCli(PlenumCli):
                     self._printNotConnectedEnvMessage()
                     return True
 
-                claimDefKey = (name, version, origin)
+                schemaKey = (name, version, origin)
                 self.print("Requesting claim {} from {}...".format(
                     name, matchingLink.name))
 
-                self.agent.sendReqClaim(matchingLink, claimDefKey)
+                self.agent.sendReqClaim(matchingLink, schemaKey)
             else:
                 self._printNoClaimFoundMsg()
             return True

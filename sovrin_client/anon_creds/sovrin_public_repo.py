@@ -8,10 +8,10 @@ from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
     ORIGIN
 
 from anoncreds.protocol.repo.public_repo import PublicRepo
-from anoncreds.protocol.types import ClaimDefinition, ID, PublicKey, \
+from anoncreds.protocol.types import Schema, ID, PublicKey, \
     RevocationPublicKey, AccumulatorPublicKey, \
     Accumulator, TailsType, TimestampType
-from sovrin_common.txn import GET_CLAIM_DEF, CLAIM_DEF, ATTR_NAMES, \
+from sovrin_common.txn import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
     GET_ISSUER_KEY, REF, ISSUER_KEY, PRIMARY, REVOCATION
 from sovrin_common.types import Request
 
@@ -44,13 +44,13 @@ class SovrinPublicRepo(PublicRepo):
         self.wallet = wallet
         self.displayer = print
 
-    async def getClaimDef(self, id: ID) -> ClaimDefinition:
+    async def getSchema(self, id: ID) -> Schema:
         op = {
-            TARGET_NYM: id.claimDefKey.issuerId,
-            TXN_TYPE: GET_CLAIM_DEF,
+            TARGET_NYM: id.schemaKey.issuerId,
+            TXN_TYPE: GET_SCHEMA,
             DATA: {
-                NAME: id.claimDefKey.name,
-                VERSION: id.claimDefKey.version,
+                NAME: id.schemaKey.name,
+                VERSION: id.schemaKey.version,
             }
         }
         try:
@@ -58,9 +58,9 @@ class SovrinPublicRepo(PublicRepo):
         except TimeoutError:
             logger.error('Operation timed out {}'.format(op))
             return None
-        return ClaimDefinition(name=data[NAME],
+        return Schema(name=data[NAME],
                                version=data[VERSION],
-                               claimDefType=data[TYPE],
+                               schemaType=data[TYPE],
                                attrNames=data[ATTR_NAMES].split(","),
                                issuerId=data[ORIGIN],
                                seqId=seqNo)
@@ -68,8 +68,8 @@ class SovrinPublicRepo(PublicRepo):
     async def getPublicKey(self, id: ID) -> PublicKey:
         op = {
             TXN_TYPE: GET_ISSUER_KEY,
-            REF: id.claimDefId,
-            ORIGIN: id.claimDefKey.issuerId
+            REF: id.schemaId,
+            ORIGIN: id.schemaKey.issuerId
         }
 
         try:
@@ -88,8 +88,8 @@ class SovrinPublicRepo(PublicRepo):
     async def getPublicKeyRevocation(self, id: ID) -> RevocationPublicKey:
         op = {
             TXN_TYPE: GET_ISSUER_KEY,
-            REF: id.claimDefId,
-            ORIGIN: id.claimDefKey.issuerId
+            REF: id.schemaId,
+            ORIGIN: id.schemaKey.issuerId
         }
 
         try:
@@ -116,15 +116,15 @@ class SovrinPublicRepo(PublicRepo):
 
     # SUBMIT
 
-    async def submitClaimDef(self,
-                             claimDef: ClaimDefinition) -> ClaimDefinition:
+    async def submitSchema(self,
+                           schema: Schema) -> Schema:
         op = {
-            TXN_TYPE: CLAIM_DEF,
+            TXN_TYPE: SCHEMA,
             DATA: {
-                NAME: claimDef.name,
-                VERSION: claimDef.version,
-                TYPE: claimDef.claimDefType,
-                ATTR_NAMES: ",".join(claimDef.attrNames)
+                NAME: schema.name,
+                VERSION: schema.version,
+                TYPE: schema.schemaType,
+                ATTR_NAMES: ",".join(schema.attrNames)
             }
         }
 
@@ -136,9 +136,9 @@ class SovrinPublicRepo(PublicRepo):
 
         if not seqNo:
             return None
-        claimDef = claimDef._replace(issuerId=self.wallet.defaultId,
-                                     seqId=seqNo)
-        return claimDef
+        schema = schema._replace(issuerId=self.wallet.defaultId,
+                                 seqId=seqNo)
+        return schema
 
     async def submitPublicKeys(self, id: ID, pk: PublicKey,
                                pkR: RevocationPublicKey = None) -> (
@@ -147,7 +147,7 @@ class SovrinPublicRepo(PublicRepo):
         pkRData = pkR.toStrDict()
         op = {
             TXN_TYPE: ISSUER_KEY,
-            REF: id.claimDefId,
+            REF: id.schemaId,
             DATA: {PRIMARY: pkData, REVOCATION: pkRData}
         }
 

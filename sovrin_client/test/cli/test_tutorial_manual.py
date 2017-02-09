@@ -3,7 +3,8 @@ import logging
 import re
 
 import pytest
-from anoncreds.protocol.types import ClaimDefinitionKey, ID
+from plenum.common.eventually import eventually
+from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
@@ -52,7 +53,7 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
 def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
-               claimDefAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
+               schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
                tdir, syncLinkOutWithEndpoint, jobCertificateClaimMap,
                syncedInviteAcceptedOutWithoutClaims, transcriptClaimMap,
                reqClaimOut, reqClaimOut1, susanCLI, susanMap):
@@ -118,22 +119,22 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
 
     async def checkTranscriptWritten():
         faberId = faberAgent.wallet.defaultId
-        claimDefId = ID(ClaimDefinitionKey("Transcript", "1.2", faberId))
-        claimDef = await faberAgent.issuer.wallet.getClaimDef(claimDefId)
-        assert claimDef
-        assert claimDef.seqId
+        schemaId = ID(SchemaKey("Transcript", "1.2", faberId))
+        schema = await faberAgent.issuer.wallet.getSchema(schemaId)
+        assert schema
+        assert schema.seqId
 
-        issuerKey = faberAgent.issuer.wallet.getPublicKey(claimDefId)
+        issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
         assert issuerKey
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId
-        claimDefId = ID(ClaimDefinitionKey("Job-Certificate", "0.2", acmeId))
-        claimDef = await acmeAgent.issuer.wallet.getClaimDef(claimDefId)
-        assert claimDef
-        assert claimDef.seqId
+        schemaId = ID(SchemaKey("Job-Certificate", "0.2", acmeId))
+        schema = await acmeAgent.issuer.wallet.getSchema(schemaId)
+        assert schema
+        assert schema.seqId
 
-        issuerKey = await acmeAgent.issuer.wallet.getPublicKey(claimDefId)
+        issuerKey = await acmeAgent.issuer.wallet.getPublicKey(schemaId)
         assert issuerKey
         assert issuerKey.seqId
 
@@ -147,11 +148,11 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                        syncedInviteAcceptedOutWithoutClaims, tMap,
                        transcriptClaimMap):
 
-        async def getPublicKey(wallet, claimDefId):
-            return await wallet.getPublicKey(claimDefId)
+        async def getPublicKey(wallet, schemaId):
+            return await wallet.getPublicKey(schemaId)
 
-        async def getClaim(claimDefId):
-            return userCLI.agent.prover.wallet.getClaims(claimDefId)
+        async def getClaim(schemaId):
+            return userCLI.agent.prover.wallet.getClaims(schemaId)
 
         # Start User cli
 
@@ -171,13 +172,13 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None,  # Passing None since its not used
                                       None)  # Passing None since its not used
 
-        faberClaimDefId = ID(ClaimDefinitionKey('Transcript', '1.2', fMap['target']))
-        faberIssuerKey = userCLI.looper.run(getPublicKey(faberAgent.issuer.wallet, faberClaimDefId))
-        userFaberIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, faberClaimDefId))
+        faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
+        faberIssuerKey = userCLI.looper.run(getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
+        userFaberIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
         assert faberIssuerKey == userFaberIssuerKey
 
         do('show claim Transcript')
-        assert userCLI.looper.run(getClaim(faberClaimDefId))
+        assert userCLI.looper.run(getClaim(faberSchemaId))
 
         # Accept acme
         do('load sample/acme-job-application.sovrin')
@@ -197,13 +198,13 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         jobCertClaimRequested(be, do, userCLI, None,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
-        acmeClaimDefId = ID(ClaimDefinitionKey('Job-Certificate', '0.2', aMap['target']))
-        acmeIssuerKey = userCLI.looper.run(getPublicKey(acmeAgent.issuer.wallet, acmeClaimDefId))
-        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, acmeClaimDefId))
+        acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
+        acmeIssuerKey = userCLI.looper.run(getPublicKey(acmeAgent.issuer.wallet, acmeSchemaId))
+        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, acmeSchemaId))
         assert acmeIssuerKey == userAcmeIssuerKey
 
         do('show claim Job-Certificate')
-        assert userCLI.looper.run(getClaim(acmeClaimDefId))
+        assert userCLI.looper.run(getClaim(acmeSchemaId))
 
         # Accept thrift
         do('load sample/thrift-loan-application.sovrin')
@@ -212,14 +213,14 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         # Send claims
         bankBasicClaimSent(be, do, userCLI, tMap, None)
 
-        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, acmeClaimDefId))
+        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, acmeSchemaId))
         assert acmeIssuerKey == thriftAcmeIssuerKey
         passed = False
         try:
             bankKYCClaimSent(be, do, userCLI, tMap, None)
             passed = True
         except:
-            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, faberClaimDefId))
+            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, faberSchemaId))
             assert faberIssuerKey == thriftFaberIssuerKey
         assert passed
 

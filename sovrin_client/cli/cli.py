@@ -1,5 +1,7 @@
 import ast
 import datetime
+from collections import OrderedDict
+
 import importlib
 import json
 import os
@@ -26,6 +28,12 @@ from anoncreds.protocol.types import Schema, ID
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
+from sovrin_client.cli.HelpMsg import sendNymHelpMsg, sendGetNymHelpMsg, \
+    sendAttribHelpMsg, sendNodeHelpMsg, sendPoolUpgHelpMsg, sendSchemaMsg, \
+    sendIssuerHelpMsg, showFileHelpMsg, loadFileHelpMsg, showLinkHelpMsg, \
+    connectToHelpMsg, disconnectHelpMsg, syncLinkHelpMsg, pingTargetHelpMsg, \
+    showClaimHelpMsg, reqClaimHelpMsg, showClaimReqHelpMsg, acceptLinkHelpMsg, \
+    setAttrHelpMsg, sendClaimHelpMsg
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
@@ -1368,27 +1376,27 @@ class SovrinCli(PlenumCli):
     def print(self, msg, token=None, newline=True):
         super().print(msg, token=token, newline=newline)
 
-    def printHelp(self):
-        self.print(
-            """{}-CLI, a simple command-line interface for a {} sandbox.
-    Commands:
-        help - Shows this help message
-        help <command> - Shows the help message of <command>
-        new - creates one or more new nodes or clients
-        keyshare - manually starts key sharing of a node
-        status - Shows general status of the sandbox
-        status <node_name>|<client_name> - Shows specific status
-        list - Shows the list of commands you can run
-        license - Show the license
-        prompt <principal name> - Changes the prompt to <principal name>
-        principals (a person like Alice, an organization like Faber College, or an IoT-style thing)
-        load <invitation filename> - Creates the link, generates Identifier and signing keys
-        show <invitation filename> - Shows the info about the link invitation
-        show link <name> - Shows link info in case of one matching link, otherwise shows all the matching link <names>
-        connect <{}> - Lets you connect to the respective environment
-        sync <link name> - Synchronizes the link between the endpoints
-        exit - exit the command-line interface ('quit' also works)
-        """.format(self.properName, self.fullName, self.allEnvNames))
+    # def printHelp(self):
+    #     self.print(
+    #         """{}-CLI, a simple command-line interface for a {} sandbox.
+    # Commands:
+    #     help - Shows this help message
+    #     help <command> - Shows the help message of <command>
+    #     new - creates one or more new nodes or clients
+    #     keyshare - manually starts key sharing of a node
+    #     status - Shows general status of the sandbox
+    #     status <node_name>|<client_name> - Shows specific status
+    #     list - Shows the list of commands you can run
+    #     license - Show the license
+    #     prompt <principal name> - Changes the prompt to <principal name>
+    #     principals (a person like Alice, an organization like Faber College, or an IoT-style thing)
+    #     load <invitation filename> - Creates the link, generates Identifier and signing keys
+    #     show <invitation filename> - Shows the info about the link invitation
+    #     show link <name> - Shows link info in case of one matching link, otherwise shows all the matching link <names>
+    #     connect <{}> - Lets you connect to the respective environment
+    #     sync <link name> - Synchronizes the link between the endpoints
+    #     exit - exit the command-line interface ('quit' also works)
+    #     """.format(self.properName, self.fullName, self.allEnvNames))
 
     def createFunctionMappings(self):
         from collections import defaultdict
@@ -1437,6 +1445,34 @@ class SovrinCli(PlenumCli):
         }
 
         return defaultdict(lambda: defaultHelper, **mappings)
+
+    def helpMsgs(self):
+        helpMsgMappings = OrderedDict()
+        helpMsgMappings.update(super().helpMsgs())
+        helpMsgMappings['sendNymAction'] = sendNymHelpMsg
+        helpMsgMappings['sendGetNymAction'] = sendGetNymHelpMsg
+        helpMsgMappings['sendAttribAction'] = sendAttribHelpMsg
+        helpMsgMappings['sendNodeAction'] = sendNodeHelpMsg
+        helpMsgMappings['sendPoolUpgAction'] = sendPoolUpgHelpMsg
+        helpMsgMappings['sendSchemaAction'] = sendSchemaMsg
+        helpMsgMappings['sendIssuerKeyAction'] = sendIssuerHelpMsg
+        helpMsgMappings['showFile'] = showFileHelpMsg
+        helpMsgMappings['loadFile'] = loadFileHelpMsg
+        helpMsgMappings['showLink'] = showLinkHelpMsg
+        helpMsgMappings['connectTo'] = connectToHelpMsg
+        helpMsgMappings['disconnect'] = disconnectHelpMsg
+        helpMsgMappings['syncLink'] = syncLinkHelpMsg
+        helpMsgMappings['pingTarget'] = pingTargetHelpMsg
+        helpMsgMappings['showClaim'] = showClaimHelpMsg
+        helpMsgMappings['reqClaim'] = reqClaimHelpMsg
+        helpMsgMappings['showClaimReq'] = showClaimReqHelpMsg
+        helpMsgMappings['acceptInvitationLink'] = acceptLinkHelpMsg
+        helpMsgMappings['setAttr'] = setAttrHelpMsg
+        helpMsgMappings['sendClaim'] = sendClaimHelpMsg
+
+
+
+        return helpMsgMappings
 
     @property
     def canMakeSovrinRequest(self):

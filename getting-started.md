@@ -268,7 +268,7 @@ Attempting to sync...
 Synchronizing...
     Link Faber College synced
 
-Pinging target endpoint: ('127.0.0.1', 5555)
+Pinging target endpoint: ('54.70.102.199', 5555)
     Ping sent.
     Pong received.
 
@@ -303,7 +303,7 @@ Link
     Signing key: <hidden>
     Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
     Target Verification key: <same as target>
-    Target endpoint: 127.0.0.1:5555
+    Target endpoint: 54.70.102.199:5555
     Invitation nonce: b1134a647eb818069c089e7694f63e6d
     Invitation status: Accepted
     Available Claim(s): Transcript
@@ -326,7 +326,7 @@ At this point Alice is connected to Faber College, and can interact in a secure 
 ALICE> ping Faber
 Expanding Faber to "Faber College"
 
-Pinging target endpoint: ('127.0.0.1', 5555)
+Pinging target endpoint: ('54.70.102.199', 5555)
     Ping sent.
     Pong received.
 ```
@@ -377,7 +377,7 @@ Alice sees the attributes the transcript contains. These attributes are known be
 ```
 ALICE> request claim Transcript
 Found claim Transcript in link Faber College
-Getting Keys for the Claim Definition from Sovrin
+Getting Keys for the Schema from Sovrin
 Requesting claim Transcript from Faber College...
 
 Signature accepted.
@@ -414,7 +414,7 @@ ALICE> show sample/acme-job-application.sovrin
     "name": "Acme Corp",
     "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
-    "endpoint": "127.0.0.1:1213"
+    "endpoint": "54.70.102.199:6666"
   },
   "claim-requests": [{
     "name": "Job-Application",
@@ -459,7 +459,7 @@ Link (not yet accepted)
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <unknown, waiting for sync>
-    Target endpoint: 127.0.0.1:1213
+    Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: not verified, target verkey unknown
     Claim Requests: Job-Application
@@ -479,7 +479,7 @@ Attempting to sync...
 Synchronizing...
     Link Acme Corp synced
 
-Pinging target endpoint: ('127.0.0.1', 6666)
+Pinging target endpoint: ('54.70.102.199', 6666)
     Ping sent.
     Pong received.
 
@@ -594,7 +594,7 @@ Link
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <same as target>
-    Target endpoint: 127.0.0.1:6666
+    Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: Accepted
     Claim Request(s): Job-Application
@@ -629,7 +629,7 @@ Next, she requests it:
 ```
 ALICE> request claim Job-Certificate
 Found claim Job-Certificate in link Acme Corp
-Getting Keys for the Claim Definition from Sovrin
+Getting Keys for the Schema from Sovrin
 Requesting claim Job-Certificate from Acme Corp...
 
 Signature accepted.
@@ -686,7 +686,7 @@ Attempting to sync...
 Synchronizing...
     Link Thrift Bank synced
 
-Pinging target endpoint: ('127.0.0.1', 7777)
+Pinging target endpoint: ('54.70.102.199', 7777)
     Ping sent.
     Pong received.
 
@@ -792,9 +792,9 @@ Response from Thrift Bank (69.9 ms):
 
 The following operations show how Transcripts are defined on the ledger, such that they can later be issued with reference to a known schema.
 ```
-faber> use Claim-Defs-Keyring
+faber> use Schema-Keyring
  
-faber> new claim definition
+faber> new schema
 name = "Transcript"
 version = "1.2"
 attributes = {
@@ -805,9 +805,9 @@ attributes = {
     "status": "string"
 }
 
-Claim definition Transcript v1 .2 added to Claim-Defs-Keyring
+Schema Transcript v1 .2 added to Schema-Keyring
  
-faber> add keys of type CL for claim definition Transcript version 1.2
+faber> add keys of type CL for schema Transcript version 1.2
 Keys added
  
 faber> show pending 2 pending
@@ -827,7 +827,7 @@ A similar process is followed by Acme Corp. to define a Job Application.
 $ sovrin
 sovrin> prompt
 acme
-acme> new claim definition
+acme> new schema
 name = "Job-Application"
 version = "0.1"
 attributes = {
@@ -847,7 +847,7 @@ attributes = {
     }]
 }
 
-Claim definition Job-Application v0 .1 added
+Schema Job-Application v0 .1 added
  
 acme> show pending 1 pending
 ...

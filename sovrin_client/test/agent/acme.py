@@ -3,7 +3,7 @@ import os
 from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, ClaimDefinitionKey, \
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
 from sovrin_client.agent.agent import createAgent, runAgent
 from sovrin_client.agent.exception import NonceNotFound
@@ -90,14 +90,14 @@ class AcmeAgent(TestWalletedAgent):
                 salary_bracket="between $50,000 to $70,000")
         }
 
-        self._claimDefJobCertKey = ClaimDefinitionKey("Job-Certificate", "0.2",
-                                                      self.wallet.defaultId)
-        self._claimDefJobAppKey = ClaimDefinitionKey("Job-Application", "0.2",
-                                                     self.wallet.defaultId)
+        self._schemaJobCertKey = SchemaKey("Job-Certificate", "0.2",
+                                           self.wallet.defaultId)
+        self._schemaJobAppKey = SchemaKey("Job-Application", "0.2",
+                                          self.wallet.defaultId)
 
-    def _addAtrribute(self, claimDefKey, proverId, link):
+    def _addAtrribute(self, schemaKey, proverId, link):
         attr = self._attrsJobCert[self.getInternalIdByInvitedNonce(proverId)]
-        self.issuer._attrRepo.addAttributes(claimDefKey=claimDefKey,
+        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
 
@@ -123,29 +123,29 @@ class AcmeAgent(TestWalletedAgent):
             return await self.getJobCertAvailableClaimList()
 
     async def getJobCertAvailableClaimList(self):
-        claimDef = await self.issuer.wallet.getClaimDef(
-            ID(self._claimDefJobCertKey))
+        schema = await self.issuer.wallet.getSchema(
+            ID(self._schemaJobCertKey))
         return [{
-            NAME: claimDef.name,
-            VERSION: claimDef.version,
-            "claimDefSeqNo": claimDef.seqId
+            NAME: schema.name,
+            VERSION: schema.version,
+            "schemaSeqNo": schema.seqId
         }]
 
-    async def addClaimDefsToWallet(self):
-        claimDefJobCert = await self.issuer.genClaimDef(
-            self._claimDefJobCertKey.name,
-            self._claimDefJobCertKey.version,
+    async def addSchemasToWallet(self):
+        schemaJobCert = await self.issuer.genSchema(
+            self._schemaJobCertKey.name,
+            self._schemaJobCertKey.version,
             self._attrDefJobCert.attribNames(),
             'CL')
-        claimDefJobCertId = ID(claimDefKey=claimDefJobCert.getKey(),
-                               claimDefId=claimDefJobCert.seqId)
+        schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
+                               schemaId=schemaJobCert.seqId)
         p_prime, q_prime = primes["prime1"]
-        await self.issuer.genKeys(claimDefJobCertId, p_prime=p_prime,
+        await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
                                   q_prime=q_prime)
-        await self.issuer.issueAccumulator(claimDefId=claimDefJobCertId, iA='110', L=5)
+        await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
 
     async def bootstrap(self):
-        await self.addClaimDefsToWallet()
+        await self.addSchemasToWallet()
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):

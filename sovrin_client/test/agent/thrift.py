@@ -48,7 +48,7 @@ class ThriftAgent(TestWalletedAgent):
     def getAvailableClaimList(self):
         return []
 
-    def _addAtrribute(self, claimDefKey, proverId, link):
+    def _addAtrribute(self, schemaKey, proverId, link):
         pass
 
     async def postClaimVerif(self, claimName, link, frm):

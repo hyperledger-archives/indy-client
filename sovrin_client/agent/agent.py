@@ -24,9 +24,10 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
 from sovrin_common.strict_types import strict_types, decClassMethods
+from sovrin_common.config import agentLoggingLevel
 
 logger = getlogger()
-
+logger.setLevel(agentLoggingLevel)
 
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):

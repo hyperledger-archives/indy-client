@@ -42,7 +42,7 @@ def testAliceAcceptAcmeInvitation(aliceAcceptedAcme):
 
 
 @pytest.mark.skipif(True, reason="Not yet implemented")
-def testAddClaimDef():
+def testAddSchema():
     raise NotImplementedError
 
 

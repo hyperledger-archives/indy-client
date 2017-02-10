@@ -1,9 +1,9 @@
 import pytest
 from plenum.common.eventually import eventually
-
-from sovrin_client.client.wallet.link import Link, constant
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
+
+from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.test.cli.helper import getFileLines, prompt_is, exitFromCli
 
 
@@ -156,7 +156,7 @@ def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
 def checkWalletStates(userCli,
                       totalLinks,
                       totalAvailableClaims,
-                      totalClaimDefs,
+                      totalSchemas,
                       totalClaimsRcvd,
                       within=1):
     async def check():
@@ -167,8 +167,8 @@ def checkWalletStates(userCli,
             tac += len(li.availableClaims)
         assert totalAvailableClaims == tac
 
-        assert (totalClaimDefs == 0 and userCli.agent.prover is None) or \
-               (totalClaimDefs == len(await userCli.agent.prover.wallet.getAllClaimDef()))
+        assert (totalSchemas == 0 and userCli.agent.prover is None) or \
+               (totalSchemas == len(await userCli.agent.prover.wallet.getAllSchemas()))
 
         assert (totalClaimsRcvd == 0 and userCli.agent.prover is None) or \
                (totalClaimsRcvd == len((await userCli.agent.prover.wallet.getAllClaims()).keys()))
@@ -213,14 +213,14 @@ def testNotConnected(be, do, aliceCli, notConnectedStatus):
 
 def testShowInviteNotExists(be, do, aliceCli, fileNotExists, faberMap):
     checkWalletStates(aliceCli, totalLinks=0, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     be(aliceCli)
     do('show {invite-not-exists}', expect=fileNotExists, mapper=faberMap)
 
 
 def testShowInviteWithDirPath(be, do, aliceCli, fileNotExists, faberMap):
     checkWalletStates(aliceCli, totalLinks=0, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     be(aliceCli)
     do('show sample', expect=fileNotExists, mapper=faberMap)
 
@@ -249,11 +249,11 @@ def testLoadInviteNotExists(be, do, aliceCli, fileNotExists, faberMap):
 @pytest.fixture(scope="module")
 def faberInviteLoadedByAlice(be, do, aliceCli, loadInviteOut, faberMap):
     checkWalletStates(aliceCli, totalLinks=0, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     be(aliceCli)
     do('load {invite}', expect=loadInviteOut, mapper=faberMap)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     return aliceCli
 
 
@@ -306,13 +306,13 @@ def testAcceptUnSyncedFaberInviteWhenNotConnected(be, do, aliceCli,
 #     connectIfNotAlreadyConnected(do, connectedToTest, aliceCli, faberMap)
 #
 #     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=0,
-#                       totalClaimDefs=0, totalClaimsRcvd=0)
+#                       totalSchemas=0, totalClaimsRcvd=0)
 #     do('accept invitation from {inviter}',
 #        within=13,
 #        expect=acceptUnSyncedWithoutEndpointWhenConnected,
 #        mapper=faberMap)
 #     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=0,
-#                       totalClaimDefs=0, totalClaimsRcvd=0)
+#                       totalSchemas=0, totalClaimsRcvd=0)
 
 
 @pytest.fixture(scope="module")
@@ -377,6 +377,19 @@ def testShowSyncedFaberInviteWithEndpoint(be, do, aliceCLI, faberMap,
        mapper=faberMap)
 
 
+def testPingBeforeAccept(be, do, aliceCli, faberMap, connectedToTest,
+                         faberInviteSyncedWithEndpoint):
+    be(aliceCli)
+    connectIfNotAlreadyConnected(do, connectedToTest, aliceCli, faberMap)
+    do('ping {inviter}',
+       within=3,
+       expect=[
+           'Ping sent.',
+           'Error processing ping. Link is not yet created.'
+       ],
+       mapper=faberMap)
+
+
 def testAcceptNotExistsLink(be, do, aliceCli, linkNotExists, faberMap):
     be(aliceCli)
     do('accept invitation from {inviter-not-exists}',
@@ -433,11 +446,11 @@ def testAliceAcceptFaberInvitationAgain(be, do, aliceCli, faberMap,
     li.linkStatus = None
     be(aliceCli)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     acceptInvitation(be, do, aliceCli, faberMap,
                      unsycedAlreadyAcceptedInviteAcceptedOut)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     li.linkStatus = constant.LINK_STATUS_ACCEPTED
 
 
@@ -469,13 +482,13 @@ def testShowTranscriptClaim(be, do, aliceCli, transcriptClaimMap,
                             aliceAcceptedFaberInvitation):
     be(aliceCli)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     do("show claim {name}",
        expect=showTranscriptClaimOut,
        mapper=transcriptClaimMap,
        within=3)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=0)
+                      totalSchemas=1, totalClaimsRcvd=0)
 
 
 def testReqClaimNotExists(be, do, aliceCli, faberMap, showClaimNotFoundOut,
@@ -493,13 +506,13 @@ def aliceRequestedTranscriptClaim(be, do, aliceCli, transcriptClaimMap,
                                        aliceAcceptedFaberInvitation):
     be(aliceCli)
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=0)
+                      totalSchemas=1, totalClaimsRcvd=0)
     do("request claim {name}", within=5,
        expect=reqClaimOut,
        mapper=transcriptClaimMap)
 
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1, within=2)
+                      totalSchemas=1, totalClaimsRcvd=1, within=2)
 
 
 def testAliceReqClaim(aliceRequestedTranscriptClaim):
@@ -528,14 +541,14 @@ def testShowAcmeInvite(be, do, aliceCli, acmeMap):
 @pytest.fixture(scope="module")
 def acmeInviteLoadedByAlice(be, do, aliceCli, loadInviteOut, acmeMap):
     checkWalletStates(aliceCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
     be(aliceCli)
     do('load {invite}', expect=loadInviteOut, mapper=acmeMap)
     link = aliceCli.activeWallet.getLinkInvitation(acmeMap.get("inviter"))
     link.remoteEndPoint = acmeMap.get(ENDPOINT)
 
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
 
     return aliceCli
 
@@ -561,13 +574,13 @@ def aliceAcceptedAcmeJobInvitation(aliceCli, be, do,
                                    acmeInviteLoadedByAlice,
                                    acmeMap):
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
     be(aliceCli)
     acceptInvitation(be, do, aliceCli, acmeMap,
                      unsycedAcceptedInviteWithoutClaimOut)
 
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
     return aliceCli
 
 
@@ -758,10 +771,10 @@ def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
                             aliceRequestedTranscriptClaim,
                             aliceSelfAttestsAttributes):
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
     sendClaim(be, do, aliceCli, acmeMap, "Job-Certificate")
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
 
 
 def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
@@ -790,14 +803,14 @@ def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
                          jobApplicationClaimSent):
     be(aliceCli)
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=1, totalClaimsRcvd=1)
+                      totalSchemas=1, totalClaimsRcvd=1)
     do("show claim {name}",
        within=2,
        expect=showJobCertClaimOut,
        mapper=jobCertificateClaimMap)
 
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=1)
+                      totalSchemas=2, totalClaimsRcvd=1)
 
 
 @pytest.fixture(scope="module")
@@ -805,28 +818,28 @@ def jobCertClaimRequested(be, do, aliceCli, preRequisite,
                         jobCertificateClaimMap, reqClaimOut1,
                         jobApplicationClaimSent):
 
-    def removeClaimDef():
+    def removeSchema():
         inviter = jobCertificateClaimMap["inviter"]
         links = aliceCli.activeWallet.getMatchingLinks(inviter)
         assert len(links) == 1
         faberId = links[0].remoteIdentifier
         name, version = jobCertificateClaimMap["name"], \
                         jobCertificateClaimMap["version"]
-        aliceCli.activeWallet._claimDefs.pop((name, version, faberId))
+        aliceCli.activeWallet._schemas.pop((name, version, faberId))
 
-    # Removing claim def to check if it fetches the claim def again or not
-    # removeClaimDef()
+    # Removing schema to check if it fetches the schema again or not
+    # removeSchema()
 
     be(aliceCli)
 
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=1)
+                      totalSchemas=2, totalClaimsRcvd=1)
 
     do("request claim {name}", within=7,
        expect=reqClaimOut1,
        mapper=jobCertificateClaimMap)
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
 
 
 def testReqJobCertClaim(jobCertClaimRequested):
@@ -850,12 +863,12 @@ def thriftInviteLoadedByAlice(be, do, aliceCli, loadInviteOut, thriftMap,
                               preRequisite):
     be(aliceCli)
     checkWalletStates(aliceCli, totalLinks=2, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2, within=2)
+                      totalSchemas=2, totalClaimsRcvd=2, within=2)
 
     do('load {invite}', expect=loadInviteOut, mapper=thriftMap)
 
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
     return aliceCli
 
 
@@ -876,7 +889,7 @@ def aliceAcceptedThriftLoanApplication(be, do, aliceCli, thriftMap,
                                        thriftInviteLoadedByAlice,
                                        syncedInviteAcceptedOutWithoutClaims):
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2, within=2)
+                      totalSchemas=2, totalClaimsRcvd=2, within=2)
 
     connectIfNotAlreadyConnected(do, connectedToTest, aliceCli, thriftMap)
 
@@ -884,7 +897,7 @@ def aliceAcceptedThriftLoanApplication(be, do, aliceCli, thriftMap,
                      syncedInviteAcceptedOutWithoutClaims)
 
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
     return aliceCli
 
 
@@ -899,12 +912,12 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
     mapping.update(thriftMap)
     mapping["claim-req-to-match"] = "Loan-Application-Basic"
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
     extraMsgs = ["Loan eligibility criteria satisfied, "
                  "please send another claim 'Loan-Application-KYC'"]
     sendClaim(be, do, aliceCli, mapping, None, extraMsgs)
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
 
 
 def testAliceSendBankBasicClaim(bankBasicClaimSent):
@@ -918,10 +931,10 @@ def bankKYCClaimSent(be, do, aliceCli, thriftMap,
     mapping.update(thriftMap)
     mapping["claim-req-to-match"] = "Loan-Application-KYC"
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
     sendClaim(be, do, aliceCli, mapping, None)
     checkWalletStates(aliceCli, totalLinks=3, totalAvailableClaims=2,
-                      totalClaimDefs=2, totalClaimsRcvd=2)
+                      totalSchemas=2, totalClaimsRcvd=2)
 
 
 def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
@@ -936,6 +949,7 @@ def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
     assert len(cli._activeWallet.identifiers) == 4
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-385')
 def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
                               connectedToTest):
     be(aliceCli)

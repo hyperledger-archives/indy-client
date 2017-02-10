@@ -151,7 +151,6 @@ def restartCliWithCorruptedWalletFile(cli, be, do, filePath):
     ], within=5)
 
 
-@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-385')
 def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
                              aliceMultiNodePools,
                              earlMultiNodePools):

@@ -159,17 +159,13 @@ def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
 
 def suspendRole(looper, actingClient, actingWallet, did):
     idy = Identity(identifier=did, role=NULL)
-    if actingWallet.getSponsoredIdentity(did):
-        actingWallet.updateSponsoredIdentity(idy)
-    else:
-        actingWallet.addSponsoredIdentity(idy)
-    reqs = actingWallet.preparePending()
-    actingClient.submitReqs(*reqs)
+    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
 
-    def chk():
-        assert actingWallet.getSponsoredIdentity(did).seqNo is not None
 
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+def changeVerkey(looper, actingClient, actingWallet, idr, verkey):
+    idy = Identity(identifier=idr,
+                   verkey=verkey)
+    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
 
 
 def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
@@ -217,3 +213,19 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
                           client,
                           req.reqId,
                           contains, retryWait=1, timeout=15))
+
+
+def makeIdentityRequest(looper, actingClient, actingWallet, idy):
+    idr = idy.identifier
+    if actingWallet.getSponsoredIdentity(idr):
+        actingWallet.updateSponsoredIdentity(idy)
+    else:
+        actingWallet.addSponsoredIdentity(idy)
+    reqs = actingWallet.preparePending()
+    actingClient.submitReqs(*reqs)
+
+    def chk():
+        assert actingWallet.getSponsoredIdentity(idr).seqNo is not None
+
+    looper.run(eventually(chk, retryWait=1, timeout=5))
+    return reqs

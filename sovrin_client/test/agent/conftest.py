@@ -173,9 +173,11 @@ def faberAdded(nodeSet,
                emptyLooper,
                faberAgentPort,
                faberAgent):
+    emptyLooper.add(faberAgent.client)
     attrib = createAgentAndAddEndpoint(emptyLooper,
                                        faberAgent.wallet.defaultId,
-                                       faberAgent.wallet.getVerkey(),
+                                       faberAgent.wallet,
+                                       faberAgent.client,
                                        faberAgentPort,
                                        steward,
                                        stewardWallet)
@@ -230,9 +232,11 @@ def acmeAdded(nodeSet,
               emptyLooper,
               acmeAgentPort,
               acmeAgent):
+    emptyLooper.add(acmeAgent.client)
     attrib = createAgentAndAddEndpoint(emptyLooper,
                                        acmeAgent.wallet.defaultId,
-                                       acmeAgent.wallet.getVerkey(),
+                                       acmeAgent.wallet,
+                                       acmeAgent.client,
                                        acmeAgentPort,
                                        steward,
                                        stewardWallet)
@@ -277,6 +281,7 @@ def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
 @pytest.fixture(scope="module")
 def faberLinkAdded(faberIsRunning):
     pass
+
 
 @pytest.fixture(scope="module")
 def bulldogLinkAdded(bulldogIsRunning):
@@ -411,8 +416,9 @@ def checkAcceptInvitation(emptyLooper,
     emptyLooper.run(eventually(chk, timeout=10, retryWait=0.2))
 
 
-def createAgentAndAddEndpoint(looper, agentNym, agentVerkey, agentPort, steward,
-                              stewardWallet):
+def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
+                              agentPort, steward, stewardWallet):
+    agentVerkey = agentWallet.getVerkey()
     createNym(looper,
               agentNym,
               steward,
@@ -422,13 +428,12 @@ def createAgentAndAddEndpoint(looper, agentNym, agentVerkey, agentPort, steward,
     ep = '127.0.0.1:{}'.format(agentPort)
     attributeData = json.dumps({ENDPOINT: ep})
 
-    # TODO Faber Agent should be doing this!
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
-                       origin=stewardWallet.defaultId,
+                       origin=agentNym,
                        value=attributeData,
                        dest=agentNym,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, steward, stewardWallet, attrib)
+    addAttributeAndCheck(looper, agentClient, agentWallet, attrib)
     return attrib
 
 

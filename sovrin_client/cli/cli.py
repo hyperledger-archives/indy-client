@@ -41,7 +41,7 @@ from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
     SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
-    START, JUSTIFICATION
+    START, JUSTIFICATION, NULL
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
 
@@ -370,23 +370,15 @@ class SovrinCli(PlenumCli):
                     role = self._getRole(matchedVars)
                     signer = SimpleSigner()
                     nym = signer.verstr
-                    return self._addNym(nym, role, newVerKey=None,
+                    return self._addNym(nym, Identity.correctRole(role),
+                                        newVerKey=None,
                                         otherClientName=otherClientName)
-
-    def _getRole(self, matchedVars):
-        role = matchedVars.get("role")
-        validRoles = (SPONSOR, STEWARD)
-        if role and role not in validRoles:
-            self.print("Invalid role. Valid roles are: {}".
-                       format(", ".join(validRoles)), Token.Error)
-            return False
-        return role
 
     def _getRole(self, matchedVars):
         role = matchedVars.get(ROLE)
         if role is not None and role.strip() == '':
-            role = None
-        if not Authoriser.isValidRole(role):
+            role = NULL
+        if not Authoriser.isValidRole(Identity.correctRole(role)):
             self.print("Invalid role. Valid roles are: {}".
                        format(", ".join(map(lambda r: r if r else '',
                                             Authoriser.ValidRoles))), Token.Error)
@@ -476,9 +468,12 @@ class SovrinCli(PlenumCli):
             raise RuntimeError('One of raw, enc, or hash are required.')
 
         attrib = Attribute(randomString(5), data, self.activeWallet.defaultId,
-                           ledgerStore=LedgerStore.RAW)
-        if nym != self.activeWallet.defaultId:
-            attrib.dest = nym
+                           dest=nym, ledgerStore=LedgerStore.RAW)
+
+        # TODO: What is the purpose of this?
+        # if nym != self.activeWallet.defaultId:
+        #     attrib.dest = nym
+
         self.activeWallet.addAttribute(attrib)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
@@ -1312,13 +1307,14 @@ class SovrinCli(PlenumCli):
     def _addGenesisAction(self, matchedVars):
         if matchedVars.get('add_genesis'):
             nym = matchedVars.get('dest_id')
-            role = self._getRole(matchedVars)
+            role = Identity.correctRole(self._getRole(matchedVars))
             txn = {
                 TXN_TYPE: NYM,
                 TARGET_NYM: nym,
-                TXN_ID: sha256(randomString(6).encode()).hexdigest(),
-                ROLE: role.upper()
+                TXN_ID: sha256(randomString(6).encode()).hexdigest()
             }
+            if role:
+                txn[ROLE] = role.upper()
             # TODO: need to check if this needs to persist as well
             self.genesisTransactions.append(txn)
             self.print('Genesis transaction added.')

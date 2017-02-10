@@ -267,12 +267,14 @@ def addedSponsor(nodeSet, steward, stewardWallet, looper,
 
 @pytest.fixture(scope="module")
 def userWalletA(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userA', useDid=False)
+    return addRole(looper, sponsor, sponsorWallet, 'userA', useDid=False,
+                   addVerkey=False)
 
 
 @pytest.fixture(scope="module")
 def userWalletB(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userB', useDid=False)
+    return addRole(looper, sponsor, sponsorWallet, 'userB', useDid=False,
+                   addVerkey=False)
 
 
 @pytest.fixture(scope="module")

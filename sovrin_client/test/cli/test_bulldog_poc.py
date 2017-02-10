@@ -106,7 +106,7 @@ def testShowBulldogInvitation(be, do, earlCli, bulldogMap):
 def checkWalletStates(userCli,
                       totalLinks,
                       totalAvailableClaims,
-                      totalClaimDefs,
+                      totalSchemas,
                       totalClaimsRcvd,
                       within=None):
     async def check():
@@ -117,7 +117,7 @@ def checkWalletStates(userCli,
             tac += len(li.availableClaims)
         assert totalAvailableClaims == tac
 
-        assert totalClaimDefs == len(await userCli.agent.prover.wallet.getAllClaimDef())
+        assert totalSchemas == len(await userCli.agent.prover.wallet.getAllSchemas())
 
         assert totalClaimsRcvd == len((await userCli.agent.prover.wallet.getAllClaims()).keys())
 
@@ -130,11 +130,11 @@ def checkWalletStates(userCli,
 @pytest.fixture(scope="module")
 def bulldogInviteLoadedByEarl(be, do, earlCli, loadInviteOut, bulldogMap):
     checkWalletStates(earlCli, totalLinks=0, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     be(earlCli)
     do('load {invite}', expect=loadInviteOut, mapper=bulldogMap)
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     return earlCli
 
 
@@ -172,11 +172,11 @@ def syncInvite(be, do, userCli, expectedMsgs, mapping):
 @pytest.fixture(scope="module")
 def bulldogInviteLoadedBySusan(be, do, susanCLI, loadInviteOut, bulldogMap):
     checkWalletStates(earlCli, totalLinks=0, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     be(susanCLI)
     do('load {invite}', expect=loadInviteOut, mapper=bulldogMap)
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     return susanCLI
 
 
@@ -244,11 +244,11 @@ def earlAcceptedBulldogInvitation(be, do, earlCli, bulldogMap,
                                   bulldogLinkAdded, bulldogIsRunning,
                                   bulldogInviteSyncedWithEndpoint):
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=0,
-                      totalClaimDefs=0, totalClaimsRcvd=0)
+                      totalSchemas=0, totalClaimsRcvd=0)
     acceptInvitation(be, do, earlCli, bulldogMap,
                      syncedInviteAcceptedWithClaimsOut)
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=0)
+                      totalSchemas=1, totalClaimsRcvd=0)
     return earlCli
 
 
@@ -283,13 +283,13 @@ def earlRequestedBankingRelationshipClaim(be, do, earlCli, bankingRelationshipCl
                                           earlAcceptedBulldogInvitation):
     be(earlCli)
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=0)
+                      totalSchemas=1, totalClaimsRcvd=0)
     do("request claim {name}", within=5,
        expect=reqClaimOut,
        mapper=bankingRelationshipClaimMap)
 
     checkWalletStates(earlCli, totalLinks=1, totalAvailableClaims=1,
-                      totalClaimDefs=1, totalClaimsRcvd=1, within=2)
+                      totalSchemas=1, totalClaimsRcvd=1, within=2)
 
 
 def testEarlRequestedBankingRelationshipClaim(earlRequestedBankingRelationshipClaim):

@@ -2,7 +2,7 @@ import os
 
 from plenum.common.txn import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, ID, ClaimDefinitionKey
+from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
 from sovrin_client.agent.agent import createAgent, runAgent
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
@@ -82,7 +82,7 @@ class BulldogAgent(TestWalletedAgent):
                 account_status='active')
         }
 
-        claimVersionFileName = 'bulldog-claim-def-version.txt'
+        claimVersionFileName = 'bulldog-schema-version.txt'
         claimVersionNumber = 0.8
         claimVersionFilePath = '{}/{}'.format(basedirpath, claimVersionFileName)
         # get version number from file
@@ -109,7 +109,7 @@ class BulldogAgent(TestWalletedAgent):
                 bulldogLogger.warn('Error creating version file {}'.format(e))
                 raise e
 
-        self._claimDefKey = ClaimDefinitionKey('Banking-Relationship',
+        self._schemaKey = SchemaKey('Banking-Relationship',
                                                str(claimVersionNumber),
                                                self.wallet.defaultId)
 
@@ -129,32 +129,32 @@ class BulldogAgent(TestWalletedAgent):
         pass
 
     async def initAvailableClaimList(self):
-        claimDef = await self.issuer.wallet.getClaimDef(ID(self._claimDefKey))
+        schema = await self.issuer.wallet.getSchema(ID(self._schemaKey))
         self.availableClaims.append({
-            NAME: claimDef.name,
-            VERSION: claimDef.version,
-            "claimDefSeqNo": claimDef.seqId
+            NAME: schema.name,
+            VERSION: schema.version,
+            "schemaSeqNo": schema.seqId
         })
 
-    def _addAtrribute(self, claimDefKey, proverId, link):
+    def _addAtrribute(self, schemaKey, proverId, link):
         attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
-        self.issuer._attrRepo.addAttributes(claimDefKey=claimDefKey,
+        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
 
-    async def addClaimDefsToWallet(self):
-        claimDef = await self.issuer.genClaimDef(self._claimDefKey.name,
-                                                 self._claimDefKey.version,
+    async def addSchemasToWallet(self):
+        schema = await self.issuer.genSchema(self._schemaKey.name,
+                                                 self._schemaKey.version,
                                                  self._attrDef.attribNames(),
                                                  'CL')
-        claimDefId = ID(claimDefKey=claimDef.getKey(), claimDefId=claimDef.seqId)
+        schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
         p_prime, q_prime = primes["prime2"]
-        await self.issuer.genKeys(claimDefId, p_prime=p_prime, q_prime=q_prime)
-        await self.issuer.issueAccumulator(claimDefId=claimDefId, iA='110', L=5)
+        await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
+        await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
         await self.initAvailableClaimList()
 
     async def bootstrap(self):
-        await self.addClaimDefsToWallet()
+        await self.addSchemasToWallet()
 
 
 def createBulldog(name=None, wallet=None, basedirpath=None, port=None):

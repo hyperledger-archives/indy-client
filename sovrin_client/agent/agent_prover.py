@@ -7,7 +7,7 @@ from plenum.common.types import f
 from plenum.common.util import getCryptonym
 
 from anoncreds.protocol.prover import Prover
-from anoncreds.protocol.types import ClaimDefinitionKey, ID, Claims, ProofInput
+from anoncreds.protocol.types import SchemaKey, ID, Claims, ProofInput
 from anoncreds.protocol.utils import toDictWithStrValues
 from sovrin_client.agent.msg_constants import REQUEST_CLAIM, CLAIM_PROOF, CLAIM_FIELD, \
     CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
@@ -19,20 +19,21 @@ class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
 
-    def sendReqClaim(self, link: Link, claimDefKey):
+    def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendReqClaimAsync(link, claimDefKey))
+                                self.sendReqClaimAsync(link, schemaKey))
         else:
             self.loop.run_until_complete(
-                self.sendReqClaimAsync(link, claimDefKey))
+                self.sendReqClaimAsync(link, schemaKey))
 
-    async def sendReqClaimAsync(self, link: Link, claimDefKey):
-        name, version, origin = claimDefKey
-        claimDefKey = ClaimDefinitionKey(name, version, origin)
+    async def sendReqClaimAsync(self, link: Link, schemaKey):
+        name, version, origin = schemaKey
+        schemaKey = SchemaKey(name, version, origin)
 
-        claimReq = await self.prover.createClaimRequest(claimDefId=ID(
-            claimDefKey), proverId=link.invitationNonce,
+        claimReq = await self.prover.createClaimRequest(
+            schemaId=ID(schemaKey),
+            proverId=link.invitationNonce,
             reqNonRevoc=False)
 
         op = {
@@ -58,13 +59,13 @@ class AgentProver:
             name, version, claimAuthor = \
                 claim[NAME], claim[VERSION], claim[f.IDENTIFIER.nm]
 
-            claimDefKey = ClaimDefinitionKey(name, version, claimAuthor)
-            claimDef = await self.prover.wallet.getClaimDef(ID(claimDefKey))
-            claimDefId = ID(claimDefKey=claimDefKey, claimDefId=claimDef.seqId)
+            schemaKey = SchemaKey(name, version, claimAuthor)
+            schema = await self.prover.wallet.getSchema(ID(schemaKey))
+            schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
 
             claim = Claims.fromStrDict(claim[CLAIM_FIELD])
 
-            await self.prover.processClaim(claimDefId, claim)
+            await self.prover.processClaim(schemaId, claim)
         else:
             self.notifyMsgListener("No matching link found")
 
@@ -108,13 +109,13 @@ class AgentProver:
         matchingLinkAndReceivedClaim = []
         for li, cl in matchingLinkAndAvailableClaim:
             name, version, origin = cl
-            claimDefKeyId = ID(
-                ClaimDefinitionKey(name=name, version=version, issuerId=origin))
-            claimDef = await self.prover.wallet.getClaimDef(claimDefKeyId)
-            claimAttrs = set(claimDef.attrNames)
+            schemaKeyId = ID(
+                SchemaKey(name=name, version=version, issuerId=origin))
+            schema = await self.prover.wallet.getSchema(schemaKeyId)
+            claimAttrs = set(schema.attrNames)
             claim = None
             try:
-                claim = await self.prover.wallet.getClaims(claimDefKeyId)
+                claim = await self.prover.wallet.getClaims(schemaKeyId)
             except ValueError:
                 pass  # it means no claim was issued
             attrs = {k: None for k in claimAttrs}

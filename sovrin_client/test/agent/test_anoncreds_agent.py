@@ -1,18 +1,18 @@
 from plenum.common.eventually import eventually
 
-from anoncreds.protocol.types import ClaimDefinitionKey, ID
+from anoncreds.protocol.types import SchemaKey, ID
 
 
 def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, emptyLooper):
     # 1. request Claims from Faber
     faberLink = aliceAgent.wallet.getLink('Faber College')
     name, version, origin = faberLink.availableClaims[0]
-    claimDefKey = ClaimDefinitionKey(name, version, origin)
-    aliceAgent.sendReqClaim(faberLink, claimDefKey)
+    schemaKey = SchemaKey(name, version, origin)
+    aliceAgent.sendReqClaim(faberLink, schemaKey)
 
     # 2. check that claim is received from Faber
     async def chkClaims():
-        claim = await aliceAgent.prover.wallet.getClaims(ID(claimDefKey))
+        claim = await aliceAgent.prover.wallet.getClaims(ID(schemaKey))
         assert claim.primaryClaim
 
     emptyLooper.run(eventually(chkClaims, timeout=20))

@@ -5,7 +5,7 @@ from plenum.common.txn import NAME, VERSION, ORIGIN
 from plenum.common.types import f
 
 from anoncreds.protocol.issuer import Issuer
-from anoncreds.protocol.types import ClaimDefinitionKey, ID
+from anoncreds.protocol.types import SchemaKey, ID
 from anoncreds.protocol.types import ClaimRequest
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
 from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD
@@ -32,20 +32,20 @@ class AgentIssuer:
         origin = body[ORIGIN]
         claimReq = ClaimRequest.fromStrDict(body[CLAIM_REQ_FIELD])
 
-        claimDefKey = ClaimDefinitionKey(name, version, origin)
-        claimDef = await self.issuer.wallet.getClaimDef(ID(claimDefKey))
-        claimDefId = ID(claimDefKey=claimDefKey, claimDefId=claimDef.seqId)
+        schemaKey = SchemaKey(name, version, origin)
+        schema = await self.issuer.wallet.getSchema(ID(schemaKey))
+        schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
 
-        self._addAtrribute(claimDefKey=claimDefKey, proverId=claimReq.userId,
+        self._addAtrribute(schemaKey=schemaKey, proverId=claimReq.userId,
                            link=link)
 
-        claim = await self.issuer.issueClaim(claimDefId, claimReq)
+        claim = await self.issuer.issueClaim(schemaId, claimReq)
 
         claimDetails = {
-            NAME: claimDef.name,
-            VERSION: claimDef.version,
+            NAME: schema.name,
+            VERSION: schema.version,
             CLAIM_FIELD: claim.toStrDict(),
-            f.IDENTIFIER.nm: claimDef.issuerId
+            f.IDENTIFIER.nm: schema.issuerId
         }
 
         resp = self.getCommonMsg(CLAIM, claimDetails)
@@ -53,5 +53,5 @@ class AgentIssuer:
                          origReqId=body.get(f.REQ_ID.nm))
 
     @abstractmethod
-    def _addAtrribute(self, claimDefKey, proverId, link) -> Dict[str, Any]:
+    def _addAtrribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
         raise NotImplementedError

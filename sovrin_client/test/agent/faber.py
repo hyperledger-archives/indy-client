@@ -3,7 +3,7 @@ import os
 from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, ID, ClaimDefinitionKey
+from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
 from sovrin_client.agent.agent import createAgent, runAgent
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
@@ -78,7 +78,7 @@ class FaberAgent(TestWalletedAgent):
                 status="graduated")
         }
 
-        self._claimDefKey = ClaimDefinitionKey("Transcript", "1.2", self.wallet.defaultId)
+        self._schema = SchemaKey("Transcript", "1.2", self.wallet.defaultId)
 
     def getInternalIdByInvitedNonce(self, nonce):
         if nonce in self._invites:
@@ -96,32 +96,32 @@ class FaberAgent(TestWalletedAgent):
         pass
 
     async def initAvailableClaimList(self):
-        claimDef = await self.issuer.wallet.getClaimDef(ID(self._claimDefKey))
+        schema = await self.issuer.wallet.getSchema(ID(self._schema))
         self.availableClaims.append({
-            NAME: claimDef.name,
-            VERSION: claimDef.version,
-            "claimDefSeqNo": claimDef.seqId
+            NAME: schema.name,
+            VERSION: schema.version,
+            "schemaSeqNo": schema.seqId
         })
 
-    def _addAtrribute(self, claimDefKey, proverId, link):
+    def _addAtrribute(self, schemaKey, proverId, link):
         attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
-        self.issuer._attrRepo.addAttributes(claimDefKey=claimDefKey,
+        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
 
-    async def addClaimDefsToWallet(self):
-        claimDef = await self.issuer.genClaimDef(self._claimDefKey.name,
-                                                 self._claimDefKey.version,
+    async def addSchemasToWallet(self):
+        schema = await self.issuer.genSchema(self._schema.name,
+                                                 self._schema.version,
                                                  self._attrDef.attribNames(),
                                                  'CL')
-        claimDefId = ID(claimDefKey=claimDef.getKey(), claimDefId=claimDef.seqId)
+        schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
         p_prime, q_prime = primes["prime2"]
-        await self.issuer.genKeys(claimDefId, p_prime=p_prime, q_prime=q_prime)
-        await self.issuer.issueAccumulator(claimDefId=claimDefId, iA='110', L=5)
+        await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
+        await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
         await self.initAvailableClaimList()
 
     async def bootstrap(self):
-        await self.addClaimDefsToWallet()
+        await self.addSchemasToWallet()
 
 
 def createFaber(name=None, wallet=None, basedirpath=None, port=None):

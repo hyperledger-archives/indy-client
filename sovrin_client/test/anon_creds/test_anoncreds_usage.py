@@ -30,26 +30,26 @@ def verifier(userClientB, userWalletB):
 
 def testAnonCredsPrimaryOnly(issuer, prover, verifier, attrRepo, primes1, looper):
     async def doTestAnonCredsPrimaryOnly():
-        # 1. Create a Claim Def
-        claimDef = await issuer.genClaimDef('GVT', '1.0', GVT.attribNames())
-        claimDefId = ID(claimDefKey=claimDef.getKey(),
-                        claimDefId=claimDef.seqId)
+        # 1. Create a Schema
+        schema = await issuer.genSchema('GVT', '1.0', GVT.attribNames())
+        schemaId = ID(schemaKey=schema.getKey(),
+                        schemaId=schema.seqId)
 
-        # 2. Create keys for the Claim Def
-        await issuer.genKeys(claimDefId, **primes1)
+        # 2. Create keys for the Schema
+        await issuer.genKeys(schemaId, **primes1)
 
         # 3. Issue accumulator
-        await issuer.issueAccumulator(claimDefId=claimDefId, iA='110', L=5)
+        await issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
 
         # 4. set attributes for user1
         attrs = GVT.attribs(name='Alex', age=28, height=175, sex='male')
         proverId = str(prover.proverId)
-        attrRepo.addAttributes(claimDef.getKey(), proverId, attrs)
+        attrRepo.addAttributes(schema.getKey(), proverId, attrs)
 
         # 5. request Claims
-        claimsReq = await prover.createClaimRequest(claimDefId, proverId, False)
-        claims = await issuer.issueClaim(claimDefId, claimsReq)
-        await prover.processClaim(claimDefId, claims)
+        claimsReq = await prover.createClaimRequest(schemaId, proverId, False)
+        claims = await issuer.issueClaim(schemaId, claimsReq)
+        await prover.processClaim(schemaId, claims)
 
         # 6. proof Claims
         proofInput = ProofInput(

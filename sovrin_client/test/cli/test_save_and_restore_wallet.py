@@ -1,4 +1,7 @@
 import os
+from plenum.test.cli.helper import checkWalletFilePersisted, checkWalletRestored, \
+    createAndAssertNewCreation, createAndAssertNewKeyringCreation, \
+    useAndAssertKeyring, exitFromCli, restartCliAndAssert
 from time import sleep
 
 import pytest
@@ -6,7 +9,7 @@ from plenum.cli.cli import Exit, Cli
 from plenum.common.util import createDirIfNotExists
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.cli.helper import prompt_is, exitFromCli
+from sovrin_client.test.cli.helper import prompt_is
 
 
 def performExit(do):
@@ -15,7 +18,6 @@ def performExit(do):
 
 
 def testPersistentWalletName():
-
     # Connects to "test" environment
     walletFileName = Cli._normalizedWalletFileName("test")
     assert "test.wallet" == walletFileName
@@ -32,57 +34,9 @@ def testPersistentWalletName():
     assert "myvault" == Cli.getWalletKeyName(walletFileName)
 
 
-def checkWalletFilePersisted(filePath):
-    assert os.path.exists(filePath)
-
-
-def checkWalletRestored(cli, expectedWalletKeyName,
-                       expectedIdentifiers):
-
-    cli.lastCmdOutput == "Saved keyring {} restored".format(
-        expectedWalletKeyName)
-    assert cli._activeWallet.name == expectedWalletKeyName
-    assert len(cli._activeWallet.identifiers) == \
-           expectedIdentifiers
-
-
 def getWalletFilePath(cli):
     fileName = cli.getPersistentWalletFileName()
     return Cli.getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
-
-
-def getOldIdentifiersForActiveWallet(cli):
-    oldIdentifiers = 0
-    if cli._activeWallet:
-        oldIdentifiers = len(cli._activeWallet.identifiers)
-    return oldIdentifiers
-
-
-def createNewKey(do, cli, keyringName):
-    oldIdentifiers = getOldIdentifiersForActiveWallet(cli)
-    do('new key', within=2,
-       expect=["Key created in keyring {}".format(keyringName)])
-    assert len(cli._activeWallet.identifiers) == oldIdentifiers + 1
-
-
-def createNewKeyring(name, do, expectedMsgs=None):
-    finalExpectedMsgs = expectedMsgs if expectedMsgs else [
-           'Active keyring set to "{}"'.format(name),
-           'New keyring {} created'.format(name)
-        ]
-    do(
-        'new keyring {}'.format(name),
-        expect=finalExpectedMsgs
-    )
-
-
-def useKeyring(name, do, expectedName=None, expectedMsgs=None):
-    keyringName = expectedName or name
-    finalExpectedMsgs = expectedMsgs or \
-                        ['Active keyring set to "{}"'.format(keyringName)]
-    do('use keyring {}'.format(name),
-       expect=finalExpectedMsgs
-    )
 
 
 def _connectTo(envName, do, cli):
@@ -124,12 +78,7 @@ def restartCli(cli, be, do, expectedRestoredWalletName,
                expectedIdentifiers):
     be(cli)
     _connectTo("pool1", do, cli)
-    do(None, expect=[
-        'Saved keyring "{}" restored'.format(expectedRestoredWalletName),
-        'Active keyring set to "{}"'.format(expectedRestoredWalletName)
-    ], within=5)
-    assert cli._activeWallet is not None
-    assert len(cli._activeWallet.identifiers) == expectedIdentifiers
+    restartCliAndAssert(cli, do, expectedRestoredWalletName, expectedIdentifiers)
 
 
 def restartCliWithCorruptedWalletFile(cli, be, do, filePath):
@@ -149,6 +98,18 @@ def restartCliWithCorruptedWalletFile(cli, be, do, filePath):
            'New keyring Default created',
            'Active keyring set to "Default"'
     ], within=5)
+
+
+def createNewKey(do, cli, keyringName):
+    createAndAssertNewCreation(do, cli, keyringName)
+
+
+def createNewKeyring(name, do, expectedMsgs=None):
+    createAndAssertNewKeyringCreation(do, name, expectedMsgs)
+
+
+def useKeyring(name, do, expectedName=None, expectedMsgs=None):
+    useAndAssertKeyring(do, name, expectedName, expectedMsgs)
 
 
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-385')

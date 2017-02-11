@@ -366,21 +366,23 @@ class SovrinCli(PlenumCli):
     def _clientCommand(self, matchedVars):
         if matchedVars.get('client') == 'client':
             r = super()._clientCommand(matchedVars)
-            if not r:
-                client_name = matchedVars.get('client_name')
-                if client_name not in self.clients:
-                    self.print("{} cannot add a new user".
-                               format(client_name), Token.BoldOrange)
-                    return True
-                client_action = matchedVars.get('cli_action')
-                if client_action == 'add':
-                    otherClientName = matchedVars.get('other_client_name')
-                    role = self._getRole(matchedVars)
-                    signer = SimpleSigner()
-                    nym = signer.verstr
-                    return self._addNym(nym, Identity.correctRole(role),
-                                        newVerKey=None,
-                                        otherClientName=otherClientName)
+            if r:
+                return True
+
+            client_name = matchedVars.get('client_name')
+            if client_name not in self.clients:
+                self.print("{} cannot add a new user".
+                           format(client_name), Token.BoldOrange)
+                return True
+            client_action = matchedVars.get('cli_action')
+            if client_action == 'add':
+                otherClientName = matchedVars.get('other_client_name')
+                role = self._getRole(matchedVars)
+                signer = SimpleSigner()
+                nym = signer.verstr
+                return self._addNym(nym, Identity.correctRole(role),
+                                    newVerKey=None,
+                                    otherClientName=otherClientName)
 
     def _getRole(self, matchedVars):
         role = matchedVars.get(ROLE)
@@ -1280,6 +1282,12 @@ class SovrinCli(PlenumCli):
                 self.ensureClientConnected()
 
             return True
+
+    @property
+    def getActiveEnv(self):
+        prompt, env = PlenumCli.getPromptAndEnv(self.name,
+                            self.currPromptText)
+        return env
 
     def getAllEnvDirNamesForKeyrings(self):
         lst = list(ENVS.keys())

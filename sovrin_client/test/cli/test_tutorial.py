@@ -1,10 +1,11 @@
 import pytest
 from plenum.common.eventually import eventually
+from plenum.test.cli.helper import exitFromCli
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is, exitFromCli
+from sovrin_client.test.cli.helper import getFileLines, prompt_is
 
 
 def getSampleLinkInvitation():

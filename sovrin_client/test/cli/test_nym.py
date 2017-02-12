@@ -1,7 +1,7 @@
 import pytest
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.cli.test_tutorial import prompt_is
+from sovrin_client.test.cli.helper import prompt_is
 from sovrin_common.txn import SPONSOR
 from sovrin_node.test.did.conftest import wallet, abbrevVerkey, abbrevIdr
 
@@ -100,22 +100,22 @@ def addAndActivateCLIWallet(cli, wallet):
 
 
 @pytest.fixture(scope="module")
-def didNymAdded(be, do, philCli, abbrevIdr):
+def didAdded(be, do, philCli, abbrevIdr):
     addNym(be, do, philCli, abbrevIdr, role=SPONSOR)
     return philCli
 
 
-def testAddDIDNym(didNymAdded):
+def testAddDID(didAdded):
     pass
 
 
 @pytest.fixture(scope="module")
-def cidNymAdded(be, do, philCli, sponsorSigner):
+def cidAdded(be, do, philCli, sponsorSigner):
     addNym(be, do, philCli, sponsorSigner.identifier, role=SPONSOR)
     return philCli
 
 
-def testAddCID(cidNymAdded):
+def testAddCID(cidAdded):
     pass
 
 
@@ -123,7 +123,7 @@ def getNoVerkeyEverAssignedMsgs(idr):
     return ["No verkey ever assigned to the identifier {}".format(idr)]
 
 
-def testGetDIDWithoutVerkey(be, do, philCli, didNymAdded, abbrevIdr):
+def testGetDIDWithoutVerkey(be, do, philCli, didAdded, abbrevIdr):
     getNym(be, do, philCli, abbrevIdr,
            getNoVerkeyEverAssignedMsgs(abbrevIdr))
 
@@ -132,13 +132,13 @@ def getVerkeyIsSameAsIdentifierMsgs(idr):
     return ["Current verkey is same as identifier {}".format(idr)]
 
 
-def testGetCIDWithoutVerkey(be, do, philCli, cidNymAdded, sponsorSigner):
+def testGetCIDWithoutVerkey(be, do, philCli, cidAdded, sponsorSigner):
     getNym(be, do, philCli, sponsorSigner.identifier,
            getVerkeyIsSameAsIdentifierMsgs(sponsorSigner.identifier))
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToDID(be, do, philCli, didNymAdded, abbrevIdr, abbrevVerkey):
+def verkeyAddedToDID(be, do, philCli, didAdded, abbrevIdr, abbrevVerkey):
     addNym(be, do, philCli, abbrevIdr, abbrevVerkey)
 
 
@@ -147,7 +147,7 @@ def testAddVerkeyToExistingDID(verkeyAddedToDID):
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToCID(be, do, philCli, cidNymAdded, sponsorWallet):
+def verkeyAddedToCID(be, do, philCli, cidAdded, sponsorWallet):
     newSigner = SimpleSigner()
     addNym(be, do, philCli, sponsorWallet.defaultId, newSigner.identifier)
     # Updating the identifier of the new signer to match the one in wallet
@@ -156,7 +156,7 @@ def verkeyAddedToCID(be, do, philCli, cidNymAdded, sponsorWallet):
     return newSigner
 
 
-def testAddVerkeyToExistingCIDNym(verkeyAddedToCID):
+def testAddVerkeyToExistingCID(verkeyAddedToCID):
     pass
 
 
@@ -164,13 +164,13 @@ def getCurrentVerkeyIsgMsgs(idr, verkey):
     return ["Current verkey for NYM {} is {}".format(idr, verkey)]
 
 
-def testGetDIDNymWithVerKey(be, do, philCli, verkeyAddedToDID,
+def testGetDIDWithVerKey(be, do, philCli, verkeyAddedToDID,
                             abbrevIdr, abbrevVerkey):
     getNym(be, do, philCli, abbrevIdr,
            getCurrentVerkeyIsgMsgs(abbrevIdr, abbrevVerkey))
 
 
-def testGetCIDNymWithVerKey(be, do, philCli, verkeyAddedToCID,
+def testGetCIDWithVerKey(be, do, philCli, verkeyAddedToCID,
                             sponsorSigner):
     getNym(be, do, philCli, sponsorSigner.identifier,
            getCurrentVerkeyIsgMsgs(sponsorSigner.identifier,
@@ -237,7 +237,7 @@ def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
                                  "its verkey to blank, no-one including "
                                  "itself can change it")
 def testNewverkeyAddedToCID(be, do, philCli, sponsorSigner,
-                            verkeyRemovedFromExistingCIDNym):
+                            verkeyRemovedFromExistingCID):
     newSigner = SimpleSigner()
     addNym(be, do, philCli, sponsorSigner.identifier, newSigner.verkey)
     getNym(be, do, philCli, sponsorSigner.identifier,

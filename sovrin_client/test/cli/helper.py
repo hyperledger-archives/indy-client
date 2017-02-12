@@ -191,8 +191,3 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
             with Looper(debug=False) as looper:
                 yield new()
     return _
-
-
-def exitFromCli(do):
-    with pytest.raises(Exit):
-        do('exit', expect='Goodbye.')

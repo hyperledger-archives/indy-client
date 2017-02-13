@@ -207,3 +207,35 @@ def testDisconnect(grammar):
     matchedVars = getMatchedVariables(
         grammar, "disconnect")
     assertCliTokens(matchedVars, {"disconn": "disconnect"})
+
+
+def testNewIdentifier(grammar):
+    matchedVars = getMatchedVariables(
+        grammar, "new identifier")
+    assertCliTokens(matchedVars, {"new_id": "new identifier", "id_or_abbr": None,
+                                  "seed": None})
+
+    matchedVars = getMatchedVariables(
+        grammar, "new identifier abbr")
+    assertCliTokens(matchedVars, {"new_id": "new identifier", "id_or_abbr": "abbr",
+                                  "seed": None})
+
+    matchedVars = getMatchedVariables(
+        grammar, "new identifier 4QxzWk3ajdnEA37NdNU5Kt")
+    assertCliTokens(matchedVars, {"new_id": "new identifier",
+                                  "id_or_abbr": "4QxzWk3ajdnEA37NdNU5Kt",
+                                  "seed": None})
+
+    matchedVars = getMatchedVariables(
+        grammar, "new identifier 4QxzWk3ajdnEA37NdNU5Kt "
+                 "with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    assertCliTokens(matchedVars, {"new_id": "new identifier",
+                                  "id_or_abbr": "4QxzWk3ajdnEA37NdNU5Kt",
+                                  "seed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+
+    matchedVars = getMatchedVariables(
+        grammar,
+        "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    assertCliTokens(matchedVars, {"new_id": "new identifier",
+                                  "id_or_abbr": "abbr",
+                                  "seed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})

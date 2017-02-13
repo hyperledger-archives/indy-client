@@ -15,10 +15,11 @@ import base58
 from plenum.cli.cli import Cli as PlenumCli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
 from plenum.common.txn_util import createGenesisTxnFile
-from plenum.common.util import randomString
+from plenum.common.util import randomString, cleanSeed
 from prompt_toolkit.contrib.completers import WordCompleter
 from prompt_toolkit.layout.lexers import SimpleLexer
 from pygments.token import Token
@@ -33,7 +34,7 @@ from sovrin_client.cli.HelpMsg import sendNymHelpMsg, sendGetNymHelpMsg, \
     sendIssuerHelpMsg, showFileHelpMsg, loadFileHelpMsg, showLinkHelpMsg, \
     connectToHelpMsg, disconnectHelpMsg, syncLinkHelpMsg, pingTargetHelpMsg, \
     showClaimHelpMsg, reqClaimHelpMsg, showClaimReqHelpMsg, acceptLinkHelpMsg, \
-    setAttrHelpMsg, sendClaimHelpMsg
+    setAttrHelpMsg, sendClaimHelpMsg, newIdentifierHelpMsg
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
@@ -124,7 +125,8 @@ class SovrinCli(PlenumCli):
             'req_claim',
             'accept_link_invite',
             'set_attr',
-            'send_claim'
+            'send_claim',
+            'new_id'
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -161,6 +163,8 @@ class SovrinCli(PlenumCli):
 
         completers["set_attr"] = WordCompleter(["set"])
         completers["send_claim"] = WordCompleter(["send", "claim"])
+        completers["new_id"] = WordCompleter(["new", "identifier"])
+
         return {**super().completers, **completers}
 
     def initializeGrammar(self):
@@ -191,7 +195,8 @@ class SovrinCli(PlenumCli):
                         self._showClaimReq,
                         self._acceptInvitationLink,
                         self._setAttr,
-                        self._sendClaim
+                        self._sendClaim,
+                        self._newIdentifier
                         ])
         return actions
 
@@ -1081,6 +1086,34 @@ class SovrinCli(PlenumCli):
                 self._printNoClaimFoundMsg()
             return True
 
+    def _createNewIdentifier(self, isAbbr, identifier, seed):
+        if not self.isValidSeedForNewKey(seed):
+            return True
+
+        cseed = cleanSeed(seed)
+        signer = DidSigner(identifier=identifier, seed=cseed)
+
+        if not isAbbr and not identifier:
+            identifier = signer.identifier
+
+        id, signer = self.activeWallet.addIdentifier(identifier, seed=cseed)
+        self._setActiveIdentifier(id)
+
+    def _newIdentifier(self, matchedVars):
+        if matchedVars.get('new_id') == 'new identifier':
+            id_or_abbr = matchedVars.get('id_or_abbr')
+            isAbbr = False
+            identifier = None
+            if id_or_abbr:
+                if id_or_abbr == "abbr":
+                    isAbbr = True
+                else:
+                    identifier = id_or_abbr
+            seed = matchedVars.get('seed')
+            self._createNewIdentifier(isAbbr, identifier, seed)
+            return True
+
+
     def _sendClaim(self, matchedVars):
         if matchedVars.get('send_claim') == 'send claim':
             claimName = matchedVars.get('claim_name').strip()
@@ -1432,33 +1465,32 @@ class SovrinCli(PlenumCli):
 
         return defaultdict(lambda: defaultHelper, **mappings)
 
-    def helpMsgs(self):
-        helpMsgMappings = OrderedDict()
-        helpMsgMappings.update(super().helpMsgs())
-        helpMsgMappings['sendNymAction'] = sendNymHelpMsg
-        helpMsgMappings['sendGetNymAction'] = sendGetNymHelpMsg
-        helpMsgMappings['sendAttribAction'] = sendAttribHelpMsg
-        helpMsgMappings['sendNodeAction'] = sendNodeHelpMsg
-        helpMsgMappings['sendPoolUpgAction'] = sendPoolUpgHelpMsg
-        helpMsgMappings['sendSchemaAction'] = sendSchemaMsg
-        helpMsgMappings['sendIssuerKeyAction'] = sendIssuerHelpMsg
-        helpMsgMappings['showFile'] = showFileHelpMsg
-        helpMsgMappings['loadFile'] = loadFileHelpMsg
-        helpMsgMappings['showLink'] = showLinkHelpMsg
-        helpMsgMappings['connectTo'] = connectToHelpMsg
-        helpMsgMappings['disconnect'] = disconnectHelpMsg
-        helpMsgMappings['syncLink'] = syncLinkHelpMsg
-        helpMsgMappings['pingTarget'] = pingTargetHelpMsg
-        helpMsgMappings['showClaim'] = showClaimHelpMsg
-        helpMsgMappings['reqClaim'] = reqClaimHelpMsg
-        helpMsgMappings['showClaimReq'] = showClaimReqHelpMsg
-        helpMsgMappings['acceptInvitationLink'] = acceptLinkHelpMsg
-        helpMsgMappings['setAttr'] = setAttrHelpMsg
-        helpMsgMappings['sendClaim'] = sendClaimHelpMsg
+    def helpMsgMappings(self):
+        mappings = OrderedDict()
+        mappings.update(super().helpMsgMappings())
+        mappings['sendNymAction'] = sendNymHelpMsg
+        mappings['sendGetNymAction'] = sendGetNymHelpMsg
+        mappings['sendAttribAction'] = sendAttribHelpMsg
+        mappings['sendNodeAction'] = sendNodeHelpMsg
+        mappings['sendPoolUpgAction'] = sendPoolUpgHelpMsg
+        mappings['sendSchemaAction'] = sendSchemaMsg
+        mappings['sendIssuerKeyAction'] = sendIssuerHelpMsg
+        mappings['showFile'] = showFileHelpMsg
+        mappings['loadFile'] = loadFileHelpMsg
+        mappings['showLink'] = showLinkHelpMsg
+        mappings['connectTo'] = connectToHelpMsg
+        mappings['disconnect'] = disconnectHelpMsg
+        mappings['syncLink'] = syncLinkHelpMsg
+        mappings['pingTarget'] = pingTargetHelpMsg
+        mappings['showClaim'] = showClaimHelpMsg
+        mappings['reqClaim'] = reqClaimHelpMsg
+        mappings['showClaimReq'] = showClaimReqHelpMsg
+        mappings['acceptInvitationLink'] = acceptLinkHelpMsg
+        mappings['setAttr'] = setAttrHelpMsg
+        mappings['sendClaim'] = sendClaimHelpMsg
+        mappings['newIdentifier'] = newIdentifierHelpMsg
 
-
-
-        return helpMsgMappings
+        return mappings
 
     @property
     def canMakeSovrinRequest(self):

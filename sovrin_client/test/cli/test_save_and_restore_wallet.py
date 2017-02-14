@@ -35,7 +35,7 @@ def testPersistentWalletName():
 
 
 def getWalletFilePath(cli):
-    fileName = cli.getPersistentWalletFileName()
+    fileName = cli.getActiveWalletPersitentFileName()
     return Cli.getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
 
 
@@ -112,6 +112,7 @@ def useKeyring(name, do, expectedName=None, expectedMsgs=None):
     useAndAssertKeyring(do, name, expectedName, expectedMsgs)
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-385')
 def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
                              aliceMultiNodePools,
                              earlMultiNodePools):

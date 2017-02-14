@@ -12,9 +12,11 @@ from typing import Dict, Any, Tuple, Callable
 import asyncio
 
 import base58
+from libnacl import randombytes
 from plenum.cli.cli import Cli as PlenumCli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
+from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
@@ -1086,31 +1088,45 @@ class SovrinCli(PlenumCli):
                 self._printNoClaimFoundMsg()
             return True
 
-    def _createNewIdentifier(self, isAbbr, identifier, seed):
+    def _createNewIdentifier(self, isAbbr, isCrypto, identifier, seed, alias=None):
         if not self.isValidSeedForNewKey(seed):
             return True
 
+        if not seed:
+            seed = randombytes(32)
+
         cseed = cleanSeed(seed)
-        signer = DidSigner(identifier=identifier, seed=cseed)
+
+        if isCrypto:
+            signer = SimpleSigner(identifier=identifier,
+                                  seed=cseed, alias=alias)
+        else:
+            signer = DidSigner(identifier=identifier, seed=cseed, alias=alias)
 
         if not isAbbr and not identifier:
             identifier = signer.identifier
 
-        id, signer = self.activeWallet.addIdentifier(identifier, seed=cseed)
+        id, signer = self.activeWallet.addIdentifier(identifier,
+                                                     seed=cseed, alias=alias)
         self._setActiveIdentifier(id)
 
     def _newIdentifier(self, matchedVars):
         if matchedVars.get('new_id') == 'new identifier':
-            id_or_abbr = matchedVars.get('id_or_abbr')
+            id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
             isAbbr = False
+            isCrypto = False
             identifier = None
-            if id_or_abbr:
-                if id_or_abbr == "abbr":
+            alias = matchedVars.get('alias')
+            if id_or_abbr_or_crypto:
+                if id_or_abbr_or_crypto == "abbr":
                     isAbbr = True
+                elif id_or_abbr_or_crypto == "crypto":
+                    isCrypto = True
                 else:
-                    identifier = id_or_abbr
+                    identifier = id_or_abbr_or_crypto
+
             seed = matchedVars.get('seed')
-            self._createNewIdentifier(isAbbr, identifier, seed)
+            self._createNewIdentifier(isAbbr, isCrypto, identifier, seed, alias)
             return True
 
 

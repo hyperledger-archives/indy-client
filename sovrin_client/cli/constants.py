@@ -28,8 +28,9 @@ ADD_GENESIS_NYM_REG_EX = TXN_NYM.format(cmdName='add_genesis',
 
 
 NEW_ID_REG_EX = "(\s* (?P<new_id>new\s+identifier)" \
-                 "\s? (?P<id_or_abbr>([A-Za-z0-9+=/]+|abbr))? " \
-                 "\s? (with\s+seed\s+(?P<seed>[a-zA-Z0-9]+))?)"
+                "\s? (?P<id_or_abbr_or_crypto>([A-Za-z0-9+=/]+|abbr|crypto))? " \
+                "\s? (with\s+seed\s+(?P<seed>[a-zA-Z0-9]+))? " \
+                "\s? (as\s+(?P<alias>[a-zA-Z0-9-]+))?)"
 
 
 GET_NYM_REG_EX = "(\s* (?P<send_get_nym>send\s+GET_NYM) " \

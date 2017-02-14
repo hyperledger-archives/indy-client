@@ -115,10 +115,10 @@ sendClaimHelpMsg = HelpMsg("send claim",
                            "send claim Job-Application to Acme Corp")
 
 newIdentifierHelpMsg = HelpMsg("new identifier",
-                        "Creates new Identifier",
-                        "new identifier [<identifier>|abbr] [with seed <seed>]",
-                        "new identifier",
-                        "new identifier 4QxzWk3ajdnEA37NdNU5Kt",
-                        "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                        "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                        "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                               "Creates new Identifier",
+                               "new identifier [<identifier>|abbr|crypto] [with seed <seed>] [as <alias>]",
+                               "new identifier abbr",
+                               "new identifier 4QxzWk3ajdnEA37NdNU5Kt",
+                               "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                               "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                               "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")

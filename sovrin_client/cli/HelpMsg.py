@@ -1,4 +1,4 @@
-from plenum.test.cli.HelpMsg import HelpMsg
+from plenum.cli.HelpMsg import HelpMsg
 
 sendNymHelpMsg = HelpMsg("send NYM",
                          "Adds given identifier to sovrin",
@@ -65,7 +65,7 @@ showLinkHelpMsg = HelpMsg("show link",
                           "show link faber")
 
 connectToHelpMsg = HelpMsg("connect",
-                           "Lets you connect to the respective environment",
+                           "Lets you connect to the respective environment (test/live)",
                            "connect <env-name>",
                            "connect test", "connect live")
 

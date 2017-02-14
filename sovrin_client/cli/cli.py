@@ -1465,7 +1465,23 @@ class SovrinCli(PlenumCli):
 
         return defaultdict(lambda: defaultHelper, **mappings)
 
+    def getBasicHelpMsgKeys(self):
+        return ["helpAction", "listAction", "connectTo", "statusAction",
+                "disconnect", "licenseAction", "exitAction"]
+
+    def getHelpMsgIdsToShowUsage(self):
+        return ["help", "connect", "list"]
+
+
     def helpMsgMappings(self):
+
+        # The 'key' of 'mappings' dictionary is action handler function name
+        # without leading underscore sign. Each such funcation name should be
+        # mapped here, its other thing that if you don't want to display it
+        # in help, map it to None, but mapping should be present, that way it
+        # will force developer to either write help message for those cli
+        # commands or make a decision to not show it in help message.
+
         mappings = OrderedDict()
         mappings.update(super().helpMsgMappings())
         mappings['sendNymAction'] = sendNymHelpMsg

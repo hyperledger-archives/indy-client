@@ -31,12 +31,12 @@ from anoncreds.protocol.types import Schema, ID
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
-from sovrin_client.cli.HelpMsg import sendNymHelpMsg, sendGetNymHelpMsg, \
-    sendAttribHelpMsg, sendNodeHelpMsg, sendPoolUpgHelpMsg, sendSchemaMsg, \
-    sendIssuerHelpMsg, showFileHelpMsg, loadFileHelpMsg, showLinkHelpMsg, \
-    connectToHelpMsg, disconnectHelpMsg, syncLinkHelpMsg, pingTargetHelpMsg, \
-    showClaimHelpMsg, reqClaimHelpMsg, showClaimReqHelpMsg, acceptLinkHelpMsg, \
-    setAttrHelpMsg, sendClaimHelpMsg, newIdentifierHelpMsg
+from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
+    disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
+    sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
+    sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
+    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd
+
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
@@ -1481,15 +1481,15 @@ class SovrinCli(PlenumCli):
 
         return defaultdict(lambda: defaultHelper, **mappings)
 
-    def getBasicHelpMsgKeys(self):
+    def getBasicHelpCmdKeys(self):
         return ["helpAction", "listAction", "connectTo", "statusAction",
                 "disconnect", "licenseAction", "exitAction"]
 
-    def getHelpMsgIdsToShowUsage(self):
+    def getHelpCmdIdsToShowUsage(self):
         return ["help", "connect", "list"]
 
 
-    def helpMsgMappings(self):
+    def cmdHandlerToCmdMappings(self):
 
         # The 'key' of 'mappings' dictionary is action handler function name
         # without leading underscore sign. Each such funcation name should be
@@ -1499,28 +1499,28 @@ class SovrinCli(PlenumCli):
         # commands or make a decision to not show it in help message.
 
         mappings = OrderedDict()
-        mappings.update(super().helpMsgMappings())
-        mappings['sendNymAction'] = sendNymHelpMsg
-        mappings['sendGetNymAction'] = sendGetNymHelpMsg
-        mappings['sendAttribAction'] = sendAttribHelpMsg
-        mappings['sendNodeAction'] = sendNodeHelpMsg
-        mappings['sendPoolUpgAction'] = sendPoolUpgHelpMsg
-        mappings['sendSchemaAction'] = sendSchemaMsg
-        mappings['sendIssuerKeyAction'] = sendIssuerHelpMsg
-        mappings['showFile'] = showFileHelpMsg
-        mappings['loadFile'] = loadFileHelpMsg
-        mappings['showLink'] = showLinkHelpMsg
-        mappings['connectTo'] = connectToHelpMsg
-        mappings['disconnect'] = disconnectHelpMsg
-        mappings['syncLink'] = syncLinkHelpMsg
-        mappings['pingTarget'] = pingTargetHelpMsg
-        mappings['showClaim'] = showClaimHelpMsg
-        mappings['reqClaim'] = reqClaimHelpMsg
-        mappings['showClaimReq'] = showClaimReqHelpMsg
-        mappings['acceptInvitationLink'] = acceptLinkHelpMsg
-        mappings['setAttr'] = setAttrHelpMsg
-        mappings['sendClaim'] = sendClaimHelpMsg
-        mappings['newIdentifier'] = newIdentifierHelpMsg
+        mappings.update(super().cmdHandlerToCmdMappings())
+        mappings['sendNymAction'] = sendNymCmd
+        mappings['sendGetNymAction'] = sendGetNymCmd
+        mappings['sendAttribAction'] = sendAttribCmd
+        mappings['sendNodeAction'] = sendNodeCmd
+        mappings['sendPoolUpgAction'] = sendPoolUpgCmd
+        mappings['sendSchemaAction'] = sendSchemaCmd
+        mappings['sendIssuerKeyAction'] = sendIssuerCmd
+        mappings['showFile'] = showFileCmd
+        mappings['loadFile'] = loadFileCmd
+        mappings['showLink'] = showLinkCmd
+        mappings['connectTo'] = connectToCmd
+        mappings['disconnect'] = disconnectCmd
+        mappings['syncLink'] = syncLinkCmd
+        mappings['pingTarget'] = pingTargetCmd
+        mappings['showClaim'] = showClaimCmd
+        mappings['reqClaim'] = reqClaimCmd
+        mappings['showClaimReq'] = showClaimReqCmd
+        mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['setAttr'] = setAttrCmd
+        mappings['sendClaim'] = sendClaimCmd
+        mappings['newIdentifier'] = newIdentifierCmd
 
         return mappings
 

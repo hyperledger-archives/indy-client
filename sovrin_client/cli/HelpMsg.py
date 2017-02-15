@@ -1,4 +1,4 @@
-from plenum.test.cli.HelpMsg import HelpMsg
+from plenum.cli.HelpMsg import HelpMsg
 
 sendNymHelpMsg = HelpMsg("send NYM",
                          "Adds given identifier to sovrin",
@@ -65,7 +65,7 @@ showLinkHelpMsg = HelpMsg("show link",
                           "show link faber")
 
 connectToHelpMsg = HelpMsg("connect",
-                           "Lets you connect to the respective environment",
+                           "Lets you connect to the respective environment (test/live)",
                            "connect <env-name>",
                            "connect test", "connect live")
 
@@ -113,3 +113,12 @@ sendClaimHelpMsg = HelpMsg("send claim",
                            "Sends given claim to given target",
                            "send claim <claim-name> to <target>",
                            "send claim Job-Application to Acme Corp")
+
+newIdentifierHelpMsg = HelpMsg("new identifier",
+                               "Creates new Identifier",
+                               "new identifier [<identifier>|abbr|crypto] [with seed <seed>] [as <alias>]",
+                               "new identifier abbr",
+                               "new identifier 4QxzWk3ajdnEA37NdNU5Kt",
+                               "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                               "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                               "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")

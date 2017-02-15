@@ -1,12 +1,12 @@
 import os
-from plenum.test.cli.helper import checkWalletFilePersisted, checkWalletRestored, \
-    createAndAssertNewCreation, createAndAssertNewKeyringCreation, \
-    useAndAssertKeyring, exitFromCli, restartCliAndAssert
 from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
 from plenum.common.util import createDirIfNotExists
+from plenum.test.cli.helper import checkWalletFilePersisted, checkWalletRestored, \
+    createAndAssertNewCreation, createAndAssertNewKeyringCreation, \
+    useAndAssertKeyring, exitFromCli, restartCliAndAssert
 
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import prompt_is
@@ -35,7 +35,7 @@ def testPersistentWalletName():
 
 
 def getWalletFilePath(cli):
-    fileName = cli.getPersistentWalletFileName()
+    fileName = cli.getActiveWalletPersitentFileName()
     return Cli.getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
 
 

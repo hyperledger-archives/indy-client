@@ -137,6 +137,7 @@ def agentIpAddress():
 def faberAgentPort():
     return genHa()[1]
 
+
 @pytest.fixture(scope="module")
 def bulldogAgentPort():
     return genHa()[1]

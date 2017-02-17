@@ -576,7 +576,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             reqs = self.wallet.preparePending()
             # Assuming there was only one pending request
             logger.debug("sending to sovrin {}".format(reqs[0]))
-            # Specifically for bulldog POC, need to think through
+            # Need to think through
             # how to provide separate logging for each agent
             # anyhow this class should be implemented by each agent
             # so we might not even need to add it as a separate logic

@@ -9,6 +9,7 @@ from plenum.test.test_stack import checkRemoteExists, CONNECTED
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 
+
 def connectAgents(agent1, agent2):
     e1 = agent1.endpoint
     e2 = agent2.endpoint

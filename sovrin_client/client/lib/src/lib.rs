@@ -5,26 +5,25 @@
 // be serious about implementation; we do NOT want to ignore these for more than a few days.
 #![allow(dead_code)]
 #![allow(unused_variables)]
-#![allow(unused_imports)]
 
 
 // To make it easy to use C data types, import the libc crate.
 extern crate libc;
 
 
-use libc::{c_int, size_t, c_char};
-use std::ffi::{CStr, CString};
-use std::mem;
-use std::ptr;
+use libc::{c_char};
+use std::ffi::{CString};
 
 #[macro_use]
 mod internal;
 
 mod tests;
 mod constants;
+mod strutil;
 
 use constants::*;
 use internal::*;
+//use strutil::*;
 
 
 /// Create a client handle that manages state such as a connection to the ledger, propagated errors,

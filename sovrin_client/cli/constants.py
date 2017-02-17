@@ -22,8 +22,15 @@ TXN_NYM = "(\s* (?P<{cmdName}>{cmd}\s+NYM) " \
           "(\s+ (?P<ver_key>verkey=) \s* (?P<new_ver_key>[~A-Za-z0-9+=/]*))?)"
 
 SEND_NYM_REG_EX = TXN_NYM.format(cmdName='send_nym', cmd='send')
+
 ADD_GENESIS_NYM_REG_EX = TXN_NYM.format(cmdName='add_genesis',
                                         cmd='add \s+ genesis \s+ transaction')
+
+
+NEW_ID_REG_EX = "(\s* (?P<new_id>new\s+identifier)" \
+                "\s? (?P<id_or_abbr_or_crypto>([A-Za-z0-9+=/]+|abbr|crypto))? " \
+                "\s? (with\s+seed\s+(?P<seed>[a-zA-Z0-9]+))? " \
+                "\s? (as\s+(?P<alias>[a-zA-Z0-9-]+))?)"
 
 
 GET_NYM_REG_EX = "(\s* (?P<send_get_nym>send\s+GET_NYM) " \
@@ -185,3 +192,4 @@ PING_TARGET_FORMATTED_REG_EX = getPipedRegEx(PING_TARGET_REG_EX)
 SEND_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SEND_CLAIM_REG_EX)
 SEND_NODE_FORMATTED_REG_EX = getPipedRegEx(SEND_NODE_REG_EX)
 SEND_POOL_UPG_FORMATTED_REG_EX = getPipedRegEx(SEND_POOL_UPG_REG_EX)
+NEW_ID_FORMATTED_REG_EX = getPipedRegEx(NEW_ID_REG_EX)

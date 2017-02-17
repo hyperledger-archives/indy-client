@@ -15,12 +15,13 @@ class Sponsoring:
     def __init__(self):
         self._sponsored = {}  # type: Dict[Identifier, Identity]
 
-    def addSponsoredIdentity(self, idy: Identity):
-        if idy.role and not Authoriser.isValidRole(idy.role ):
-            raise AttributeError("invalid role: {}".format(idy.role))
+    def createIdInWallet(self, idy: Identity):
         if idy.identifier in self._sponsored:
             del self._sponsored[idy.identifier]
         self._sponsored[idy.identifier] = idy
+
+    def addSponsoredIdentity(self, idy: Identity):
+        self.createIdInWallet(idy)
         self._sendIdReq(idy)
 
     def _sendIdReq(self, idy):
@@ -35,6 +36,8 @@ class Sponsoring:
         storedId = self._sponsored.get(idy.identifier)
         if storedId:
             storedId.seqNo = None
+        else:
+            self.createIdInWallet(idy)
         self._sendIdReq(idy)
 
     def getSponsoredIdentity(self, idr):

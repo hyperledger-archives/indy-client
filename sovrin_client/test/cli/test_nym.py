@@ -1,7 +1,8 @@
 import pytest
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.cli.test_tutorial import prompt_is
+from sovrin_client.test.cli.helper import prompt_is
+from sovrin_common.txn import SPONSOR
 from sovrin_node.test.did.conftest import wallet, abbrevVerkey, abbrevIdr
 
 
@@ -10,24 +11,11 @@ def sponsorSigner():
     return SimpleSigner()
 
 
-# @pytest.fixture(scope="module")
-# def poolNodesStarted(be, do, poolCLI):
-#     be(poolCLI)
-#
-#     do('new node all', within=6,
-#        expect=['Alpha now connected to Beta',
-#                'Alpha now connected to Gamma',
-#                'Alpha now connected to Delta',
-#                'Beta now connected to Alpha',
-#                'Beta now connected to Gamma',
-#                'Beta now connected to Delta',
-#                'Gamma now connected to Alpha',
-#                'Gamma now connected to Beta',
-#                'Gamma now connected to Delta',
-#                'Delta now connected to Alpha',
-#                'Delta now connected to Beta',
-#                'Delta now connected to Gamma'])
-#     return poolCLI
+@pytest.fixture("module")
+def sponsorWallet(sponsorSigner):
+    w = Wallet(sponsorSigner.identifier)
+    w.addIdentifier(signer=sponsorSigner)
+    return w
 
 
 def testPoolNodesStarted(poolNodesStarted):
@@ -54,54 +42,80 @@ def philCli(be, do, poolNodesStarted, philCLI, connectedToTest):
     return philCLI
 
 
+@pytest.fixture(scope="module")
+def aliceCli(be, do, poolNodesStarted, aliceCLI, connectedToTest, wallet):
+    be(aliceCLI)
+    do('prompt Alice', expect=prompt_is('Alice'))
+    addAndActivateCLIWallet(aliceCLI, wallet)
+    do('connect test', within=3, expect=connectedToTest)
+    return aliceCLI
+
+
+@pytest.fixture(scope="module")
+def sponsorCli(be, do, poolNodesStarted, earlCLI, connectedToTest,
+               sponsorWallet):
+    be(earlCLI)
+    do('prompt Earl', expect=prompt_is('Earl'))
+    addAndActivateCLIWallet(earlCLI, sponsorWallet)
+    do('connect test', within=3, expect=connectedToTest)
+    return earlCLI
+
+
 def getNym(be, do, userCli, idr, expectedMsgs):
     be(userCli)
     do('send GET_NYM dest={}'.format(idr),
        within=3,
        expect=["Transaction id for NYM {} is".format(idr)] + expectedMsgs
-    )
+       )
 
 
 def getNymNotFoundExpectedMsgs(idr):
     return ["NYM {} not found".format(idr)]
 
 
-def testGetDIDNymWithoutAddingIt(be, do, philCli, abbrevIdr):
+def testGetDIDWithoutAddingIt(be, do, philCli, abbrevIdr):
     getNym(be, do, philCli, abbrevIdr,
-            getNymNotFoundExpectedMsgs(abbrevIdr))
+           getNymNotFoundExpectedMsgs(abbrevIdr))
 
 
-def testGetCIDNymWithoutAddingIt(be, do, philCli, sponsorSigner):
+def testGetCIDWithoutAddingIt(be, do, philCli, sponsorSigner):
     getNym(be, do, philCli, sponsorSigner.identifier,
-            getNymNotFoundExpectedMsgs(sponsorSigner.identifier))
+           getNymNotFoundExpectedMsgs(sponsorSigner.identifier))
 
 
-def addNym(be, do, userCli, idr, verkey=None):
+def addNym(be, do, userCli, idr, verkey=None, role=None):
     be(userCli)
-    cmd='send NYM dest={} role=SPONSOR'.format(idr)
+    cmd = 'send NYM dest={}'.format(idr)
+    if role is not None:
+        cmd += ' role={}'.format(role)
     if verkey is not None:
-        cmd='{} verkey={}'.format(cmd, verkey)
+        cmd = '{} verkey={}'.format(cmd, verkey)
 
-    do(cmd, within=3, expect=["Nym {} added".format(idr)])
+    do(cmd, within=5, expect=["Nym {} added".format(idr)])
+
+
+def addAndActivateCLIWallet(cli, wallet):
+    cli.wallets[wallet.name] = wallet
+    cli.activeWallet = wallet
 
 
 @pytest.fixture(scope="module")
-def didNymAdded(be, do, philCli, abbrevIdr):
-    addNym(be, do, philCli, abbrevIdr)
+def didAdded(be, do, philCli, abbrevIdr):
+    addNym(be, do, philCli, abbrevIdr, role=SPONSOR)
     return philCli
 
 
-def testAddDIDNym(didNymAdded):
+def testAddDID(didAdded):
     pass
 
 
 @pytest.fixture(scope="module")
-def cidNymAdded(be, do, philCli, sponsorSigner):
-    addNym(be, do, philCli, sponsorSigner.identifier)
+def cidAdded(be, do, philCli, sponsorSigner):
+    addNym(be, do, philCli, sponsorSigner.identifier, role=SPONSOR)
     return philCli
 
 
-def testAddCIDNym(cidNymAdded):
+def testAddCID(cidAdded):
     pass
 
 
@@ -109,38 +123,40 @@ def getNoVerkeyEverAssignedMsgs(idr):
     return ["No verkey ever assigned to the identifier {}".format(idr)]
 
 
-def testGetDIDNymWithoutVerkey(be, do, philCli, didNymAdded, abbrevIdr):
+def testGetDIDWithoutVerkey(be, do, philCli, didAdded, abbrevIdr):
     getNym(be, do, philCli, abbrevIdr,
-            getNoVerkeyEverAssignedMsgs(abbrevIdr))
+           getNoVerkeyEverAssignedMsgs(abbrevIdr))
 
 
 def getVerkeyIsSameAsIdentifierMsgs(idr):
     return ["Current verkey is same as identifier {}".format(idr)]
 
 
-def testGetCIDNymWithoutVerkey(be, do, philCli, cidNymAdded, sponsorSigner):
+def testGetCIDWithoutVerkey(be, do, philCli, cidAdded, sponsorSigner):
     getNym(be, do, philCli, sponsorSigner.identifier,
-                         getVerkeyIsSameAsIdentifierMsgs(sponsorSigner.identifier))
+           getVerkeyIsSameAsIdentifierMsgs(sponsorSigner.identifier))
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToDIDNym(be, do, philCli, didNymAdded,
-                                  abbrevIdr, abbrevVerkey):
+def verkeyAddedToDID(be, do, philCli, didAdded, abbrevIdr, abbrevVerkey):
     addNym(be, do, philCli, abbrevIdr, abbrevVerkey)
 
 
-def testAddVerkeyToExistingDIDNym(verkeyAddedToDIDNym):
+def testAddVerkeyToExistingDID(verkeyAddedToDID):
     pass
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToCIDNym(be, do, philCli, cidNymAdded, sponsorSigner):
+def verkeyAddedToCID(be, do, philCli, cidAdded, sponsorWallet):
     newSigner = SimpleSigner()
-    addNym(be, do, philCli, sponsorSigner.identifier, newSigner.identifier)
+    addNym(be, do, philCli, sponsorWallet.defaultId, newSigner.identifier)
+    # Updating the identifier of the new signer to match the one in wallet
+    newSigner._identifier = sponsorWallet.defaultId
+    sponsorWallet.updateSigner(sponsorWallet.defaultId, newSigner)
     return newSigner
 
 
-def testAddVerkeyToExistingCIDNym(verkeyAddedToCIDNym):
+def testAddVerkeyToExistingCID(verkeyAddedToCID):
     pass
 
 
@@ -148,72 +164,93 @@ def getCurrentVerkeyIsgMsgs(idr, verkey):
     return ["Current verkey for NYM {} is {}".format(idr, verkey)]
 
 
-def testGetDIDNymWithVerKey(be, do, philCli, verkeyAddedToDIDNym,
+def testGetDIDWithVerKey(be, do, philCli, verkeyAddedToDID,
                             abbrevIdr, abbrevVerkey):
     getNym(be, do, philCli, abbrevIdr,
            getCurrentVerkeyIsgMsgs(abbrevIdr, abbrevVerkey))
 
 
-def testGetCIDNymWithVerKey(be, do, philCli, verkeyAddedToCIDNym,
+def testGetCIDWithVerKey(be, do, philCli, verkeyAddedToCID,
                             sponsorSigner):
     getNym(be, do, philCli, sponsorSigner.identifier,
            getCurrentVerkeyIsgMsgs(sponsorSigner.identifier,
-                                   verkeyAddedToCIDNym.identifier))
+                                   verkeyAddedToCID.verkey))
 
 
 def getNoActiveVerkeyFoundMsgs(idr):
     return ["No active verkey found for the identifier {}".format(idr)]
 
 
+def addAttribToNym(be, do, userCli, idr, raw):
+    be(userCli)
+    do('send ATTRIB dest={} raw={}'.format(idr, raw),
+       within=5,
+       expect=["Attribute added for nym {}".format(idr)])
+
+
+def testSendAttribForDID(be, do, verkeyAddedToDID, abbrevIdr, aliceCli):
+    raw = '{"name": "Alice"}'
+    addAttribToNym(be, do, aliceCli, abbrevIdr, raw)
+
+
+def testSendAttribForCID(be, do, verkeyAddedToCID, sponsorSigner, sponsorCli):
+    raw = '{"name": "Earl"}'
+    addAttribToNym(be, do, sponsorCli, sponsorSigner.identifier, raw)
+
+
 @pytest.fixture(scope="module")
-def verkeyRemovedFromExistingDIDNym(be, do, philCli, verkeyAddedToDIDNym,
-                                 abbrevIdr):
-    be(philCli)
-    addNym(be, do, philCli, abbrevIdr, '')
-    getNym(be, do, philCli, abbrevIdr, getNoActiveVerkeyFoundMsgs(abbrevIdr))
+def verkeyRemovedFromExistingDID(be, do, verkeyAddedToDID, abbrevIdr, aliceCli):
+    be(aliceCli)
+    addNym(be, do, aliceCli, abbrevIdr, '')
+    getNym(be, do, aliceCli, abbrevIdr, getNoActiveVerkeyFoundMsgs(abbrevIdr))
 
 
-def testRemoveVerkeyFromDIDNym(verkeyRemovedFromExistingDIDNym):
+def testRemoveVerkeyFromDID(verkeyRemovedFromExistingDID):
     pass
 
 
 @pytest.fixture(scope="module")
-def verkeyRemovedFromExistingCIDNym(be, do, philCli, verkeyAddedToCIDNym,
-                                 sponsorSigner):
-    be(philCli)
-    addNym(be, do, philCli, sponsorSigner.identifier, '')
-    getNym(be, do, philCli, sponsorSigner.identifier,
+def verkeyRemovedFromExistingCID(be, do, verkeyAddedToCID,
+                                 sponsorSigner, sponsorCli, sponsorWallet):
+    be(sponsorCli)
+    addNym(be, do, sponsorCli, sponsorSigner.identifier, '')
+    getNym(be, do, sponsorCli, sponsorSigner.identifier,
            getNoActiveVerkeyFoundMsgs(sponsorSigner.identifier))
 
 
-def testRemoveVerkeyFromCIDNym(verkeyRemovedFromExistingCIDNym):
+def testRemoveVerkeyFromCID(verkeyRemovedFromExistingCID):
     pass
 
 
-def testNewVerkeyAddedToDIDNym(be, do, philCli, abbrevIdr,
-                               verkeyRemovedFromExistingDIDNym):
+@pytest.mark.skipif(True, reason="Obsolete assumption, if an identity has set "
+                                 "its verkey to blank, no-one including "
+                                 "itself can change it")
+def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
+                            verkeyRemovedFromExistingDID):
     newSigner = SimpleSigner()
     addNym(be, do, philCli, abbrevIdr, newSigner.verkey)
     getNym(be, do, philCli, abbrevIdr,
            getCurrentVerkeyIsgMsgs(abbrevIdr, newSigner.verkey))
 
 
-def testNewVerkeyAddedToCIDNym(be, do, philCli, sponsorSigner,
-                               verkeyRemovedFromExistingCIDNym):
+@pytest.mark.skipif(True, reason="Obsolete assumption, if an identity has set "
+                                 "its verkey to blank, no-one including "
+                                 "itself can change it")
+def testNewverkeyAddedToCID(be, do, philCli, sponsorSigner,
+                            verkeyRemovedFromExistingCID):
     newSigner = SimpleSigner()
     addNym(be, do, philCli, sponsorSigner.identifier, newSigner.verkey)
     getNym(be, do, philCli, sponsorSigner.identifier,
            getCurrentVerkeyIsgMsgs(sponsorSigner.identifier, newSigner.verkey))
 
 
-
 def testNewKeyChangesWalletsDefaultId(be, do, poolNodesStarted,
-                                      aliceCLI, connectedToTest):
+                                      susanCLI, connectedToTest):
     mywallet = Wallet('my wallet')
-    keyseed='a'*32
+    keyseed = 'a' * 32
     idr, _ = mywallet.addIdentifier(seed=keyseed.encode("utf-8"))
 
-    be(aliceCLI)
+    be(susanCLI)
 
     do('connect test', within=3, expect=connectedToTest)
 
@@ -223,23 +260,9 @@ def testNewKeyChangesWalletsDefaultId(be, do, poolNodesStarted,
 
     do('new key with seed 11111111111111111111111111111111')
 
-    do('send NYM dest={}'.format(idr),
-       within=3,
-       expect=["Nym {} added".format(idr)]
-    )
-
-def addAttribToNym(be, do, userCli, idr, raw):
-    be(userCli)
-    do('send ATTRIB dest={} raw={}'.format(idr, raw),
-       within=3,
-       expect=["Attribute added for nym {}".format(idr)])
+    do('send NYM dest={}'.format(idr), within=3,
+       expect=["Nym {} added".format(idr)])
 
 
-def testSendAttribForDIDNym(be, do, philCli, didNymAdded, abbrevIdr):
-    raw = '{"name": "Alice"}'
-    addAttribToNym(be, do, philCli, abbrevIdr, raw)
 
 
-def testSendAttribForCIDNym(be, do, philCli, cidNymAdded, sponsorSigner):
-    raw = '{"name": "Alice"}'
-    addAttribToNym(be, do, philCli, sponsorSigner.identifier, raw)

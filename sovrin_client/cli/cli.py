@@ -1,5 +1,7 @@
 import ast
 import datetime
+from collections import OrderedDict
+
 import importlib
 import json
 import os
@@ -10,13 +12,16 @@ from typing import Dict, Any, Tuple, Callable
 import asyncio
 
 import base58
+from libnacl import randombytes
 from plenum.cli.cli import Cli as PlenumCli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
+from plenum.common.signer import Signer
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
 from plenum.common.txn_util import createGenesisTxnFile
-from plenum.common.util import randomString
+from plenum.common.util import randomString, cleanSeed
 from prompt_toolkit.contrib.completers import WordCompleter
 from prompt_toolkit.layout.lexers import SimpleLexer
 from pygments.token import Token
@@ -26,6 +31,12 @@ from anoncreds.protocol.types import Schema, ID
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
+from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
+    disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
+    sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
+    sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
+    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd
+
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
@@ -41,7 +52,7 @@ from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
     SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
-    START, JUSTIFICATION
+    START, JUSTIFICATION, NULL
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
 
@@ -116,7 +127,8 @@ class SovrinCli(PlenumCli):
             'req_claim',
             'accept_link_invite',
             'set_attr',
-            'send_claim'
+            'send_claim',
+            'new_id'
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -153,6 +165,8 @@ class SovrinCli(PlenumCli):
 
         completers["set_attr"] = WordCompleter(["set"])
         completers["send_claim"] = WordCompleter(["send", "claim"])
+        completers["new_id"] = WordCompleter(["new", "identifier"])
+
         return {**super().completers, **completers}
 
     def initializeGrammar(self):
@@ -183,7 +197,8 @@ class SovrinCli(PlenumCli):
                         self._showClaimReq,
                         self._acceptInvitationLink,
                         self._setAttr,
-                        self._sendClaim
+                        self._sendClaim,
+                        self._newIdentifier
                         ])
         return actions
 
@@ -358,35 +373,29 @@ class SovrinCli(PlenumCli):
     def _clientCommand(self, matchedVars):
         if matchedVars.get('client') == 'client':
             r = super()._clientCommand(matchedVars)
-            if not r:
-                client_name = matchedVars.get('client_name')
-                if client_name not in self.clients:
-                    self.print("{} cannot add a new user".
-                               format(client_name), Token.BoldOrange)
-                    return True
-                client_action = matchedVars.get('cli_action')
-                if client_action == 'add':
-                    otherClientName = matchedVars.get('other_client_name')
-                    role = self._getRole(matchedVars)
-                    signer = SimpleSigner()
-                    nym = signer.verstr
-                    return self._addNym(nym, role, newVerKey=None,
-                                        otherClientName=otherClientName)
+            if r:
+                return True
 
-    def _getRole(self, matchedVars):
-        role = matchedVars.get("role")
-        validRoles = (SPONSOR, STEWARD)
-        if role and role not in validRoles:
-            self.print("Invalid role. Valid roles are: {}".
-                       format(", ".join(validRoles)), Token.Error)
-            return False
-        return role
+            client_name = matchedVars.get('client_name')
+            if client_name not in self.clients:
+                self.print("{} cannot add a new user".
+                           format(client_name), Token.BoldOrange)
+                return True
+            client_action = matchedVars.get('cli_action')
+            if client_action == 'add':
+                otherClientName = matchedVars.get('other_client_name')
+                role = self._getRole(matchedVars)
+                signer = SimpleSigner()
+                nym = signer.verstr
+                return self._addNym(nym, Identity.correctRole(role),
+                                    newVerKey=None,
+                                    otherClientName=otherClientName)
 
     def _getRole(self, matchedVars):
         role = matchedVars.get(ROLE)
         if role is not None and role.strip() == '':
-            role = None
-        if not Authoriser.isValidRole(role):
+            role = NULL
+        if not Authoriser.isValidRole(Identity.correctRole(role)):
             self.print("Invalid role. Valid roles are: {}".
                        format(", ".join(map(lambda r: r if r else '',
                                             Authoriser.ValidRoles))), Token.Error)
@@ -476,9 +485,12 @@ class SovrinCli(PlenumCli):
             raise RuntimeError('One of raw, enc, or hash are required.')
 
         attrib = Attribute(randomString(5), data, self.activeWallet.defaultId,
-                           ledgerStore=LedgerStore.RAW)
-        if nym != self.activeWallet.defaultId:
-            attrib.dest = nym
+                           dest=nym, ledgerStore=LedgerStore.RAW)
+
+        # TODO: What is the purpose of this?
+        # if nym != self.activeWallet.defaultId:
+        #     attrib.dest = nym
+
         self.activeWallet.addAttribute(attrib)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
@@ -1076,6 +1088,48 @@ class SovrinCli(PlenumCli):
                 self._printNoClaimFoundMsg()
             return True
 
+    def _createNewIdentifier(self, isAbbr, isCrypto, identifier, seed, alias=None):
+        if not self.isValidSeedForNewKey(seed):
+            return True
+
+        if not seed:
+            seed = randombytes(32)
+
+        cseed = cleanSeed(seed)
+
+        if isCrypto:
+            signer = SimpleSigner(identifier=identifier,
+                                  seed=cseed, alias=alias)
+        else:
+            signer = DidSigner(identifier=identifier, seed=cseed, alias=alias)
+
+        if not isAbbr and not identifier:
+            identifier = signer.identifier
+
+        id, signer = self.activeWallet.addIdentifier(identifier,
+                                                     seed=cseed, alias=alias)
+        self._setActiveIdentifier(id)
+
+    def _newIdentifier(self, matchedVars):
+        if matchedVars.get('new_id') == 'new identifier':
+            id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
+            isAbbr = False
+            isCrypto = False
+            identifier = None
+            alias = matchedVars.get('alias')
+            if id_or_abbr_or_crypto:
+                if id_or_abbr_or_crypto == "abbr":
+                    isAbbr = True
+                elif id_or_abbr_or_crypto == "crypto":
+                    isCrypto = True
+                else:
+                    identifier = id_or_abbr_or_crypto
+
+            seed = matchedVars.get('seed')
+            self._createNewIdentifier(isAbbr, isCrypto, identifier, seed, alias)
+            return True
+
+
     def _sendClaim(self, matchedVars):
         if matchedVars.get('send_claim') == 'send claim':
             claimName = matchedVars.get('claim_name').strip()
@@ -1278,6 +1332,12 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    @property
+    def getActiveEnv(self):
+        prompt, env = PlenumCli.getPromptAndEnv(self.name,
+                            self.currPromptText)
+        return env
+
     def getAllEnvDirNamesForKeyrings(self):
         lst = list(ENVS.keys())
         lst.append(NO_ENV)
@@ -1312,13 +1372,14 @@ class SovrinCli(PlenumCli):
     def _addGenesisAction(self, matchedVars):
         if matchedVars.get('add_genesis'):
             nym = matchedVars.get('dest_id')
-            role = self._getRole(matchedVars)
+            role = Identity.correctRole(self._getRole(matchedVars))
             txn = {
                 TXN_TYPE: NYM,
                 TARGET_NYM: nym,
-                TXN_ID: sha256(randomString(6).encode()).hexdigest(),
-                ROLE: role.upper()
+                TXN_ID: sha256(randomString(6).encode()).hexdigest()
             }
+            if role:
+                txn[ROLE] = role.upper()
             # TODO: need to check if this needs to persist as well
             self.genesisTransactions.append(txn)
             self.print('Genesis transaction added.')
@@ -1372,28 +1433,6 @@ class SovrinCli(PlenumCli):
     def print(self, msg, token=None, newline=True):
         super().print(msg, token=token, newline=newline)
 
-    def printHelp(self):
-        self.print(
-            """{}-CLI, a simple command-line interface for a {} sandbox.
-    Commands:
-        help - Shows this help message
-        help <command> - Shows the help message of <command>
-        new - creates one or more new nodes or clients
-        keyshare - manually starts key sharing of a node
-        status - Shows general status of the sandbox
-        status <node_name>|<client_name> - Shows specific status
-        list - Shows the list of commands you can run
-        license - Show the license
-        prompt <principal name> - Changes the prompt to <principal name>
-        principals (a person like Alice, an organization like Faber College, or an IoT-style thing)
-        load <invitation filename> - Creates the link, generates Identifier and signing keys
-        show <invitation filename> - Shows the info about the link invitation
-        show link <name> - Shows link info in case of one matching link, otherwise shows all the matching link <names>
-        connect <{}> - Lets you connect to the respective environment
-        sync <link name> - Synchronizes the link between the endpoints
-        exit - exit the command-line interface ('quit' also works)
-        """.format(self.properName, self.fullName, self.allEnvNames))
-
     def createFunctionMappings(self):
         from collections import defaultdict
 
@@ -1441,6 +1480,49 @@ class SovrinCli(PlenumCli):
         }
 
         return defaultdict(lambda: defaultHelper, **mappings)
+
+    def getBasicHelpCmdKeys(self):
+        return ["helpAction", "listAction", "connectTo", "statusAction",
+                "disconnect", "licenseAction", "exitAction"]
+
+    def getHelpCmdIdsToShowUsage(self):
+        return ["help", "connect", "list"]
+
+
+    def cmdHandlerToCmdMappings(self):
+
+        # The 'key' of 'mappings' dictionary is action handler function name
+        # without leading underscore sign. Each such funcation name should be
+        # mapped here, its other thing that if you don't want to display it
+        # in help, map it to None, but mapping should be present, that way it
+        # will force developer to either write help message for those cli
+        # commands or make a decision to not show it in help message.
+
+        mappings = OrderedDict()
+        mappings.update(super().cmdHandlerToCmdMappings())
+        mappings['sendNymAction'] = sendNymCmd
+        mappings['sendGetNymAction'] = sendGetNymCmd
+        mappings['sendAttribAction'] = sendAttribCmd
+        mappings['sendNodeAction'] = sendNodeCmd
+        mappings['sendPoolUpgAction'] = sendPoolUpgCmd
+        mappings['sendSchemaAction'] = sendSchemaCmd
+        mappings['sendIssuerKeyAction'] = sendIssuerCmd
+        mappings['showFile'] = showFileCmd
+        mappings['loadFile'] = loadFileCmd
+        mappings['showLink'] = showLinkCmd
+        mappings['connectTo'] = connectToCmd
+        mappings['disconnect'] = disconnectCmd
+        mappings['syncLink'] = syncLinkCmd
+        mappings['pingTarget'] = pingTargetCmd
+        mappings['showClaim'] = showClaimCmd
+        mappings['reqClaim'] = reqClaimCmd
+        mappings['showClaimReq'] = showClaimReqCmd
+        mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['setAttr'] = setAttrCmd
+        mappings['sendClaim'] = sendClaimCmd
+        mappings['newIdentifier'] = newIdentifierCmd
+
+        return mappings
 
     @property
     def canMakeSovrinRequest(self):

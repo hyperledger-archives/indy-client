@@ -2,7 +2,6 @@ from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
 
 from sovrin_common.strict_types import strict_types
-from sovrin_client.test.agent.bulldog import createBulldog
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
 strict_types.defaultShouldCheck = True
@@ -33,7 +32,7 @@ from sovrin_common.txn import SPONSOR, ENDPOINT
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
-    buildAcmeWallet, buildThriftWallet, buildBulldogWallet
+    buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
 from sovrin_node.test.helper import createNym, addAttributeAndCheck, TestClient
 
@@ -68,11 +67,6 @@ def aliceWallet(walletBuilder):
 @pytest.fixture(scope="module")
 def faberWallet():
     return buildFaberWallet()
-
-
-@pytest.fixture(scope="module")
-def bulldogWallet():
-    return buildBulldogWallet()
 
 
 @pytest.fixture(scope="module")
@@ -137,10 +131,6 @@ def agentIpAddress():
 def faberAgentPort():
     return genHa()[1]
 
-@pytest.fixture(scope="module")
-def bulldogAgentPort():
-    return genHa()[1]
-
 
 @pytest.fixture(scope="module")
 def acmeAgentPort():
@@ -160,22 +150,17 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
 
 
 @pytest.fixture(scope="module")
-def bulldogAgent(tdirWithPoolTxns, bulldogAgentPort, bulldogWallet):
-    return createBulldog(bulldogWallet.name, bulldogWallet,
-                         basedirpath=tdirWithPoolTxns,
-                         port=bulldogAgentPort)
-
-
-@pytest.fixture(scope="module")
 def faberAdded(nodeSet,
                steward,
                stewardWallet,
                emptyLooper,
                faberAgentPort,
                faberAgent):
+    emptyLooper.add(faberAgent.client)
     attrib = createAgentAndAddEndpoint(emptyLooper,
                                        faberAgent.wallet.defaultId,
-                                       faberAgent.wallet.getVerkey(),
+                                       faberAgent.wallet,
+                                       faberAgent.client,
                                        faberAgentPort,
                                        steward,
                                        stewardWallet)
@@ -195,27 +180,6 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
     return faber, faberWallet
 
 
-def runBulldogAgent(emptyLooper, bulldogWallet, bulldogAgent):
-
-    def run():
-        bulldog = bulldogAgent
-        bulldogWallet.pendSyncRequests()
-        prepared = bulldogWallet.preparePending()
-        bulldog.client.submitReqs(*prepared)
-
-        runAgent(bulldog, emptyLooper)
-
-        return bulldog, bulldogWallet
-
-    return run
-
-
-@pytest.fixture(scope="module")
-def bulldogIsRunning(emptyLooper, tdirWithPoolTxns, bulldogWallet,
-                     bulldogAgent, bulldogAdded):
-    return runBulldogAgent(emptyLooper, bulldogWallet, bulldogAgent)()
-
-
 @pytest.fixture(scope="module")
 def acmeAgent(tdirWithPoolTxns, acmeAgentPort, acmeWallet):
     return createAcme(acmeWallet.name, acmeWallet,
@@ -230,9 +194,11 @@ def acmeAdded(nodeSet,
               emptyLooper,
               acmeAgentPort,
               acmeAgent):
+    emptyLooper.add(acmeAgent.client)
     attrib = createAgentAndAddEndpoint(emptyLooper,
                                        acmeAgent.wallet.defaultId,
-                                       acmeAgent.wallet.getVerkey(),
+                                       acmeAgent.wallet,
+                                       acmeAgent.client,
                                        acmeAgentPort,
                                        steward,
                                        stewardWallet)
@@ -276,10 +242,6 @@ def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
 # who is adding
 @pytest.fixture(scope="module")
 def faberLinkAdded(faberIsRunning):
-    pass
-
-@pytest.fixture(scope="module")
-def bulldogLinkAdded(bulldogIsRunning):
     pass
 
 
@@ -411,8 +373,9 @@ def checkAcceptInvitation(emptyLooper,
     emptyLooper.run(eventually(chk, timeout=10, retryWait=0.2))
 
 
-def createAgentAndAddEndpoint(looper, agentNym, agentVerkey, agentPort, steward,
-                              stewardWallet):
+def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
+                              agentPort, steward, stewardWallet):
+    agentVerkey = agentWallet.getVerkey()
     createNym(looper,
               agentNym,
               steward,
@@ -422,13 +385,12 @@ def createAgentAndAddEndpoint(looper, agentNym, agentVerkey, agentPort, steward,
     ep = '127.0.0.1:{}'.format(agentPort)
     attributeData = json.dumps({ENDPOINT: ep})
 
-    # TODO Faber Agent should be doing this!
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
-                       origin=stewardWallet.defaultId,
+                       origin=agentNym,
                        value=attributeData,
                        dest=agentNym,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, steward, stewardWallet, attrib)
+    addAttributeAndCheck(looper, agentClient, agentWallet, attrib)
     return attrib
 
 

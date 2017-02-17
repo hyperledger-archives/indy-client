@@ -23,6 +23,7 @@ from sovrin_common.constants import Environment
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client
+from sovrin_common.txn import NULL
 from sovrin_node.test.helper import TestNode, genTestClient
 
 logger = getlogger()
@@ -86,7 +87,7 @@ def createNym(looper, nym, creatorClient, creatorWallet: Wallet, role=None,
     def check():
         assert creatorWallet._sponsored[nym].seqNo
 
-    looper.run(eventually(check, timeout=10))
+    looper.run(eventually(check, retryWait=1, timeout=10))
 
 
 def makePendingTxnsRequest(client, wallet):
@@ -157,18 +158,14 @@ def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
 
 
 def suspendRole(looper, actingClient, actingWallet, did):
-    idy = Identity(identifier=did, role=None)
-    if actingWallet.getSponsoredIdentity(did):
-        actingWallet.updateSponsoredIdentity(idy)
-    else:
-        actingWallet.addSponsoredIdentity(idy)
-    reqs = actingWallet.preparePending()
-    actingClient.submitReqs(*reqs)
+    idy = Identity(identifier=did, role=NULL)
+    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
 
-    def chk():
-        assert actingWallet.getSponsoredIdentity(did).seqNo is not None
 
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+def changeVerkey(looper, actingClient, actingWallet, idr, verkey):
+    idy = Identity(identifier=idr,
+                   verkey=verkey)
+    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
 
 
 def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
@@ -216,3 +213,19 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
                           client,
                           req.reqId,
                           contains, retryWait=1, timeout=15))
+
+
+def makeIdentityRequest(looper, actingClient, actingWallet, idy):
+    idr = idy.identifier
+    if actingWallet.getSponsoredIdentity(idr):
+        actingWallet.updateSponsoredIdentity(idy)
+    else:
+        actingWallet.addSponsoredIdentity(idy)
+    reqs = actingWallet.preparePending()
+    actingClient.submitReqs(*reqs)
+
+    def chk():
+        assert actingWallet.getSponsoredIdentity(idr).seqNo is not None
+
+    looper.run(eventually(chk, retryWait=1, timeout=5))
+    return reqs

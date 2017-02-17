@@ -413,7 +413,7 @@ def checkAcceptInvitation(emptyLooper,
         assert link.remoteIdentifier == inviteeAcceptanceId
         assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
 
-    emptyLooper.run(eventually(chk, timeout=10, retryWait=0.2))
+    emptyLooper.run(eventually(chk))
 
 
 def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,

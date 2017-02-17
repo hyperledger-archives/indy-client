@@ -184,7 +184,7 @@ class SovrinPublicRepo(PublicRepo):
         try:
             resp = await eventually(_ensureReqCompleted,
                                     req.key, self.client, clbk,
-                                    timeout=40, retryWait=1)
+                                    timeout=20, retryWait=0.5)
         except NoConsensusYet:
             raise TimeoutError('Request timed out')
         return resp

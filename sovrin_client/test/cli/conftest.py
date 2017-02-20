@@ -33,8 +33,7 @@ from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
     acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
-    thriftAgent, bulldogIsRunning as runningBulldog, bulldogWallet, bulldogLinkAdded, \
-    bulldogAgent, bulldogAgentPort, agentIpAddress
+    thriftAgent, agentIpAddress
 
 from plenum.test.conftest import nodeAndClientInfoFilePath
 
@@ -106,30 +105,6 @@ def faberMap(agentIpAddress, faberAgentPort):
             "claim-to-show": "Transcript",
             "claim-req-to-match": "Transcript",
             }
-
-@pytest.fixture(scope="module")
-def bulldogMap(bulldogAgentPort):
-    endpoint = "127.0.0.1:{}".format(bulldogAgentPort)
-    return {'inviter': 'Bulldog',
-            'invite': 'sample/bulldog-invitation.sovrin',
-            'invite-insurance': "sample/bulldog-credit-invitation.sovrin",
-            'invite-not-exists': "sample/bulldog-credit-invitation.sovrin.not.exists",
-            'inviter-not-exists': "non-existing-inviter",
-            "target": "6do9CsML8QWFd125gNo958a35nSnjzdtJBsBRvgS9dfJ",
-            "nonce": "2e9882ea71976ddf9",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "claims": "Banking-Relationship",
-            "claim-to-show": "Banking-Relationship",
-            "claim-req-to-match": "Banking-Relationship",
-            "claim-requests": "Banking-Relationship",
-            "claim-req-to-show": "Banking-Relationship",
-            "claim-ver-req-to-show": "0.8",
-            "rcvd-claim-banking-provider": "Bulldog",
-            "rcvd-claim-banking-name": "Banking-Relationship",
-            "rcvd-claim-banking-version": "0.8"
-            }
-
 
 @pytest.fixture(scope="module")
 def acmeMap(agentIpAddress, acmeAgentPort):
@@ -281,24 +256,6 @@ def jobApplicationClaimReqMap():
 
 
 @pytest.fixture(scope="module")
-def bulldogInsuranceClaimReqMap():
-    return {
-        'claim-req-version': '0.8',
-        'claim-req-attr-title': 'title',
-        'claim-req-attr-first_name': 'first_name',
-        'claim-req-attr-last_name': 'last_name',
-        'claim-req-attr-address_1': 'address_1',
-        'claim-req-attr-address_2': 'address_2',
-        'claim-req-attr-address_3': 'address_3',
-        'claim-req-attr-postcode_zip': 'postcode_zip',
-        'claim-req-attr-date_of_birth': 'date_of_birth',
-        'claim-req-attr-account_type': 'account_type',
-        'claim-req-attr-year_opened': 'year_opened',
-        'claim-req-attr-account_status': 'account_status'
-    }
-
-
-@pytest.fixture(scope="module")
 def unsyncedInviteAcceptedWhenNotConnected(availableClaims):
     return [
         "Response from {inviter}",
@@ -398,28 +355,6 @@ def showBankingClaimProofOut():
         "year_opened: {attr-year_opened}",
         "account_status: {attr-account_status}"
     ]
-
-
-@pytest.fixture(scope="module")
-def showBulldogInsuranceClaimReqOut(showBankingClaimProofOut):
-    return [
-        'Found claim request "{claim-req-to-match}" in link "{inviter}"',
-        "Name: {claim-req-to-show}",
-        "Version: {claim-req-version}",
-        "Status: Requested",
-        "Attributes:",
-        "{claim-req-attr-title}: {attr-title}",
-        "{claim-req-attr-first_name}: {attr-first_name}",
-        "{claim-req-attr-last_name}: {attr-last_name}",
-        "{claim-req-attr-address_1}: {attr-address_1}",
-        "{claim-req-attr-address_2}: {attr-address_2}",
-        "{claim-req-attr-address_3}: {attr-address_3}",
-        "{claim-req-attr-postcode_zip}: {attr-postcode_zip}",
-        "{claim-req-attr-date_of_birth}: {attr-date_of_birth}",
-        "{claim-req-attr-account_type}: {attr-account_type}",
-        "{claim-req-attr-year_opened}: {attr-year_opened}",
-        "{claim-req-attr-account_status}: {attr-account_status}"
-    ] + showBankingClaimProofOut
 
 
 @pytest.fixture(scope="module")
@@ -571,18 +506,6 @@ def bankingRelationshipClaimAttrValueMap():
 
 
 @pytest.fixture(scope="module")
-def bankingRelationshipClaimValueMap(bankingRelationshipClaimAttrValueMap):
-    basic = {
-        'inviter': 'Bulldog',
-        'name': 'Banking-Relationship',
-        "version": "0.8",
-        'status': "available (not yet issued)"
-    }
-    basic.update(bankingRelationshipClaimAttrValueMap)
-    return basic
-
-
-@pytest.fixture(scope="module")
 def transcriptClaimMap():
     return {
         'inviter': 'Faber College',
@@ -632,27 +555,6 @@ def jobCertificateClaimMap():
         "attr-employee_status": "string",
         "attr-experience": "string",
         "attr-salary_bracket": "string"
-    }
-
-
-@pytest.fixture(scope="module")
-def bankingRelationshipClaimMap():
-    return {
-        "inviter": "Bulldog",
-        "name": "Banking-Relationship",
-        'status': "available (not yet issued)",
-        "version": "0.8",
-        "attr-title": "string",
-        "attr-first_name": "string",
-        "attr-last_name": "string",
-        "attr-address_1": "string",
-        "attr-address_2": "string",
-        "attr-address_3": "string",
-        "attr-postcode_zip": "string",
-        "attr-date_of_birth": "string",
-        "attr-account_type": "string",
-        "attr-year_opened": "string",
-        "attr-account_status": "string"
     }
 
 
@@ -1124,14 +1026,6 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
 
 
 @pytest.fixture(scope="module")
-def bulldogIsRunning(emptyLooper, tdirWithPoolTxns, bulldogWallet,
-                   bulldogAddedByPhil, bulldogAgent):
-    bulldog, bulldogWallet = runningBulldog(emptyLooper, tdirWithPoolTxns,
-                                      bulldogWallet, bulldogAgent, bulldogAddedByPhil)
-    return bulldog, bulldogWallet
-
-
-@pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet,
                    acmeAddedByPhil, acmeAgent):
     acme, acmeWallet = runningAcme(emptyLooper, tdirWithPoolTxns,
@@ -1254,31 +1148,17 @@ def trusteeCli(be, do, trusteeMap, poolNodesStarted,
 def poolNodesStarted(be, do, poolCLI):
     be(poolCLI)
 
-    connectedExpect=[
-        'Alpha now connected to Beta',
-        'Alpha now connected to Gamma',
-        'Alpha now connected to Delta',
-        'Beta now connected to Alpha',
-        'Beta now connected to Gamma',
-        'Beta now connected to Delta',
-        'Gamma now connected to Alpha',
-        'Gamma now connected to Beta',
-        'Gamma now connected to Delta',
-        'Delta now connected to Alpha',
-        'Delta now connected to Beta',
-        'Delta now connected to Gamma']
-
-    primarySelectedExpect = [
-        'Alpha:0 selected primary',
-        'Alpha:1 selected primary',
-        'Beta:0 selected primary',
-        'Beta:1 selected primary',
-        'Gamma:0 selected primary',
-        'Gamma:1 selected primary',
-        'Delta:0 selected primary',
-        'Delta:1 selected primary',
-        ]
-
-    do('new node all', within=6, expect = connectedExpect)
-    do(None, within=4, expect=primarySelectedExpect)
+    do('new node all', within=6,
+       expect=['Alpha now connected to Beta',
+               'Alpha now connected to Gamma',
+               'Alpha now connected to Delta',
+               'Beta now connected to Alpha',
+               'Beta now connected to Gamma',
+               'Beta now connected to Delta',
+               'Gamma now connected to Alpha',
+               'Gamma now connected to Beta',
+               'Gamma now connected to Delta',
+               'Delta now connected to Alpha',
+               'Delta now connected to Beta',
+               'Delta now connected to Gamma'])
     return poolCLI

@@ -43,7 +43,7 @@ def newGuyCLI(looper, tdir, tconf):
     return newCLI(looper, tdir, subDirectory='newguy', conf=tconf)
 
 
-@pytest.mark.skip("Not yet implemented")
+@pytest.mark.skip("SOV-569. Not yet implemented")
 def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
     be(newGuyCLI)
     do('connect test', within=3, expect="Connected to test")
@@ -51,6 +51,7 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 
 
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
+@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-501')
 def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
                schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,

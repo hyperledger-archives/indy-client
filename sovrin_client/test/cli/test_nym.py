@@ -222,9 +222,9 @@ def testRemoveVerkeyFromCID(verkeyRemovedFromExistingCID):
     pass
 
 
-@pytest.mark.skipif(True, reason="Obsolete assumption, if an identity has set "
-                                 "its verkey to blank, no-one including "
-                                 "itself can change it")
+@pytest.mark.skip(reason="SOV-568. Obsolete assumption, if an identity has set "
+                         "its verkey to blank, no-one including "
+                         "itself can change it")
 def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
                             verkeyRemovedFromExistingDID):
     newSigner = SimpleSigner()
@@ -233,9 +233,9 @@ def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
            getCurrentVerkeyIsgMsgs(abbrevIdr, newSigner.verkey))
 
 
-@pytest.mark.skipif(True, reason="Obsolete assumption, if an identity has set "
-                                 "its verkey to blank, no-one including "
-                                 "itself can change it")
+@pytest.mark.skip(reason="SOV-568. Obsolete assumption, if an identity has set "
+                         "its verkey to blank, no-one including "
+                         "itself can change it")
 def testNewverkeyAddedToCID(be, do, philCli, sponsorSigner,
                             verkeyRemovedFromExistingCID):
     newSigner = SimpleSigner()

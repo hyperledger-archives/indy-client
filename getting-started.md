@@ -145,7 +145,7 @@ Unlike the show command for files, this one asks Sovrin to show a link. More det
 Expanding Faber to "Faber College"
 Link (not yet accepted)
     Name: Faber College
-    Identifier: Not Assigned yet
+    Identifier: not yet assigned
     Trust anchor: Faber College (not yet written to Sovrin)
     Verification key: <same as local identifier>
     Signing key: <hidden>
@@ -170,7 +170,7 @@ Name: Faber College
 This is a friendly name for the link that Alice has been invited to accept. The name is stored locally and not shared. Alice can always rename a link; its initial value is just provided by Faber for convenience.
 
 ```
-Identifier: Not Assigned yet
+Identifier: not yet assigned
 ```
 
 Identifier is a unique value that, that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a pairwise relationship when accepted, and each pairwise relationship uses different identifiers. Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
@@ -455,7 +455,7 @@ ALICE> show link Acme
 Expanding Acme to "Acme Corp"
 Link (not yet accepted)
     Name: Acme Corp
-    Identifier: Not Assigned yet
+    Identifier: not yet assigned
     Trust anchor: Acme Corp (not yet written to Sovrin)
     Verification key: <same as local identifier>
     Signing key: <hidden>

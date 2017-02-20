@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from _sha256 import sha256
 
 import pytest
@@ -96,7 +97,13 @@ def ensureNodesCreated(cli, nodeNames):
 def getFileLines(path):
     filePath = SovrinCli._getFilePath(path)
     with open(filePath, 'r') as fin:
-        lines = fin.readlines()
+        lines = fin.read().splitlines()
+    return lines
+
+
+def doubleBraces(lines):
+    # TODO this is needed to accommodate mappers in 'do' fixture; this can be
+    # removed when refactoring to the new 'expect' fixture is complete
     alteredLines = []
     for line in lines:
         alteredLines.append(line.replace('{', '{{').replace('}', '}}'))
@@ -191,3 +198,45 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
             with Looper(debug=False) as looper:
                 yield new()
     return _
+
+
+# marker class for regex pattern
+class P(str):
+    def match(self, other):
+        return re.match('^{}$'.format(self), other)
+
+
+def check_wallet(cli,
+                 totalLinks=None,
+                 totalAvailableClaims=None,
+                 totalSchemas=None,
+                 totalClaimsRcvd=None,
+                 within=None):
+    async def check():
+        assert (totalLinks is None or
+                totalLinks == len(cli.activeWallet._links))
+
+        tac = 0
+        for li in cli.activeWallet._links.values():
+            tac += len(li.availableClaims)
+
+        assert (totalAvailableClaims is None or
+                totalAvailableClaims == tac)
+
+        assert (totalSchemas is None or
+                totalSchemas == len(await cli.agent.prover.wallet.getAllSchemas()))
+
+        assert (totalClaimsRcvd is None or
+                totalClaimsRcvd == len((await cli.agent.prover.wallet.getAllClaims()).keys()))
+
+    if within:
+        cli.looper.run(eventually(check, timeout=within))
+    else:
+        check()
+
+
+def wallet_starting_state(totalLinks=0,
+                          totalAvailableClaims=0,
+                          totalSchemas=0,
+                          totalClaimsRcvd=0):
+    return locals()

@@ -5,7 +5,7 @@ from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
 
 
 def getSampleLinkInvitation():

@@ -34,7 +34,7 @@ class constant:
 
     NOT_AVAILABLE = "Not Available"
 
-    NOT_ASSIGNED = "Not Assigned yet"
+    NOT_ASSIGNED = "not yet assigned"
 
 
 class Link:

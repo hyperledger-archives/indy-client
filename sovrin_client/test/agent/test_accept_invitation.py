@@ -33,10 +33,12 @@ def testAliceAgentConnected(faberAdded, aliceAgentConnected):
     pass
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-332')
 def testAliceAcceptFaberInvitation(aliceAcceptedFaber):
     pass
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-332')
 def testAliceAcceptAcmeInvitation(aliceAcceptedAcme):
     pass
 

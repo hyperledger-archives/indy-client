@@ -140,7 +140,7 @@ def testStewardCreatesASponsor(steward, addedSponsor):
     pass
 
 
-@pytest.mark.skipif(True, reason="Cannot create another sponsor with same nym")
+@pytest.mark.skip(reason="SOV-560. Cannot create another sponsor with same nym")
 def testStewardCreatesAnotherSponsor(nodeSet, steward, stewardWallet, looper,
                                      sponsorWallet):
     createNym(looper, sponsorWallet.defaultId, steward, stewardWallet, SPONSOR)
@@ -202,7 +202,7 @@ def nymsAddedInQuickSuccession(nodeSet, addedSponsor, looper,
     assert(count == len(nodeSet))
 
 
-@pytest.mark.skipif(True, reason="NYM transaction now used to update too")
+@pytest.mark.skip(reason="SOV-560. NYM transaction now used to update too")
 def testAddNymsInQuickSuccession(nymsAddedInQuickSuccession):
     pass
 
@@ -347,12 +347,12 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
                               retryWait=1, timeout=15))
 
 
-@pytest.mark.skipif(True, reason="Attribute encryption is done in client")
+@pytest.mark.skip(reason="SOV-560. Attribute encryption is done in client")
 def testSponsorAddedAttributeIsEncrypted(addedEncryptedAttribute):
     pass
 
 
-@pytest.mark.skipif(True, reason="Attribute Disclosure is not done for now")
+@pytest.mark.skip(reason="SOV-560. Attribute Disclosure is not done for now")
 def testSponsorDisclosesEncryptedAttribute(addedEncryptedAttribute, symEncData,
                                            looper, userSignerA, sponsorSigner,
                                            sponsor):
@@ -373,7 +373,7 @@ def testSponsorDisclosesEncryptedAttribute(addedEncryptedAttribute, symEncData,
                    identifier=sponsorSigner.verstr)
 
 
-@pytest.mark.skipif(True, reason="Pending implementation")
+@pytest.mark.skip(reason="SOV-561. Pending implementation")
 def testSponsorAddedAttributeCanBeChanged(addedRawAttribute):
     # TODO but only by user(if user has taken control of his identity) and
     # sponsor
@@ -411,7 +411,7 @@ def testLatestAttrIsReceived(nodeSet, addedSponsor, sponsorWallet, looper,
                      sponsorWallet.getAttributesForNym(userIdA)]
 
 
-@pytest.mark.skipif(True, reason="Test not implemented")
+@pytest.mark.skip(reason="SOV-561. Test not implemented")
 def testGetTxnsNoSeqNo():
     """
     Test GET_TXNS from client and do not provide any seqNo to fetch from
@@ -419,8 +419,8 @@ def testGetTxnsNoSeqNo():
     pass
 
 
-@pytest.mark.skipif(True, reason="Come back to it later since "
-                                 "requestPendingTxns move to wallet")
+@pytest.mark.skip(reason="SOV-560. Come back to it later since "
+                         "requestPendingTxns move to wallet")
 def testGetTxnsSeqNo(nodeSet, addedSponsor, tdir, sponsorWallet, looper):
     """
     Test GET_TXNS from client and provide seqNo to fetch from

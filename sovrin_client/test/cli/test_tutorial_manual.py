@@ -43,7 +43,7 @@ def newGuyCLI(looper, tdir, tconf):
     return newCLI(looper, tdir, subDirectory='newguy', conf=tconf)
 
 
-@pytest.mark.skip("Not yet implemented")
+@pytest.mark.skip("SOV-569. Not yet implemented")
 def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
     be(newGuyCLI)
     do('connect test', within=3, expect="Connected to test")

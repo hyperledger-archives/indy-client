@@ -4,9 +4,11 @@ import traceback
 
 import itertools
 from time import sleep
+from typing import List
 
 import plenum
 import pytest
+from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
@@ -26,7 +28,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder
+    getPoolTxnData, newCLI, getCliBuilder, P
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
@@ -170,10 +172,13 @@ def thriftMap(agentIpAddress, thriftAgentPort):
 @pytest.fixture(scope="module")
 def loadInviteOut(nextCommandsToTryUsageLine):
     return ["1 link invitation found for {inviter}.",
-            "Creating Link for {inviter}."] + \
+            "Creating Link for {inviter}.",
+            ''] + \
            nextCommandsToTryUsageLine + \
-           ['accept invitation from "{inviter}"',
-            'show link "{inviter}"']
+           ['    show link "{inviter}"',
+            '    accept invitation from "{inviter}"',
+            '',
+            '']
 
 
 @pytest.fixture(scope="module")
@@ -240,13 +245,14 @@ def nextCommandsToTryUsageLine():
 
 @pytest.fixture(scope="module")
 def connectUsage(usageLine):
-    return usageLine + ["connect <test|live>"]
+    return usageLine + ["    connect <test|live>"]
 
 
 @pytest.fixture(scope="module")
 def notConnectedStatus(connectUsage):
-    return ['Not connected to Sovrin network. Please connect first.'] +\
-            connectUsage
+    return ['Not connected to Sovrin network. Please connect first.', ''] +\
+            connectUsage +\
+            ['', '']
 
 
 @pytest.fixture(scope="module")
@@ -492,8 +498,7 @@ def syncLinkOutWithoutEndpoint(syncLinkOutStartsWith):
 @pytest.fixture(scope="module")
 def showSyncedLinkWithEndpointOut(acceptedLinkHeading, showLinkOut):
     return acceptedLinkHeading + showLinkOut + \
-        ["Last synced: "] + \
-        ["Target endpoint: {endpoint}"]
+        ["Last synced: "]
 
 
 @pytest.fixture(scope="module")
@@ -503,7 +508,7 @@ def showSyncedLinkWithoutEndpointOut(showLinkOut):
 
 @pytest.fixture(scope="module")
 def linkNotYetSynced():
-    return ["Last synced: <this link has not yet been synchronized>"]
+    return ["    Last synced: <this link has not yet been synchronized>"]
 
 
 @pytest.fixture(scope="module")
@@ -517,14 +522,13 @@ def unAcceptedLinkHeading():
 
 
 @pytest.fixture(scope="module")
-def showUnSyncedLinkOut(unAcceptedLinkHeading, showLinkOut, linkNotYetSynced):
-    return unAcceptedLinkHeading + showLinkOut + linkNotYetSynced
+def showUnSyncedLinkOut(unAcceptedLinkHeading, showLinkOut):
+    return unAcceptedLinkHeading + showLinkOut
 
 
 @pytest.fixture(scope="module")
 def showClaimNotFoundOut():
-    return [ "No matching claim(s) found in any links in current keyring"
-    ]
+    return ["No matching claim(s) found in any links in current keyring"]
 
 
 @pytest.fixture(scope="module")
@@ -825,17 +829,25 @@ def showAcceptedLinkOut():
 
 
 @pytest.fixture(scope="module")
-def showLinkOut(nextCommandsToTryUsageLine):
+def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
     return [
-            "Name: {inviter}",
-            "Target: {target}",
-            "Target Verification key: <unknown, waiting for sync>",
-            "Trust anchor: {inviter} (not yet written to Sovrin)",
-            "Invitation nonce: {nonce}",
-            "Invitation status: not verified, target verkey unknown"] + \
+            "    Name: {inviter}",
+            "    Identifier: not yet assigned",
+            "    Trust anchor: {inviter} (not yet written to Sovrin)",
+            "    Verification key: <same as local identifier>",
+            "    Signing key: <hidden>",
+            "    Target: {target}",
+            "    Target Verification key: <unknown, waiting for sync>",
+            "    Target endpoint: {endpoint}",
+            "    Invitation nonce: {nonce}",
+            "    Invitation status: not verified, target verkey unknown",
+            "    Last synced: {last_synced}"] + \
+           [""] + \
            nextCommandsToTryUsageLine + \
-           ['accept invitation from "{inviter}"',
-            'sync "{inviter}"']
+           ['    sync "{inviter}"',
+            '    accept invitation from "{inviter}"',
+            '',
+            '']
 
 
 @pytest.fixture(scope="module")
@@ -976,6 +988,114 @@ def do(ctx):
     'do' allows to call the do method of the current cli from the context.
     """
     return doByCtx(ctx)
+
+
+@pytest.fixture(scope="module")
+def dump(ctx):
+
+    def _dump():
+        logger = getlogger()
+
+        cli = ctx['current_cli']
+        nocli = {"cli": False}
+        wrts = ''.join(cli.cli.output.writes)
+        logger.info('=========================================', extra=nocli)
+        logger.info('|             OUTPUT DUMP               |', extra=nocli)
+        logger.info('-----------------------------------------', extra=nocli)
+        for w in wrts.splitlines():
+            logger.info('> ' + w, extra=nocli)
+        logger.info('=========================================', extra=nocli)
+    return _dump
+
+
+@pytest.fixture(scope="module")
+def bookmark(ctx):
+    BM = '~bookmarks~'
+    if BM not in ctx:
+        ctx[BM] = {}
+    return ctx[BM]
+
+
+@pytest.fixture(scope="module")
+def current_cli(ctx):
+    def _():
+        return ctx['current_cli']
+    return _
+
+
+@pytest.fixture(scope="module")
+def get_bookmark(bookmark, current_cli):
+    def _():
+        return bookmark.get(current_cli().name, 0)
+    return _
+
+
+@pytest.fixture(scope="module")
+def set_bookmark(bookmark, current_cli):
+    def _(val):
+        bookmark[current_cli().name] = val
+    return _
+
+
+@pytest.fixture(scope="module")
+def inc_bookmark(get_bookmark, set_bookmark):
+    def _(inc):
+        val = get_bookmark()
+        set_bookmark(val + inc)
+    return _
+
+
+@pytest.fixture(scope="module")
+def expect(current_cli, get_bookmark, inc_bookmark):
+
+    def _expect(expected, mapper=None):
+        expected_ = expected if not mapper \
+            else [s.format(**mapper) for s in expected]
+        assert isinstance(expected_, List)
+        cli = current_cli()
+        bm = get_bookmark()
+        actual = ''.join(cli.cli.output.writes).splitlines()[bm:]
+        assert isinstance(actual, List)
+        explanation = ''
+        for i in range(min(len(expected_), len(actual))):
+            e = expected_[i]
+            assert isinstance(e, str)
+            a = actual[i]
+            assert isinstance(a, str)
+            is_p = type(e) == P
+            if (not is_p and a != e) or (is_p and not e.match(a)):
+                explanation += "line {} doesn't match\n"\
+                               "  expected: {}\n"\
+                               "    actual: {}\n".format(i, e, a)
+
+        if len(expected_) > len(actual):
+            for e in expected_:
+                for a in actual:
+                    if re.match('^{}$'.format(e), a):
+                        break
+                else:
+                    explanation += "missing: {}\n".format(e)
+
+        if len(expected_) < len(actual):
+            for a in actual:
+                for e in expected_:
+                    if re.match('^{}$'.format(e), a):
+                        break
+                else:
+                    explanation += "extra: {}\n".format(a)
+
+        if explanation:
+            explanation += "\nexpected:\n"
+            for x in expected_:
+                explanation += "  > {}\n".format(x)
+            explanation += "\nactual:\n"
+            for x in actual:
+                explanation += "  > {}\n".format(x)
+            pytest.fail(''.join(explanation))
+        else:
+            inc_bookmark(len(actual))
+
+    return _expect
 
 
 @pytest.fixture(scope="module")

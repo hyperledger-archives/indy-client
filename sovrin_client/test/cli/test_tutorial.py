@@ -5,7 +5,7 @@ from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
 
 
 def getSampleLinkInvitation():
@@ -231,8 +231,7 @@ def testLoadLinkInviteWithoutSig():
 
 def testShowFaberInvite(be, do, aliceCli, faberMap):
     be(aliceCli)
-    inviteContents = getFileLines(faberMap.get("invite"))
-
+    inviteContents = doubleBraces(getFileLines(faberMap.get("invite")))
     do('show {invite}', expect=inviteContents,
        mapper=faberMap)
 
@@ -265,8 +264,10 @@ def testShowLinkNotExists(be, do, aliceCli, linkNotExists, faberMap):
 def testShowFaberLink(be, do, aliceCli, faberInviteLoadedByAlice,
                       showUnSyncedLinkOut, faberMap):
     be(aliceCli)
-    do('show link {inviter}', expect=showUnSyncedLinkOut,
-       mapper=faberMap)
+    cp = faberMap.copy()
+    cp.update(endpoint='<unknown, waiting for sync>',
+              last_synced='<this link has not yet been synchronized>')
+    do('show link {inviter}', expect=showUnSyncedLinkOut, mapper=cp)
 
 
 def testSyncLinkNotExists(be, do, aliceCli, linkNotExists, faberMap):
@@ -335,11 +336,15 @@ def testShowSyncedFaberInvite(be, do, aliceCli, faberMap, linkNotYetSynced,
 
     be(aliceCli)
 
+    cp = faberMap.copy()
+    cp.update(endpoint='<unknown, waiting for sync>',
+              last_synced='<this link has not yet been synchronized>')
+
     do('show link {inviter}', within=4,
        expect=showSyncedLinkWithoutEndpointOut,
        # TODO, need to come back to not_expect
        # not_expect=linkNotYetSynced,
-       mapper=faberMap)
+       mapper=cp)
 
 
 def syncInvite(be, do, userCli, expectedMsgs, mapping):
@@ -353,9 +358,10 @@ def syncInvite(be, do, userCli, expectedMsgs, mapping):
 @pytest.fixture(scope="module")
 def faberInviteSyncedWithEndpoint(be, do, faberMap, aliceCLI, preRequisite,
                                   faberInviteSyncedWithoutEndpoint,
-                                  syncLinkOutWithEndpoint,
-                                  ):
-    syncInvite(be, do, aliceCLI, syncLinkOutWithEndpoint, faberMap)
+                                  syncLinkOutWithEndpoint):
+    cp = faberMap.copy()
+    cp.update(last_synced='<this link has not yet been synchronized>')
+    syncInvite(be, do, aliceCLI, syncLinkOutWithEndpoint, cp)
     return aliceCLI
 
 
@@ -367,8 +373,9 @@ def testShowSyncedFaberInviteWithEndpoint(be, do, aliceCLI, faberMap,
                                           faberInviteSyncedWithEndpoint,
                                           showSyncedLinkWithEndpointOut):
     be(aliceCLI)
-    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut,
-       mapper=faberMap)
+    cp = faberMap.copy()
+    cp.update(last_synced='just now')
+    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut, mapper=cp)
 
 
 def testPingBeforeAccept(be, do, aliceCli, faberMap, connectedToTest,
@@ -523,7 +530,7 @@ def testShowFaberClaimPostReqClaim(be, do, aliceCli,
 
 def testShowAcmeInvite(be, do, aliceCli, acmeMap):
     be(aliceCli)
-    inviteContents = getFileLines(acmeMap.get("invite"))
+    inviteContents = doubleBraces(getFileLines(acmeMap.get("invite")))
 
     do('show {invite}', expect=inviteContents,
        mapper=acmeMap)
@@ -549,8 +556,10 @@ def testShowAcmeLink(be, do, aliceCli, acmeInviteLoadedByAlice,
     showUnSyncedLinkWithClaimReqs = \
         showUnSyncedLinkOut + showLinkWithClaimReqOut
     be(aliceCli)
-    do('show link {inviter}', expect=showUnSyncedLinkWithClaimReqs,
-       mapper=acmeMap)
+
+    cp = acmeMap.copy()
+    cp.update(last_synced='<this link has not yet been synchronized>')
+    do('show link {inviter}', expect=showUnSyncedLinkWithClaimReqs, mapper=cp)
 
 
 @pytest.fixture(scope="module")

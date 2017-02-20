@@ -1,6 +1,6 @@
 import pytest
 from sovrin_common.txn import ENDPOINT
-from sovrin_client.test.cli.helper import getFileLines
+from sovrin_client.test.cli.helper import getFileLines, doubleBraces
 from sovrin_client.test.agent.conftest import runBulldogAgent
 from plenum.common.eventually import eventually
 from os.path import expanduser, exists
@@ -99,7 +99,7 @@ def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
 # Claim Issuance Scenario: Earl obtains proof of banking relationship
 def testShowBulldogInvitation(be, do, earlCli, bulldogMap):
     be(earlCli)
-    invitationContents = getFileLines(bulldogMap.get("invite"))
+    invitationContents = doubleBraces(getFileLines(bulldogMap.get("invite")))
     do('show {invite}', expect=invitationContents, mapper=bulldogMap)
 
 
@@ -145,8 +145,11 @@ def testLoadBulldogInvitation(bulldogInviteLoadedByEarl):
 def testShowBulldogLink(be, do, earlCli, bulldogInviteLoadedByEarl,
                         showUnSyncedLinkOut, bulldogMap):
     be(earlCli)
+    cp = bulldogMap.copy()
+    cp.update(endpoint='127.0.0.1:8787',
+              last_synced='<this link has not yet been synchronized>')
     do('show link {inviter}', expect=showUnSyncedLinkOut,
-       mapper=bulldogMap)
+       mapper=cp)
 
 
 def acceptInvitation(be, do, userCli, agentMap, expect):

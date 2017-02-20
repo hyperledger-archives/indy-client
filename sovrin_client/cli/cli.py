@@ -89,6 +89,8 @@ class SovrinCli(PlenumCli):
     ClientClass = Client
     _genesisTransactions = []
 
+    override_file_path = None
+
     def __init__(self, *args, **kwargs):
         self.aliases = {}  # type: Dict[str, Signer]
         self.sponsors = set()
@@ -718,9 +720,11 @@ class SovrinCli(PlenumCli):
                     self.print(e.args[0])
             return True
 
-    @staticmethod
-    def _getFilePath(givenPath):
-        curDirPath = os.path.dirname(os.path.abspath(__file__))
+    @classmethod
+    def _getFilePath(cls, givenPath, caller_file=None):
+        curDirPath = os.path.dirname(os.path.abspath(caller_file or
+                                                     cls.override_file_path or
+                                                     __file__))
         sampleExplicitFilePath = curDirPath + "/../../" + givenPath
         sampleImplicitFilePath = curDirPath + "/../../sample/" + givenPath
 

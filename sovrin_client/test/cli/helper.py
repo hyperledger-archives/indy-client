@@ -94,8 +94,8 @@ def ensureNodesCreated(cli, nodeNames):
     checkAllNodesStarted(cli, *nodeNames)
 
 
-def getFileLines(path):
-    filePath = SovrinCli._getFilePath(path)
+def getFileLines(path, caller_file=None):
+    filePath = SovrinCli._getFilePath(path, caller_file)
     with open(filePath, 'r') as fin:
         lines = fin.read().splitlines()
     return lines

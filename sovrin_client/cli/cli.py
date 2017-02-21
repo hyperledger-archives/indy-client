@@ -16,6 +16,7 @@ from libnacl import randombytes
 from plenum.cli.cli import Cli as PlenumCli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
+from plenum.common.port_dispenser import genHa
 from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
@@ -95,7 +96,7 @@ class SovrinCli(PlenumCli):
         self.envs = self.config.ENVS
         # This specifies which environment the cli is connected to test or live
         self.activeEnv = None
-        _, port = self.nextAvailableClientAddr()
+        _, port = genHa()
         self.curContext = (None, None, {})  # Current Link, Current Claim Req,
         # set attributes
         self._agent = None
@@ -348,7 +349,7 @@ class SovrinCli(PlenumCli):
         #     self._printNotConnectedEnvMessage()
         #     return None
         if self._agent is None:
-            _, port = self.nextAvailableClientAddr()
+            _, port = genHa()
             self._agent = WalletedAgent(name=randomString(6),
                                         basedirpath=self.basedirpath,
                                         client=self.activeClient if self.activeEnv else None,

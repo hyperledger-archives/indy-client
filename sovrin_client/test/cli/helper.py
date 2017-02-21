@@ -182,7 +182,7 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  multiPoolNodes=None):
+                  multiPoolNodes=None, override_file_path=None):
     def _(subdir, looper=None):
         def new():
             return newCLI(looper,

@@ -152,7 +152,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
             return await wallet.getPublicKey(schemaId)
 
         async def getClaim(schemaId):
-            return userCLI.agent.prover.wallet.getClaims(schemaId)
+            return await userCLI.agent.prover.wallet.getClaims(schemaId)
 
         # Start User cli
 
@@ -173,8 +173,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None)  # Passing None since its not used
 
         faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
-        faberIssuerKey = userCLI.looper.run(getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
-        userFaberIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
+        faberIssuerKey = userCLI.looper.run(
+            getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
+        userFaberIssuerKey = userCLI.looper.run(
+            getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
         assert faberIssuerKey == userFaberIssuerKey
 
         do('show claim Transcript')
@@ -199,8 +201,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
         acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
-        acmeIssuerKey = userCLI.looper.run(getPublicKey(acmeAgent.issuer.wallet, acmeSchemaId))
-        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, acmeSchemaId))
+        acmeIssuerKey = userCLI.looper.run(getPublicKey(
+            acmeAgent.issuer.wallet, acmeSchemaId))
+        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+            userCLI.agent.prover.wallet, acmeSchemaId))
         assert acmeIssuerKey == userAcmeIssuerKey
 
         do('show claim Job-Certificate')
@@ -213,14 +217,16 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         # Send claims
         bankBasicClaimSent(be, do, userCLI, tMap, None)
 
-        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, acmeSchemaId))
+        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+            thriftAgent.issuer.wallet, acmeSchemaId))
         assert acmeIssuerKey == thriftAcmeIssuerKey
         passed = False
         try:
             bankKYCClaimSent(be, do, userCLI, tMap, None)
             passed = True
         except:
-            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, faberSchemaId))
+            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(
+                thriftAgent.issuer.wallet, faberSchemaId))
             assert faberIssuerKey == thriftFaberIssuerKey
         assert passed
 

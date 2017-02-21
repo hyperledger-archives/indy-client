@@ -951,7 +951,7 @@ def inc_bookmark(get_bookmark, set_bookmark):
 @pytest.fixture(scope="module")
 def expect(current_cli, get_bookmark, inc_bookmark):
 
-    def _expect(expected, mapper=None):
+    def _expect(expected, mapper=None, line_no=None):
         expected_ = expected if not mapper \
             else [s.format(**mapper) for s in expected]
         assert isinstance(expected_, List)
@@ -973,8 +973,9 @@ def expect(current_cli, get_bookmark, inc_bookmark):
 
         if len(expected_) > len(actual):
             for e in expected_:
+                p = re.compile(e) if type(e) == P else None
                 for a in actual:
-                    if re.match('^{}$'.format(e), a):
+                    if (p and p.fullmatch(a)) or a == e:
                         break
                 else:
                     explanation += "missing: {}\n".format(e)
@@ -982,7 +983,8 @@ def expect(current_cli, get_bookmark, inc_bookmark):
         if len(expected_) < len(actual):
             for a in actual:
                 for e in expected_:
-                    if re.match('^{}$'.format(e), a):
+                    p = re.compile(e) if type(e) == P else None
+                    if (p and p.fullmatch(a)) or a == e:
                         break
                 else:
                     explanation += "extra: {}\n".format(a)
@@ -994,6 +996,8 @@ def expect(current_cli, get_bookmark, inc_bookmark):
             explanation += "\nactual:\n"
             for x in actual:
                 explanation += "  > {}\n".format(x)
+            if line_no:
+                explanation += "section ends line number: {}\n".format(line_no)
             pytest.fail(''.join(explanation))
         else:
             inc_bookmark(len(actual))

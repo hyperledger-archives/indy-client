@@ -1305,30 +1305,41 @@ class SovrinCli(PlenumCli):
                 self.print(envError, token=Token.Error)
                 self._printConnectUsage()
             else:
-                oldEnv = self.activeEnv
-                isAnyWalletExistsForNewEnv = \
-                    self.isAnyWalletFileExistsForGivenEnv(envName)
+                if self.nodeReg:
+                    oldEnv = self.activeEnv
+                    isAnyWalletExistsForNewEnv = \
+                        self.isAnyWalletFileExistsForGivenEnv(envName)
 
-                if oldEnv or isAnyWalletExistsForNewEnv:
-                    self._disconnectFromCurrentEnv(envName)
+                    if oldEnv or isAnyWalletExistsForNewEnv:
+                        self._disconnectFromCurrentEnv(envName)
 
-                self.config.poolTransactionsFile = self.envs[envName].poolLedger
-                self.config.domainTransactionsFile = \
-                    self.envs[envName].domainLedger
-                # Prompt has to be changed, so it show the environment too
-                self.activeEnv = envName
-                self._setPrompt(self.currPromptText.replace("{}{}".format(
-                    PROMPT_ENV_SEPARATOR, oldEnv), ""))
+                    self.config.poolTransactionsFile = self.envs[envName].poolLedger
+                    self.config.domainTransactionsFile = \
+                        self.envs[envName].domainLedger
+                    # Prompt has to be changed, so it show the environment too
+                    self.activeEnv = envName
+                    self._setPrompt(self.currPromptText.replace("{}{}".format(
+                        PROMPT_ENV_SEPARATOR, oldEnv), ""))
 
-                if isAnyWalletExistsForNewEnv:
-                    self.restoreLastActiveWallet()
+                    if isAnyWalletExistsForNewEnv:
+                        self.restoreLastActiveWallet()
 
-                self.printWarningIfActiveWalletIsIncompatible()
+                    self.printWarningIfActiveWalletIsIncompatible()
 
-                self._buildClientIfNotExists(self.config)
-                self.print("Connecting to {}...".format(envName), Token.BoldGreen)
+                    self._buildClientIfNotExists(self.config)
+                    self.print("Connecting to {}...".format(envName), Token.BoldGreen)
 
-                self.ensureClientConnected()
+                    self.ensureClientConnected()
+
+                else:
+                    msg = '\nThe information required to connect this client to the nodes cannot be found. ' \
+                          '\nThis is an error. To correct the error, get the file containing genesis transactions ' \
+                          '\n(the file name is `{}`) from the github repository and place ' \
+                          '\nit in directory `{}`.\n' \
+                          '\nThe github url is {}.\n'.format(self.config.poolTransactionsFile,
+                                                             self.config.baseDir,
+                                                             self.githubUrl)
+                    self.print(msg)
 
             return True
 

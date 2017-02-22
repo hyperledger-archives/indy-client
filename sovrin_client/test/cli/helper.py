@@ -182,16 +182,20 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  multiPoolNodes=None, override_file_path=None):
-    def _(subdir, looper=None):
+                  multiPoolNodes=None):
+    def _(subdir,
+          looper=None,
+          unique_name=None):
         def new():
-            return newCLI(looper,
-                          tdir,
-                          subDirectory=subdir,
-                          conf=tconf,
-                          poolDir=tdirWithPoolTxns,
-                          domainDir=tdirWithDomainTxns,
-                          multiPoolNodes=multiPoolNodes)
+            c = newCLI(looper,
+                       tdir,
+                       subDirectory=subdir,
+                       conf=tconf,
+                       poolDir=tdirWithPoolTxns,
+                       domainDir=tdirWithDomainTxns,
+                       multiPoolNodes=multiPoolNodes)
+            c.unique_name = unique_name
+            return c
         if looper:
             yield new()
         else:

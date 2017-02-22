@@ -929,14 +929,14 @@ def current_cli(ctx):
 @pytest.fixture(scope="module")
 def get_bookmark(bookmark, current_cli):
     def _():
-        return bookmark.get(current_cli().name, 0)
+        return bookmark.get(current_cli(), 0)
     return _
 
 
 @pytest.fixture(scope="module")
 def set_bookmark(bookmark, current_cli):
     def _(val):
-        bookmark[current_cli().name] = val
+        bookmark[current_cli()] = val
     return _
 
 
@@ -951,56 +951,62 @@ def inc_bookmark(get_bookmark, set_bookmark):
 @pytest.fixture(scope="module")
 def expect(current_cli, get_bookmark, inc_bookmark):
 
-    def _expect(expected, mapper=None, line_no=None):
-        expected_ = expected if not mapper \
-            else [s.format(**mapper) for s in expected]
-        assert isinstance(expected_, List)
-        cli = current_cli()
-        bm = get_bookmark()
-        actual = ''.join(cli.cli.output.writes).splitlines()[bm:]
-        assert isinstance(actual, List)
-        explanation = ''
-        for i in range(min(len(expected_), len(actual))):
-            e = expected_[i]
-            assert isinstance(e, str)
-            a = actual[i]
-            assert isinstance(a, str)
-            is_p = type(e) == P
-            if (not is_p and a != e) or (is_p and not e.match(a)):
-                explanation += "line {} doesn't match\n"\
-                               "  expected: {}\n"\
-                               "    actual: {}\n".format(i, e, a)
+    def _expect(expected, mapper=None, line_no=None, within=None):
+        cur_cli = current_cli()
 
-        if len(expected_) > len(actual):
-            for e in expected_:
-                p = re.compile(e) if type(e) == P else None
-                for a in actual:
-                    if (p and p.fullmatch(a)) or a == e:
-                        break
-                else:
-                    explanation += "missing: {}\n".format(e)
+        def _():
+            expected_ = expected if not mapper \
+                else [s.format(**mapper) for s in expected]
+            assert isinstance(expected_, List)
+            bm = get_bookmark()
+            actual = ''.join(cur_cli.cli.output.writes).splitlines()[bm:]
+            assert isinstance(actual, List)
+            explanation = ''
+            for i in range(min(len(expected_), len(actual))):
+                e = expected_[i]
+                assert isinstance(e, str)
+                a = actual[i]
+                assert isinstance(a, str)
+                is_p = type(e) == P
+                if (not is_p and a != e) or (is_p and not e.match(a)):
+                    explanation += "line {} doesn't match\n"\
+                                   "  expected: {}\n"\
+                                   "    actual: {}\n".format(i, e, a)
 
-        if len(expected_) < len(actual):
-            for a in actual:
+            if len(expected_) > len(actual):
                 for e in expected_:
                     p = re.compile(e) if type(e) == P else None
-                    if (p and p.fullmatch(a)) or a == e:
-                        break
-                else:
-                    explanation += "extra: {}\n".format(a)
+                    for a in actual:
+                        if (p and p.fullmatch(a)) or a == e:
+                            break
+                    else:
+                        explanation += "missing: {}\n".format(e)
 
-        if explanation:
-            explanation += "\nexpected:\n"
-            for x in expected_:
-                explanation += "  > {}\n".format(x)
-            explanation += "\nactual:\n"
-            for x in actual:
-                explanation += "  > {}\n".format(x)
-            if line_no:
-                explanation += "section ends line number: {}\n".format(line_no)
-            pytest.fail(''.join(explanation))
+            if len(expected_) < len(actual):
+                for a in actual:
+                    for e in expected_:
+                        p = re.compile(e) if type(e) == P else None
+                        if (p and p.fullmatch(a)) or a == e:
+                            break
+                    else:
+                        explanation += "extra: {}\n".format(a)
+
+            if explanation:
+                explanation += "\nexpected:\n"
+                for x in expected_:
+                    explanation += "  > {}\n".format(x)
+                explanation += "\nactual:\n"
+                for x in actual:
+                    explanation += "  > {}\n".format(x)
+                if line_no:
+                    explanation += "section ends line number: {}\n".format(line_no)
+                pytest.fail(''.join(explanation))
+            else:
+                inc_bookmark(len(actual))
+        if within:
+            cur_cli.looper.run(eventually(_, timeout=within))
         else:
-            inc_bookmark(len(actual))
+            _()
 
     return _expect
 

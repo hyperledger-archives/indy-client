@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.skip("Not yet implemented")
+@pytest.mark.skip("SOV-566. Not yet implemented")
 def testUnsignedRequest():
     """
     Ensure an unsigned request is not allowed.
@@ -9,7 +9,7 @@ def testUnsignedRequest():
     raise NotImplementedError
 
 
-@pytest.mark.skip("Not yet implemented")
+@pytest.mark.skip("SOV-566. Not yet implemented")
 def testRequestSignedByUnknownIdentifier():
     """
     Ensure a request signed by an unknown party is not allowed.
@@ -17,7 +17,7 @@ def testRequestSignedByUnknownIdentifier():
     raise NotImplementedError
 
 
-@pytest.mark.skip("Not yet implemented")
+@pytest.mark.skip("SOV-566. Not yet implemented")
 def testRequestSignedByKnownIdentifier():
     """
     Ensure a properly signed request is allowed.

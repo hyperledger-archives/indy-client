@@ -43,17 +43,17 @@ def testAliceAcceptAcmeInvitation(aliceAcceptedAcme):
     pass
 
 
-@pytest.mark.skipif(True, reason="Not yet implemented")
+@pytest.mark.skip(reason="SOV-562. Not yet implemented")
 def testAddSchema():
     raise NotImplementedError
 
 
-@pytest.mark.skipif(True, reason="Not yet implemented")
+@pytest.mark.skip(reason="SOV-562. Not yet implemented")
 def testAddIssuerKeys():
     raise NotImplementedError
 
 
-@pytest.mark.skipif(True, reason="Incomplete implementation")
+@pytest.mark.skip(reason="SOV-563. Incomplete implementation")
 def testMultipleAcceptance(aliceAcceptedFaber,
                            faberIsRunning,
                            faberLinkAdded,

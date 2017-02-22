@@ -256,7 +256,7 @@ def testEarlAcceptBulldogInvitation(earlAcceptedBulldogInvitation):
     pass
 
 
-@pytest.mark.skipif(True, reason="Incorrect implementation")
+@pytest.mark.skip(reason="SOV-567. Incorrect implementation")
 def testLogsFilePresentForBulldogAgent(earlAcceptedBulldogInvitation):
     config = getConfig()
     path = expanduser('{}'.format(config.baseDir))

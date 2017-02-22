@@ -36,7 +36,7 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd
+    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -185,7 +185,7 @@ class SovrinCli(PlenumCli):
                         self._sendPoolUpgAction,
                         self._sendSchemaAction,
                         self._sendIssuerKeyAction,
-                        self._addGenesisAction,
+                        self._addGenTxnAction,
                         self._showFile,
                         self._loadFile,
                         self._showLink,
@@ -513,7 +513,10 @@ class SovrinCli(PlenumCli):
                                                           self.activeIdentifier))
 
         def out(reply, error, *args, **kwargs):
-            self.print("Node request complete {}".format(reply[TARGET_NYM]),
+            if error:
+                self.print("Node request failed with error: {}".format(error), Token.BoldOrange)
+            else:
+                self.print("Node request completed {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
@@ -1109,6 +1112,8 @@ class SovrinCli(PlenumCli):
 
         id, signer = self.activeWallet.addIdentifier(identifier,
                                                      seed=cseed, alias=alias)
+        self.print("Identifier created in keyring {}".format(self.activeWallet))
+        self.print("Key for identifier is {}".format(signer.verkey))
         self._setActiveIdentifier(id)
 
     def _newIdentifier(self, matchedVars):
@@ -1381,7 +1386,7 @@ class SovrinCli(PlenumCli):
 
         super()._setPrompt(promptText)
 
-    def _addGenesisAction(self, matchedVars):
+    def _addGenTxnAction(self, matchedVars):
         if matchedVars.get('add_genesis'):
             nym = matchedVars.get('dest_id')
             role = Identity.correctRole(self._getRole(matchedVars))
@@ -1530,9 +1535,12 @@ class SovrinCli(PlenumCli):
         mappings['reqClaim'] = reqClaimCmd
         mappings['showClaimReq'] = showClaimReqCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendClaim'] = sendClaimCmd
         mappings['newIdentifier'] = newIdentifierCmd
+
+        mappings['addGenesisAction'] = None
 
         return mappings
 

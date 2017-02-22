@@ -16,6 +16,7 @@ from libnacl import randombytes
 from plenum.cli.cli import Cli as PlenumCli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
+from plenum.common.port_dispenser import genHa
 from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
@@ -35,7 +36,7 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd
+    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -97,7 +98,7 @@ class SovrinCli(PlenumCli):
         self.envs = self.config.ENVS
         # This specifies which environment the cli is connected to test or live
         self.activeEnv = None
-        _, port = self.nextAvailableClientAddr()
+        _, port = genHa()
         self.curContext = (None, None, {})  # Current Link, Current Claim Req,
         # set attributes
         self._agent = None
@@ -186,7 +187,7 @@ class SovrinCli(PlenumCli):
                         self._sendPoolUpgAction,
                         self._sendSchemaAction,
                         self._sendIssuerKeyAction,
-                        self._addGenesisAction,
+                        self._addGenTxnAction,
                         self._showFile,
                         self._loadFile,
                         self._showLink,
@@ -350,7 +351,7 @@ class SovrinCli(PlenumCli):
         #     self._printNotConnectedEnvMessage()
         #     return None
         if self._agent is None:
-            _, port = self.nextAvailableClientAddr()
+            _, port = genHa()
             self._agent = WalletedAgent(name=randomString(6),
                                         basedirpath=self.basedirpath,
                                         client=self.activeClient if self.activeEnv else None,
@@ -514,7 +515,10 @@ class SovrinCli(PlenumCli):
                                                           self.activeIdentifier))
 
         def out(reply, error, *args, **kwargs):
-            self.print("Node request complete {}".format(reply[TARGET_NYM]),
+            if error:
+                self.print("Node request failed with error: {}".format(error), Token.BoldOrange)
+            else:
+                self.print("Node request completed {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
@@ -1112,6 +1116,8 @@ class SovrinCli(PlenumCli):
 
         id, signer = self.activeWallet.addIdentifier(identifier,
                                                      seed=cseed, alias=alias)
+        self.print("Identifier created in keyring {}".format(self.activeWallet))
+        self.print("Key for identifier is {}".format(signer.verkey))
         self._setActiveIdentifier(id)
 
     def _newIdentifier(self, matchedVars):
@@ -1309,30 +1315,41 @@ class SovrinCli(PlenumCli):
                 self.print(envError, token=Token.Error)
                 self._printConnectUsage()
             else:
-                oldEnv = self.activeEnv
-                isAnyWalletExistsForNewEnv = \
-                    self.isAnyWalletFileExistsForGivenEnv(envName)
+                if self.nodeReg:
+                    oldEnv = self.activeEnv
+                    isAnyWalletExistsForNewEnv = \
+                        self.isAnyWalletFileExistsForGivenEnv(envName)
 
-                if oldEnv or isAnyWalletExistsForNewEnv:
-                    self._disconnectFromCurrentEnv(envName)
+                    if oldEnv or isAnyWalletExistsForNewEnv:
+                        self._disconnectFromCurrentEnv(envName)
 
-                self.config.poolTransactionsFile = self.envs[envName].poolLedger
-                self.config.domainTransactionsFile = \
-                    self.envs[envName].domainLedger
-                # Prompt has to be changed, so it show the environment too
-                self.activeEnv = envName
-                self._setPrompt(self.currPromptText.replace("{}{}".format(
-                    PROMPT_ENV_SEPARATOR, oldEnv), ""))
+                    self.config.poolTransactionsFile = self.envs[envName].poolLedger
+                    self.config.domainTransactionsFile = \
+                        self.envs[envName].domainLedger
+                    # Prompt has to be changed, so it show the environment too
+                    self.activeEnv = envName
+                    self._setPrompt(self.currPromptText.replace("{}{}".format(
+                        PROMPT_ENV_SEPARATOR, oldEnv), ""))
 
-                if isAnyWalletExistsForNewEnv:
-                    self.restoreLastActiveWallet()
+                    if isAnyWalletExistsForNewEnv:
+                        self.restoreLastActiveWallet()
 
-                self.printWarningIfActiveWalletIsIncompatible()
+                    self.printWarningIfActiveWalletIsIncompatible()
 
-                self._buildClientIfNotExists(self.config)
-                self.print("Connecting to {}...".format(envName), Token.BoldGreen)
+                    self._buildClientIfNotExists(self.config)
+                    self.print("Connecting to {}...".format(envName), Token.BoldGreen)
 
-                self.ensureClientConnected()
+                    self.ensureClientConnected()
+
+                else:
+                    msg = '\nThe information required to connect this client to the nodes cannot be found. ' \
+                          '\nThis is an error. To correct the error, get the file containing genesis transactions ' \
+                          '\n(the file name is `{}`) from the github repository and place ' \
+                          '\nit in directory `{}`.\n' \
+                          '\nThe github url is {}.\n'.format(self.config.poolTransactionsFile,
+                                                             self.config.baseDir,
+                                                             self.githubUrl)
+                    self.print(msg)
 
             return True
 
@@ -1373,7 +1390,7 @@ class SovrinCli(PlenumCli):
 
         super()._setPrompt(promptText)
 
-    def _addGenesisAction(self, matchedVars):
+    def _addGenTxnAction(self, matchedVars):
         if matchedVars.get('add_genesis'):
             nym = matchedVars.get('dest_id')
             role = Identity.correctRole(self._getRole(matchedVars))
@@ -1522,9 +1539,12 @@ class SovrinCli(PlenumCli):
         mappings['reqClaim'] = reqClaimCmd
         mappings['showClaimReq'] = showClaimReqCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendClaim'] = sendClaimCmd
         mappings['newIdentifier'] = newIdentifierCmd
+
+        mappings['addGenesisAction'] = None
 
         return mappings
 

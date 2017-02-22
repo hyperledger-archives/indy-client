@@ -133,6 +133,11 @@ def faberAgentPort():
 
 
 @pytest.fixture(scope="module")
+def bulldogAgentPort():
+    return genHa()[1]
+
+
+@pytest.fixture(scope="module")
 def acmeAgentPort():
     return genHa()[1]
 

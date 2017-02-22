@@ -1,5 +1,6 @@
 import pytest
 from plenum.cli.helper import getClientGrams
+from plenum.common.txn import TARGET_NYM
 from plenum.test.cli.helper import assertCliTokens
 from plenum.test.cli.test_command_reg_ex import getMatchedVariables
 from prompt_toolkit.contrib.regular_languages.compiler import compile
@@ -265,3 +266,22 @@ def testNewIdentifier(grammar):
                                   "id_or_abbr_or_crypto": "crypto",
                                   "seed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                                   "alias": "myalias"})
+
+
+def testAddGenTxnRegEx(grammar):
+    matchedVars = getMatchedVariables(grammar, "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML")
+    assertCliTokens(matchedVars, {"add_genesis": "add genesis transaction NYM", "dest": "dest=",
+                                  "dest_id":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role":None, "ver_key": None})
+
+    matchedVars = getMatchedVariables(grammar, "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role=STEWARD")
+    assertCliTokens(matchedVars, {"add_genesis": "add genesis transaction NYM", "dest": "dest=",
+                                  "dest_id":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role":"STEWARD", "ver_key": None})
+
+    matchedVars = getMatchedVariables(grammar,
+                                      'add genesis transaction NODE for 2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML '
+                                      'by FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW with data '
+                                      '{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}')
+    assertCliTokens(matchedVars, {"add_gen_txn": "add genesis transaction", "type": "NODE",
+                                  "dest":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML",
+                                  "identifier":"FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW", "role":None,
+                                  "data":'{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'})

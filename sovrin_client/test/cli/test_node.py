@@ -7,6 +7,7 @@ from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
 from plenum.common.types import CLIENT_STACK_SUFFIX
 from plenum.common.util import randomSeed, randomString
+from plenum.test.cli.helper import exitFromCli
 from sovrin_client.test.cli.test_tutorial import philCli
 
 
@@ -69,14 +70,15 @@ def newStewardCli(be, do, poolNodesStarted, philCli,
     return newStewardCLI
 
 
-@pytest.fixture(scope="module")
-def newNodeAdded(be, do, newStewardCli):
+def sendNodeCmd(do):
     do('send NODE dest={newNodeIdr} data={newNodeData}',
-       within=5,
-       expect=['Node request complete'], mapper=vals)
+       within=5, expect=['Node request completed'], mapper=vals)
 
 
-def testAddNewNode(newNodeAdded, newStewardCli, philCli, poolNodesStarted):
+@pytest.fixture(scope="module")
+def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
+    be(newStewardCli)
+    sendNodeCmd(do)
 
     def checkClientConnected(client):
         name = newNodeData[ALIAS]+CLIENT_STACK_SUFFIX
@@ -98,3 +100,24 @@ def testAddNewNode(newNodeAdded, newStewardCli, philCli, poolNodesStarted):
                                            list(poolNodesStarted.nodes.values()),
                                            timeout=5))
 
+
+def testAddNewNode(newNodeAdded):
+    pass
+
+
+@pytest.fixture(scope="module")
+def tconf(tconf, request):
+    oldVal = tconf.UpdateGenesisPoolTxnFile
+    tconf.UpdateGenesisPoolTxnFile = True
+
+    def reset():
+        tconf.UpdateGenesisPoolTxnFile = oldVal
+
+    request.addfinalizer(reset)
+    return tconf
+
+
+def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
+    be(newStewardCli)
+    sendNodeCmd(do)
+    exitFromCli(do)

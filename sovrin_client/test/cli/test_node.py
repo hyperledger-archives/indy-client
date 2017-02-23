@@ -100,9 +100,9 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
                                            list(poolNodesStarted.nodes.values()),
                                            timeout=5))
 
-
-def testAddNewNode(newNodeAdded):
-    pass
+# reason SOV-603
+# def testAddNewNode(newNodeAdded):
+#     pass
 
 
 @pytest.fixture(scope="module")

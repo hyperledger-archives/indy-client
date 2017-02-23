@@ -129,11 +129,11 @@ setAttrCmd = Command(
     usage="set <attr-name> to <attr-value>",
     examples="set first_name to Alice")
 
-sendClaimCmd = Command(
-    id="send claim",
-    title="Sends given claim to given target",
-    usage="send claim <claim-name> to <target>",
-    examples="send claim Job-Application to Acme Corp")
+sendProofCmd = Command(
+    id="send proof",
+    title="Sends given proof to given target",
+    usage="send proof <claim-name> to <target>",
+    examples="send proof Job-Application to Acme Corp")
 
 addGenesisTxnCmd = Command(
     id="add genesis transaction",

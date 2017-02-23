@@ -104,8 +104,9 @@ def faberMap(agentIpAddress, faberAgentPort):
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
-            "claim-req-to-match": "Transcript",
+            "proof-req-to-match": "Transcript",
             }
+
 
 @pytest.fixture(scope="module")
 def acmeMap(agentIpAddress, acmeAgentPort):
@@ -121,7 +122,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "claim-requests" : "Job-Application",
             "claim-req-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
-            "claim-req-to-match": "Job-Application",
+            "proof-req-to-match": "Job-Application",
             "claims": "<claim-name>",
             "rcvd-claim-transcript-provider": "Faber College",
             "rcvd-claim-transcript-name": "Transcript",
@@ -324,7 +325,7 @@ def showTranscriptClaimProofOut():
 @pytest.fixture(scope="module")
 def showJobAppClaimReqOut(showTranscriptClaimProofOut):
     return [
-        'Found claim request "{claim-req-to-match}" in link "{inviter}"',
+        'Found claim request "{proof-req-to-match}" in link "{inviter}"',
         "Name: {claim-req-to-show}",
         "Version: {claim-req-version}",
         "Status: Requested",

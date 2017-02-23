@@ -181,7 +181,7 @@ def testSetAttribute(grammar):
 
 
 def testSendClaim(grammar):
-    getMatchedVariables(grammar, 'send claim Job-Application to Acme')
+    getMatchedVariables(grammar, 'send proof Job-Application to Acme')
 
 
 def testSendPoolUpgrade(grammar):

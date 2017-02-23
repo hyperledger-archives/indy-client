@@ -734,11 +734,11 @@ def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
 #              expect=["Nonce not found".format(msg)])
 
 
-def sendClaim(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
+def sendProof(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
     be(userCli)
 
     expectMsgs = [
-        "Your claim {claim-req-to-match} "
+        "Your proof {proof-req-to-match} "
         "{claim-ver-req-to-show} was "
         "received and verified"
     ]
@@ -750,7 +750,7 @@ def sendClaim(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
         mapping['new-available-claims'] = newAvailableClaims
         expectMsgs.append("Available Claim(s): {new-available-claims}")
 
-    do("send claim {claim-req-to-match} to {inviter}",
+    do("send proof {proof-req-to-match} to {inviter}",
        within=7,
        expect=expectMsgs,
        mapper=mapping)
@@ -762,7 +762,7 @@ def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
                             aliceRequestedTranscriptClaim,
                             aliceSelfAttestsAttributes):
     totalAvailableClaimsBefore = getTotalAvailableClaims(aliceCli)
-    sendClaim(be, do, aliceCli, acmeMap, "Job-Certificate")
+    sendProof(be, do, aliceCli, acmeMap, "Job-Certificate")
     assert totalAvailableClaimsBefore + 1 == getTotalAvailableClaims(aliceCli)
 
 
@@ -883,10 +883,10 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)
-    mapping["claim-req-to-match"] = "Loan-Application-Basic"
+    mapping["proof-req-to-match"] = "Loan-Application-Basic"
     extraMsgs = ["Loan eligibility criteria satisfied, "
                  "please send another claim 'Loan-Application-KYC'"]
-    sendClaim(be, do, aliceCli, mapping, None, extraMsgs)
+    sendProof(be, do, aliceCli, mapping, None, extraMsgs)
 
 
 def testAliceSendBankBasicClaim(bankBasicClaimSent):
@@ -898,8 +898,8 @@ def bankKYCClaimSent(be, do, aliceCli, thriftMap,
                      bankBasicClaimSent):
     mapping = {}
     mapping.update(thriftMap)
-    mapping["claim-req-to-match"] = "Loan-Application-KYC"
-    sendClaim(be, do, aliceCli, mapping, None)
+    mapping["proof-req-to-match"] = "Loan-Application-KYC"
+    sendProof(be, do, aliceCli, mapping, None)
 
 
 def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):

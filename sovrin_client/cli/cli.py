@@ -738,6 +738,7 @@ class SovrinCli(PlenumCli):
         # change [self.activeWallet] to self.wallets.values()
         walletsToBeSearched = [self.activeWallet]  # self.wallets.values()
         for w in walletsToBeSearched:
+            # TODO: This should be moved to wallet
             invitations = w.getMatchingLinks(linkName)
             for i in invitations:
                 if i.name == linkName:
@@ -751,6 +752,7 @@ class SovrinCli(PlenumCli):
                     else:
                         likelyMatched[w.name] = [i]
 
+        # TODO: instead of a comment, this should be implemented as a test
         # Here is how the return dictionary should look like:
         # {
         #    "exactlyMatched": {

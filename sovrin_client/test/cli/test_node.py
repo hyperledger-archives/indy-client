@@ -116,8 +116,8 @@ def tconf(tconf, request):
     request.addfinalizer(reset)
     return tconf
 
-
-def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
-    be(newStewardCli)
-    sendNodeCmd(do)
-    exitFromCli(do)
+# reason SOV-603
+# def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
+#     be(newStewardCli)
+#     sendNodeCmd(do)
+#     exitFromCli(do)

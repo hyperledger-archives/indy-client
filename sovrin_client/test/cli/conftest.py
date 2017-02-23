@@ -119,7 +119,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "claim-requests" : "Job-Application",
+            "proof-requests" : "Job-Application",
             "claim-req-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
             "proof-req-to-match": "Job-Application",
@@ -141,7 +141,7 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "claim-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "claim-ver-req-to-show": "0.1"
             }
 

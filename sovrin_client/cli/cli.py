@@ -36,14 +36,14 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
-    reqAvailClaimsCmd
+    showClaimReqCmd, showProofReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, \
+    addGenesisTxnCmd, reqAvailClaimsCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, ClaimProofRequest
+from sovrin_client.client.wallet.link import Link, ProofRequest
 from sovrin_client.client.wallet.node import Node
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
@@ -129,6 +129,7 @@ class SovrinCli(PlenumCli):
             'ping_target'
             'show_claim',
             'show_claim_req',
+            'show_proof_req',
             'req_claim',
             'accept_link_invite',
             'set_attr',
@@ -165,6 +166,8 @@ class SovrinCli(PlenumCli):
         completers["show_claim"] = WordCompleter(["show", "claim"])
         completers["show_claim_req"] = WordCompleter(["show",
                                                       "claim", "request"])
+        completers["show_proof_req"] = WordCompleter(["show",
+                                                      "proof", "request"])
         completers["req_claim"] = WordCompleter(["request", "claim"])
         completers["accept_link_invite"] = WordCompleter(["accept",
                                                           "invitation", "from"])
@@ -202,6 +205,7 @@ class SovrinCli(PlenumCli):
                         self._showClaim,
                         self._reqClaim,
                         self._showClaimReq,
+                        self._showProofReq,
                         self._acceptInvitationLink,
                         self._setAttr,
                         self._sendProof,
@@ -990,6 +994,9 @@ class SovrinCli(PlenumCli):
     def _printNoClaimReqFoundMsg(self):
         self.print("No matching claim request(s) found in current keyring\n")
 
+    def _printNoProofReqFoundMsg(self):
+        self.print("No matching proof request(s) found in current keyring\n")
+
     def _printNoClaimFoundMsg(self):
         self.print("No matching claim(s) found in "
                    "any links in current keyring\n")
@@ -1015,7 +1022,7 @@ class SovrinCli(PlenumCli):
             self.print("{} in {}".format(li, cl))
 
     def _getOneLinkAndClaimReq(self, claimReqName, linkName=None) -> \
-            (Link, ClaimProofRequest):
+            (Link, ProofRequest):
         matchingLinksWithClaimReq = self.activeWallet. \
             getMatchingLinksWithClaimReq(claimReqName, linkName)
 
@@ -1029,6 +1036,11 @@ class SovrinCli(PlenumCli):
             return None, None
 
         return matchingLinksWithClaimReq[0]
+
+    def _getOneLinkAndProofReq(self, proofReqName, linkName=None):
+        self._printNoProofReqFoundMsg()
+        raise Exception("NOT IMPLEMENTED")
+        # return None, None
 
     def _getOneLinkAndAvailableClaim(self, claimName, printMsgs: bool = True) -> \
             (Link, Schema):
@@ -1207,7 +1219,7 @@ class SovrinCli(PlenumCli):
     def _printRequestClaimMsg(self, claimName):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
-    async def _showMatchingClaimProof(self, claimProofReq: ClaimProofRequest,
+    async def _showMatchingClaimProof(self, claimProofReq: ProofRequest,
                                 selfAttestedAttrs, matchingLink):
         matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(claimProofReq.attributes)
 
@@ -1251,6 +1263,26 @@ class SovrinCli(PlenumCli):
                                           self._showMatchingClaimProof(claimReq,
                                                                        attributes,
                                                                        matchingLink))
+            return True
+
+    def _showProofReq(self, matchedVars):
+        if matchedVars.get('show_proof_req') == 'show proof request':
+            proofReqName = SovrinCli.removeSpecialChars(
+                matchedVars.get('proof_req_name'))
+            matchingLink, proofReq = self._getOneLinkAndProofReq(proofReqName) #TODO change function
+            # if matchingLink and proofReq:
+            #     if matchingLink == self.curContext[0] and claimReq == self.curContext[1]:
+            #         matchingLink, claimReq, attributes = self.curContext
+            #     else:
+            #         attributes = {}
+            #         self.curContext = matchingLink, claimReq, attributes
+            #     self.print('Found claim request "{}" in link "{}"'.
+            #                format(claimReq.name, matchingLink.name))
+            #
+            #     self.agent.loop.call_soon(asyncio.ensure_future,
+            #                               self._showMatchingClaimProof(claimReq,
+            #                                                            attributes,
+            #                                                            matchingLink))
             return True
 
     def _showClaim(self, matchedVars):
@@ -1553,6 +1585,7 @@ class SovrinCli(PlenumCli):
         mappings['showClaim'] = showClaimCmd
         mappings['reqClaim'] = reqClaimCmd
         mappings['showClaimReq'] = showClaimReqCmd
+        mappings['showProofReq'] = showProofReqCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendProof'] = sendProofCmd
         mappings['newIdentifier'] = newIdentifierCmd

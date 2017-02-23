@@ -117,6 +117,12 @@ showClaimReqCmd = Command(
     usage="show claim request <claim-req-name>",
     examples="show claim request Job-Application")
 
+showProofReqCmd = Command(
+    id="show proof request",
+    title="Shows given proof request",
+    usage="show proof request <proof-req-name>",
+    examples="show proof request Transcription")
+
 acceptLinkCmd = Command(
     id="accept invitation",
     title="Accept invitation from given target",

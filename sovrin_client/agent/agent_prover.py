@@ -12,10 +12,9 @@ from anoncreds.protocol.utils import toDictWithStrValues
 from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD, \
     CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD, \
     REQ_AVAIL_CLAIMS
-from sovrin_client.client.wallet.link import ClaimProofRequest, Link
-from sovrin_common.exceptions import LinkNotReady
+from sovrin_client.client.wallet.link import ProofRequest, Link
 from sovrin_common.util import getNonceForProof
-
+from sovrin_common.exceptions import LinkNotReady
 
 class AgentProver:
     def __init__(self, prover: Prover):
@@ -88,14 +87,14 @@ class AgentProver:
         else:
             self.notifyMsgListener("No matching link found")
 
-    def sendProof(self, link: Link, claimPrfReq: ClaimProofRequest):
+    def sendProof(self, link: Link, claimPrfReq: ProofRequest):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
                                 self.sendProofAsync(link, claimPrfReq))
         else:
             self.loop.run_until_complete(self.sendProofAsync(link, claimPrfReq))
 
-    async def sendProofAsync(self, link: Link, claimPrfReq: ClaimProofRequest):
+    async def sendProofAsync(self, link: Link, claimPrfReq: ProofRequest):
         nonce = getNonceForProof(link.invitationNonce)
 
         revealedAttrNames = claimPrfReq.verifiableAttributes

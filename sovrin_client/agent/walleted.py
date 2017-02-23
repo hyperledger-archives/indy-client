@@ -34,7 +34,7 @@ from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
     REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, constant, ClaimProofRequest
+from sovrin_client.client.wallet.link import Link, constant, ProofRequest
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
     NotConnectedToNetwork, LinkNotReady
@@ -494,7 +494,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 self.notifyEventListeners(
                     EVENT_POST_ACCEPT_INVITE,
                     availableClaimNames=availableClaimNames,
-                    claimProofReqsCount=len(li.claimProofRequests))
+                    claimProofReqsCount=len(li.requestedProofs))
             else:
                 self.notifyMsgListener(
                     "    Identifier is not yet written to Sovrin")
@@ -630,13 +630,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         linkInvitationName = linkInvitation[NAME]
         remoteEndPoint = linkInvitation.get("endpoint", None)
         linkNonce = linkInvitation[NONCE]
-        claimProofRequestsJson = invitationData.get("claim-requests", None)
+        proofRequestsJson = invitationData.get("proof-requests", None)
 
-        claimProofRequests = []
-        if claimProofRequestsJson:
-            for cr in claimProofRequestsJson:
-                claimProofRequests.append(
-                    ClaimProofRequest(cr[NAME], cr[VERSION], cr[ATTRIBUTES],
+        proofRequests = []
+        if proofRequestsJson:
+            for cr in proofRequestsJson:
+                proofRequests.append(
+                    ProofRequest(cr[NAME], cr[VERSION], cr[ATTRIBUTES],
                                       cr[VERIFIABLE_ATTRIBUTES]))
 
         self.notifyMsgListener("1 link invitation found for {}.".
@@ -651,7 +651,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                   remoteIdentifier=remoteIdentifier,
                   remoteEndPoint=remoteEndPoint,
                   invitationNonce=linkNonce,
-                  claimProofRequests=claimProofRequests)
+                  proofRequests=proofRequests)
 
         self.wallet.addLink(li)
         return li
@@ -676,32 +676,32 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         linkInvitation = invitationData.get('link-invitation')
         linkName = linkInvitation['name']
         link = self.wallet.getLink(linkName)
-        invitationClaimProofRequests = invitationData.get('claim-requests',
+        invitationProofRequests = invitationData.get('proof-requests',
                                                           None)
-        if invitationClaimProofRequests:
-            for icr in invitationClaimProofRequests:
+        if invitationProofRequests:
+            for icr in invitationProofRequests:
                 # match is found if name and version are same
-                matchedClaimProofRequest = next(
-                    (cr for cr in link.claimProofRequests
+                matchedProofRequest = next(
+                    (cr for cr in link.requestedProofs
                      if (cr.name == icr[NAME] and cr.version == icr[VERSION])),
                     None
                 )
 
-                # if link.claimProofRequests contains any claim request
-                if matchedClaimProofRequest:
+                # if link.requestedProofs contains any claim request
+                if matchedProofRequest:
                     # merge 'attributes' and 'verifiableAttributes'
-                    matchedClaimProofRequest.attributes = {
-                        **matchedClaimProofRequest.attributes,
+                    matchedProofRequest.attributes = {
+                        **matchedProofRequest.attributes,
                         **icr[ATTRIBUTES]
                     }
-                    matchedClaimProofRequest.verifiableAttributes = list(
-                        set(matchedClaimProofRequest.verifiableAttributes)
+                    matchedProofRequest.verifiableAttributes = list(
+                        set(matchedProofRequest.verifiableAttributes)
                         .union(icr[VERIFIABLE_ATTRIBUTES])
                     )
                 else:
-                    # otherwise append claim proof request to link
-                    link.claimProofRequests.append(
-                        ClaimProofRequest(
+                    # otherwise append proof request to link
+                    link.requestedProofs.append(
+                        ProofRequest(
                             icr[NAME], icr[VERSION], icr[ATTRIBUTES],
                             icr[VERIFIABLE_ATTRIBUTES]
                         )

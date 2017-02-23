@@ -99,6 +99,16 @@ class Wallet(PWallet, Sponsoring):
                         matchingLinkAndClaimReq.append((li, cpr))
         return matchingLinkAndClaimReq
 
+    def getMatchingLinksWithProofReq(self, proofReqName, linkName=None):
+        matchingLinkAndProofReq = []
+        for k, li in self._links.items():
+            for cpr in li.requestedProofs:
+                if Wallet._isMatchingName(proofReqName, cpr.name):
+                    if linkName is None or Wallet._isMatchingName(linkName,
+                                                                  li.name):
+                        matchingLinkAndProofReq.append((li, cpr))
+        return matchingLinkAndProofReq
+
     def addAttribute(self, attrib: Attribute):
         """
         Used to create a new attribute on Sovrin

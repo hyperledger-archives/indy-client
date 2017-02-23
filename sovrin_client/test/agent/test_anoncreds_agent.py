@@ -17,9 +17,9 @@ def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, 
 
     emptyLooper.run(eventually(chkClaims, timeout=20))
 
-    # 3. send claim proof to Acme
-    acme_link, acme_proof_request = aliceAgent.wallet.getMatchingLinksWithClaimReq("Job-Application", "Acme Corp")[0]
-    aliceAgent.sendProof(acme_link, acme_proof_request)
+    # 3. send proof to Acme
+    acme_link, acme_proof_req = aliceAgent.wallet.getMatchingLinksWithProofReq("Job-Application", "Acme Corp")[0]
+    aliceAgent.sendProof(acme_link, acme_proof_req)
 
     # 4. check that claim proof is verified by Acme
     def chkProof():

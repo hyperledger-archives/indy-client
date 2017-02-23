@@ -45,7 +45,7 @@ class Link:
                  remoteIdentifier=None,
                  remoteEndPoint=None,
                  invitationNonce=None,
-                 claimProofRequests=None,
+                 proofRequests=None,
                  internalId=None):
         self.name = name
         self.localIdentifier = localIdentifier
@@ -59,9 +59,10 @@ class Link:
         # person, and that student ID can be put in this field
         self.internalId = internalId
 
-        self.claimProofRequests = claimProofRequests or []
+        self.requestedProofs = proofRequests or []
         self.verifiedClaimProofs = []
         self.availableClaims = []  # type: List[tupe(name, version, origin)]
+
         self.targetVerkey = None
         self.linkStatus = None
         self.linkLastSynced = None
@@ -135,9 +136,9 @@ class Link:
         #     print(targetEndPoint, linkStatus, )
 
         optionalLinkItems = ""
-        if len(self.claimProofRequests) > 0:
+        if len(self.requestedProofs) > 0:
             optionalLinkItems += "Claim Request(s): {}". \
-                                     format(", ".join([cr.name for cr in self.claimProofRequests])) \
+                                     format(", ".join([cr.name for cr in self.requestedProofs])) \
                                  + '\n'
 
         if self.availableClaims:
@@ -183,7 +184,7 @@ class Link:
             return ip, int(port)
 
 
-class ClaimProofRequest:
+class ProofRequest:
     def __init__(self, name, version, attributes, verifiableAttributes):
         self.name = name
         self.version = version

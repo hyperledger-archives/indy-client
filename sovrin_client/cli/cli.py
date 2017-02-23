@@ -48,11 +48,12 @@ from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.auth import Authoriser
 from sovrin_common.config import ENVS
+from sovrin_common.config_util import getConfig
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
     LinkNotFound, NotConnectedToNetwork, SchemaNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import TARGET_NYM, STEWARD, ROLE, TXN_TYPE, NYM, \
-    SPONSOR, TXN_ID, REF, getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
+from sovrin_common.txn import TARGET_NYM, ROLE, TXN_TYPE, NYM, TXN_ID, REF, \
+    getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
     START, JUSTIFICATION, NULL
 from sovrin_common.util import ensureReqCompleted
 from sovrin_client.__metadata__ import __version__
@@ -1561,6 +1562,9 @@ class SovrinCli(PlenumCli):
             return False
 
         return True
+
+    def getConfig(homeDir=None):
+        return getConfig(homeDir)
 
 class DummyClient:
     def submitReqs(self, *reqs):

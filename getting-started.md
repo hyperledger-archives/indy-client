@@ -123,6 +123,8 @@ Alice sees a bunch of data that looks interesting but mysterious. She wants Sovr
 
 ```
 ALICE> load sample/faber-invitation.sovrin
+New keyring Default created
+Active keyring set to "Default"
 1 link invitation found for Faber College.
 Creating Link for Faber College.
 

@@ -9,7 +9,7 @@ from plenum.common.util import getCryptonym
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.types import SchemaKey, ID, Claims, ProofInput
 from anoncreds.protocol.utils import toDictWithStrValues
-from sovrin_client.agent.msg_constants import REQUEST_CLAIM, CLAIM_PROOF, CLAIM_FIELD, \
+from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD, \
     CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
 from sovrin_client.client.wallet.link import ClaimProofRequest, Link
 from sovrin_common.util import getNonceForProof
@@ -38,7 +38,7 @@ class AgentProver:
 
         op = {
             NONCE: link.invitationNonce,
-            TYPE: REQUEST_CLAIM,
+            TYPE: CLAIM_REQUEST,
             NAME: name,
             VERSION: version,
             ORIGIN: origin,
@@ -87,7 +87,7 @@ class AgentProver:
             NAME: claimPrfReq.name,
             VERSION: claimPrfReq.version,
             NONCE: link.invitationNonce,
-            TYPE: CLAIM_PROOF,
+            TYPE: PROOF,
             PROOF_FIELD: proof.toStrDict(),
             PROOF_INPUT_FIELD: proofInput.toStrDict(),
             REVEALED_ATTRS_FIELD: toDictWithStrValues(revealedAttrs)

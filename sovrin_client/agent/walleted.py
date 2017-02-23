@@ -29,9 +29,9 @@ from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FI
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
-from sovrin_client.agent.msg_constants import ACCEPT_INVITE, REQUEST_CLAIM, \
-    CLAIM_PROOF, \
-    AVAIL_CLAIM_LIST, CLAIM, CLAIM_PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
+from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
+    PROOF, \
+    AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
     REF_REQUEST_ID
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant, ClaimProofRequest
@@ -76,11 +76,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             PING: self._handlePing,
             ACCEPT_INVITE: self._handleAcceptance,
 
-            REQUEST_CLAIM: self.processReqClaim,
+            CLAIM_REQUEST: self.processReqClaim,
             CLAIM: self.handleReqClaimResponse,
 
-            CLAIM_PROOF: self.verifyClaimProof,
-            CLAIM_PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF: self.verifyClaimProof,
+            PROOF_STATUS: self.handleProofStatusResponse,
 
             PONG: self._handlePong,
             AVAIL_CLAIM_LIST: self._handleAcceptInviteResponse,
@@ -108,7 +108,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     @property
     def lockedMsgs(self):
         # Msgs for which signature verification is required
-        return ACCEPT_INVITE, REQUEST_CLAIM, CLAIM_PROOF, \
+        return ACCEPT_INVITE, CLAIM_REQUEST, PROOF, \
                CLAIM, AVAIL_CLAIM_LIST, EVENT, PONG
 
     async def postClaimVerif(self, claimName, link, frm):

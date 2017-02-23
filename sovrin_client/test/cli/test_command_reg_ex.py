@@ -197,6 +197,16 @@ def testSendProofReqRegEx(grammar):
                                   "proof_name": "Over-21",
                                   "target": " JaneDoe"})
 
+def testProofReqRegEx(grammar):
+    matchedVars = getMatchedVariables(grammar,
+                                      "show proof request Transcript")
+    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
+                                  "proof_req_name": "Transcript"})
+
+    matchedVars = getMatchedVariables(grammar,
+                                      "show proof request Transcript ")
+    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
+                                  "proof_req_name": "Transcript "})
 
 def testSetAttribute(grammar):
     matchedVars = getMatchedVariables(

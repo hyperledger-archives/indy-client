@@ -7,7 +7,7 @@ from anoncreds.protocol.types import FullProof
 from anoncreds.protocol.types import ProofInput
 from anoncreds.protocol.utils import fromDictWithStrValues
 from anoncreds.protocol.verifier import Verifier
-from sovrin_client.agent.msg_constants import CLAIM_PROOF_STATUS, PROOF_FIELD, \
+from sovrin_client.agent.msg_constants import PROOF_STATUS, PROOF_FIELD, \
     PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
 from sovrin_common.util import getNonceForProof
 
@@ -37,8 +37,8 @@ class AgentVerifier(Verifier):
                               .format(link.name))
         status = 'verified' if result else 'failed verification'
         resp = {
-            TYPE: CLAIM_PROOF_STATUS,
-            DATA: '    Your claim {} {} was received and {}\n'.
+            TYPE: PROOF_STATUS,
+            DATA: '    Your proof {} {} was received and {}\n'.
                 format(body[NAME], body[VERSION], status),
         }
         self.signAndSend(resp, link.localIdentifier, frm,

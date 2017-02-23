@@ -72,7 +72,7 @@ def newStewardCli(be, do, poolNodesStarted, philCli,
 
 def sendNodeCmd(do):
     do('send NODE dest={newNodeIdr} data={newNodeData}',
-       within=5, expect=['Node request completed'], mapper=vals)
+       within=8, expect=['Node request completed'], mapper=vals)
 
 
 @pytest.fixture(scope="module")

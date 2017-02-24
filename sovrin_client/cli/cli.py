@@ -1019,7 +1019,7 @@ class SovrinCli(PlenumCli):
     def _getOneLinkAndClaimReq(self, claimReqName, linkName=None) -> \
             (Link, ProofRequest):
         matchingLinksWithClaimReq = self.activeWallet. \
-            getMatchingLinksWithClaimReq(claimReqName, linkName)
+            findAllProofRequests(claimReqName, linkName)
 
         if len(matchingLinksWithClaimReq) == 0:
             self._printNoClaimReqFoundMsg()

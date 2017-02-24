@@ -183,7 +183,7 @@ def nymsAddedInQuickSuccession(nodeSet, addedSponsor, looper,
     sponsor.submitReqs(*reqs)
 
     def check():
-         assert sponsorWallet._sponsored[nym].seqNo
+        assert sponsorWallet._sponsored[nym].seqNo
 
     looper.run(eventually(check, timeout=2))
 

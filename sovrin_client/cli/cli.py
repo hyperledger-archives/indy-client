@@ -1021,7 +1021,7 @@ class SovrinCli(PlenumCli):
         for li, cl in linkAndClaimNames:
             self.print("{} in {}".format(li, cl))
 
-    def _getOneLinkAndClaimReq(self, claimReqName, linkName=None) -> \
+    def _findProofRequest(self, claimReqName, linkName=None) -> \
             (Link, ProofRequest):
         matchingLinksWithClaimReq = self.activeWallet. \
             findAllProofRequests(claimReqName, linkName)
@@ -1036,11 +1036,6 @@ class SovrinCli(PlenumCli):
             return None, None
 
         return matchingLinksWithClaimReq[0]
-
-    def _getOneLinkAndProofReq(self, proofReqName, linkName=None):
-        prs = self.activeWallet.findAllProofRequests()
-        raise Exception("NOT IMPLEMENTED")
-        # return None, None
 
     def _getOneLinkAndAvailableClaim(self, claimName, printMsgs: bool = True) -> \
             (Link, Schema):
@@ -1172,7 +1167,7 @@ class SovrinCli(PlenumCli):
             claimName = matchedVars.get('claim_name').strip()
             linkName = matchedVars.get('link_name').strip()
 
-            li, claimPrfReq = self._getOneLinkAndClaimReq(claimName, linkName)
+            li, claimPrfReq = self._findProofRequest(claimName, linkName)
 
             if not li or not claimPrfReq:
                 return False
@@ -1249,7 +1244,7 @@ class SovrinCli(PlenumCli):
             claimReqName = SovrinCli.removeSpecialChars(
                 matchedVars.get('claim_req_name'))
             matchingLink, claimReq = \
-                self._getOneLinkAndClaimReq(claimReqName)
+                self._findProofRequest(claimReqName)
             if matchingLink and claimReq:
                 if matchingLink == self.curContext[0] and claimReq == self.curContext[1]:
                     matchingLink, claimReq, attributes = self.curContext

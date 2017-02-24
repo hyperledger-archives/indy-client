@@ -59,7 +59,7 @@ class Link:
         # person, and that student ID can be put in this field
         self.internalId = internalId
 
-        self.requestedProofs = proofRequests or []
+        self.proofRequests = proofRequests or []
         self.verifiedClaimProofs = []
         self.availableClaims = []  # type: List[tupe(name, version, origin)]
 
@@ -136,9 +136,9 @@ class Link:
         #     print(targetEndPoint, linkStatus, )
 
         optionalLinkItems = ""
-        if len(self.requestedProofs) > 0:
-            optionalLinkItems += "Claim Request(s): {}". \
-                                     format(", ".join([cr.name for cr in self.requestedProofs])) \
+        if len(self.proofRequests) > 0:
+            optionalLinkItems += "Proof Request(s): {}". \
+                                     format(", ".join([cr.name for cr in self.proofRequests])) \
                                  + '\n'
 
         if self.availableClaims:

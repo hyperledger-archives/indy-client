@@ -119,7 +119,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "proof-requests" : "Job-Application",
+            "proof-requests": "Job-Application",
             "claim-req-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
             "proof-req-to-match": "Job-Application",
@@ -680,8 +680,8 @@ def showBankingRelationshipClaimOut(nextCommandsToTryUsageLine):
 
 
 @pytest.fixture(scope="module")
-def showLinkWithClaimReqOut():
-    return ["Claim Request(s): {claim-requests}"]
+def showLinkWithProofRequestsOut():
+    return ["Proof Request(s): {proof-requests}"]
 
 
 @pytest.fixture(scope="module")
@@ -691,25 +691,25 @@ def showLinkWithAvailableClaimsOut():
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithClaimReqsOut(showAcceptedLinkOut,
-                                     showLinkWithClaimReqOut,
+                                     showLinkWithProofRequestsOut,
                                      showLinkWithAvailableClaimsOut,
                                      showLinkSuggestion):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut + \
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut + \
            showLinkWithAvailableClaimsOut + \
            showLinkSuggestion
 
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithoutAvailableClaimsOut(showAcceptedLinkOut,
-                                        showLinkWithClaimReqOut):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut
+                                        showLinkWithProofRequestsOut):
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut
 
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithAvailableClaimsOut(showAcceptedLinkOut,
-                                           showLinkWithClaimReqOut,
+                                           showLinkWithProofRequestsOut,
                                            showLinkWithAvailableClaimsOut):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut + \
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut + \
            showLinkWithAvailableClaimsOut
 
 

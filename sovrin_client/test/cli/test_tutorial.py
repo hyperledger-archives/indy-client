@@ -533,9 +533,9 @@ def testLoadAcmeInvite(acmeInviteLoadedByAlice):
 
 
 def testShowAcmeLink(be, do, aliceCli, acmeInviteLoadedByAlice,
-                     showUnSyncedLinkOut, showLinkWithClaimReqOut, acmeMap):
+                     showUnSyncedLinkOut, showLinkWithProofRequestsOut, acmeMap):
     showUnSyncedLinkWithClaimReqs = \
-        showUnSyncedLinkOut + showLinkWithClaimReqOut
+        showUnSyncedLinkOut + showLinkWithProofRequestsOut
     be(aliceCli)
 
     cp = acmeMap.copy()

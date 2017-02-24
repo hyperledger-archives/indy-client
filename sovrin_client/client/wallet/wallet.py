@@ -92,7 +92,7 @@ class Wallet(PWallet, Sponsoring):
     def getMatchingLinksWithClaimReq(self, claimReqName, linkName=None):
         matchingLinkAndClaimReq = []
         for k, li in self._links.items():
-            for cpr in li.claimProofRequests:
+            for cpr in li.proofRequests:
                 if Wallet._isMatchingName(claimReqName, cpr.name):
                     if linkName is None or Wallet._isMatchingName(linkName,
                                                                   li.name):
@@ -102,7 +102,7 @@ class Wallet(PWallet, Sponsoring):
     def getMatchingLinksWithProofReq(self, proofReqName, linkName=None):
         matchingLinkAndProofReq = []
         for k, li in self._links.items():
-            for cpr in li.requestedProofs:
+            for cpr in li.proofRequests:
                 if Wallet._isMatchingName(proofReqName, cpr.name):
                     if linkName is None or Wallet._isMatchingName(linkName,
                                                                   li.name):

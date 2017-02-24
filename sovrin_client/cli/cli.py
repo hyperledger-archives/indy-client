@@ -981,7 +981,7 @@ class SovrinCli(PlenumCli):
                 if li.isAccepted:
                     acn = [n for n, _, _ in li.availableClaims]
                     self._printSuggestionPostAcceptLink(
-                        self, acn, len(li.claimProofRequests))
+                        self, acn, len(li.proofRequests))
                 else:
                     self._printSyncAndAcceptUsage(li.name)
             else:

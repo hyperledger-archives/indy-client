@@ -494,7 +494,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 self.notifyEventListeners(
                     EVENT_POST_ACCEPT_INVITE,
                     availableClaimNames=availableClaimNames,
-                    claimProofReqsCount=len(li.requestedProofs))
+                    claimProofReqsCount=len(li.proofRequests))
             else:
                 self.notifyMsgListener(
                     "    Identifier is not yet written to Sovrin")
@@ -682,7 +682,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             for icr in invitationProofRequests:
                 # match is found if name and version are same
                 matchedProofRequest = next(
-                    (cr for cr in link.requestedProofs
+                    (cr for cr in link.proofRequests
                      if (cr.name == icr[NAME] and cr.version == icr[VERSION])),
                     None
                 )
@@ -700,7 +700,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     )
                 else:
                     # otherwise append proof request to link
-                    link.requestedProofs.append(
+                    link.proofRequests.append(
                         ProofRequest(
                             icr[NAME], icr[VERSION], icr[ATTRIBUTES],
                             icr[VERIFIABLE_ATTRIBUTES]

@@ -952,7 +952,7 @@ def inc_bookmark(get_bookmark, set_bookmark):
 @pytest.fixture(scope="module")
 def expect(current_cli, get_bookmark, inc_bookmark):
 
-    def _expect(expected, mapper=None, line_no=None, within=None):
+    def _expect(expected, mapper=None, line_no=None, within=None, ignore_extra_lines=None):
         cur_cli = current_cli()
 
         def _():
@@ -963,16 +963,20 @@ def expect(current_cli, get_bookmark, inc_bookmark):
             actual = ''.join(cur_cli.cli.output.writes).splitlines()[bm:]
             assert isinstance(actual, List)
             explanation = ''
+            expected_index = 0
             for i in range(min(len(expected_), len(actual))):
-                e = expected_[i]
+                e = expected_[expected_index]
                 assert isinstance(e, str)
                 a = actual[i]
                 assert isinstance(a, str)
                 is_p = type(e) == P
                 if (not is_p and a != e) or (is_p and not e.match(a)):
+                    if ignore_extra_lines:
+                        continue
                     explanation += "line {} doesn't match\n"\
                                    "  expected: {}\n"\
                                    "    actual: {}\n".format(i, e, a)
+                expected_index += 1
 
             if len(expected_) > len(actual):
                 for e in expected_:
@@ -983,7 +987,7 @@ def expect(current_cli, get_bookmark, inc_bookmark):
                     else:
                         explanation += "missing: {}\n".format(e)
 
-            if len(expected_) < len(actual):
+            if len(expected_) < len(actual) and ignore_extra_lines is None:
                 for a in actual:
                     for e in expected_:
                         p = re.compile(e) if type(e) == P else None

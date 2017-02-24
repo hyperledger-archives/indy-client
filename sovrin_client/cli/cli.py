@@ -1038,7 +1038,7 @@ class SovrinCli(PlenumCli):
         return matchingLinksWithClaimReq[0]
 
     def _getOneLinkAndProofReq(self, proofReqName, linkName=None):
-        self._printNoProofReqFoundMsg()
+        prs = self.activeWallet.findAllProofRequests()
         raise Exception("NOT IMPLEMENTED")
         # return None, None
 

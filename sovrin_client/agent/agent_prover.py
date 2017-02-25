@@ -74,25 +74,15 @@ class AgentProver:
                 self.sendProofReqAsync(link, schemaKey))
 
     async def sendProofReqAsync(self, link: Link, schemaKey):
-        pass
-        name, version, origin = schemaKey
-        schemaKey = SchemaKey(name, version, origin)
+        # Proof request will have been loaded from a file.
+        # Does that mean it is in the wallet? Doesn't seem quite
+        # correct; in the future, a proof request would be generated
+        # from a schema and sent, all in a single step, rather than
+        # stored up like something pending. But anyway,
+        # we need to load the request into memory, then call
+        # signAndSend().
 
-        claimReq = await self.prover.createClaimRequest(
-            schemaId=ID(schemaKey),
-            proverId=link.invitationNonce,
-            reqNonRevoc=False)
-
-        op = {
-            NONCE: link.invitationNonce,
-            TYPE: CLAIM_REQUEST,
-            NAME: name,
-            VERSION: version,
-            ORIGIN: origin,
-            CLAIM_REQ_FIELD: claimReq.toStrDict()
-        }
-
-        self.signAndSend(msg=op, linkName=link.name)
+        self.signAndSend(msg="{proof_request}", linkName=link.name)
 
     async def handleReqClaimResponse(self, msg):
         body, _ = msg

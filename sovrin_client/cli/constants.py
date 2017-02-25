@@ -150,6 +150,10 @@ SEND_PROOF_REG_EX = '(\s*(?P<send_proof>send \s+ proof) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s+ to (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
+SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proofreq) ' \
+                    '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
+                    '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
+
 SEND_NODE_REG_EX = "(\s* (?P<send_node>send\s+NODE) " \
     "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+/]+) " \
     "\s+ data=(?P<data>\{\s*.*\}) \s*) "
@@ -195,6 +199,7 @@ SHOW_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_PROOF_REQ_REG_EX)
 SET_ATTRIBUTE_FORMATTED_REG_EX = getPipedRegEx(SET_ATTRIBUTE_REG_EX)
 PING_TARGET_FORMATTED_REG_EX = getPipedRegEx(PING_TARGET_REG_EX)
 SEND_PROOF_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REG_EX)
+SEND_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REQ_REG_EX)
 SEND_NODE_FORMATTED_REG_EX = getPipedRegEx(SEND_NODE_REG_EX)
 SEND_POOL_UPG_FORMATTED_REG_EX = getPipedRegEx(SEND_POOL_UPG_REG_EX)
 NEW_ID_FORMATTED_REG_EX = getPipedRegEx(NEW_ID_REG_EX)

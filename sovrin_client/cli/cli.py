@@ -36,7 +36,8 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showProofReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd
+    showClaimReqCmd, showProofReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, \
+    addGenesisTxnCmd, sendProofRequestCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -132,8 +133,9 @@ class SovrinCli(PlenumCli):
             'req_claim',
             'accept_link_invite',
             'set_attr',
+            'send_proof_request'
             'send_proof',
-            'new_id'
+            'new_id',
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -171,6 +173,7 @@ class SovrinCli(PlenumCli):
                                                           "invitation", "from"])
 
         completers["set_attr"] = WordCompleter(["set"])
+        completers["send_proof_request"] = WordCompleter(["send", "proof", "request"])
         completers["send_proof"] = WordCompleter(["send", "proof"])
         completers["new_id"] = WordCompleter(["new", "identifier"])
 
@@ -205,6 +208,7 @@ class SovrinCli(PlenumCli):
                         self._showProofReq,
                         self._acceptInvitationLink,
                         self._setAttr,
+                        self._sendProofRequest,
                         self._sendProof,
                         self._newIdentifier
                         ])
@@ -1166,6 +1170,23 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    def _sendProofRequest(self, matchedVars):
+        if matchedVars.get('send_proof_req') == 'send proof request':
+            proofName = matchedVars.get('proof_name').strip()
+            target = matchedVars.get('target').strip()
+
+            li, proofReq = self._getOneLinkAndClaimReq(proofName, linkName)
+
+            if not li or not claimPrfReq:
+                return False
+
+            self.logger.debug("Building proof using {} for {}".
+                              format(claimPrfReq, li))
+
+            self.agent.sendProofReq(li, claimPrfReq)
+
+            return True
+
     async def _showReceivedOrAvailableClaim(self, claimName):
         matchingLink, rcvdClaim, attributes = \
             await self._getOneLinkAndReceivedClaim(claimName)
@@ -1571,6 +1592,7 @@ class SovrinCli(PlenumCli):
         mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
+        mappings['sendProofRequest'] = sendProofRequestCmd
         mappings['sendProof'] = sendProofCmd
         mappings['newIdentifier'] = newIdentifierCmd
 

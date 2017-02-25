@@ -58,6 +58,12 @@ sendIssuerCmd = Command(
     usage="send ISSUER_KEY ref=<ref-no-of-SCHEMA-txn>",
     examples="send ISSUER_KEY ref=10")
 
+sendProofRequestCmd = Command(
+    id="send proofreq",
+    title="Send a proof request.",
+    usage="send proofreq <proof-name> to <target>",
+    examples="send proofreq Over-21 to JaneDo")
+
 showFileCmd = Command(
     id="show file",
     title="Shows content of given file",

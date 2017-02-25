@@ -64,7 +64,7 @@ class AgentProver:
         # we need to load the request into memory, then call
         # signAndSend().
 
-        self.signAndSend(msg="{proof_request}", linkName=link.name)
+        self.signAndSend(msg="{\"proof_request\":\"needs to be loaded\"}", linkName=link.name)
 
     async def handleReqClaimResponse(self, msg):
         body, _ = msg

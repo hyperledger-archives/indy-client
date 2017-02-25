@@ -59,10 +59,10 @@ sendIssuerCmd = Command(
     examples="send ISSUER_KEY ref=10")
 
 sendProofRequestCmd = Command(
-    id="send proofreq",
+    id="send proof request",
     title="Send a proof request.",
-    usage="send proofreq <proof-name> to <target>",
-    examples="send proofreq Over-21 to JaneDo")
+    usage="send proof request <proof-name> to <target>",
+    examples="send proof request Over-21 to JaneDo")
 
 showFileCmd = Command(
     id="show file",

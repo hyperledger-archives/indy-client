@@ -184,8 +184,8 @@ def testProofReqRegEx(grammar):
 
 def testSendProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
-                                      "send proofreq Over-21 to JaneDoe")
-    assertCliTokens(matchedVars, {"send_proof_req": "send proofreq",
+                                      "send proof request Over-21 to JaneDoe")
+    assertCliTokens(matchedVars, {"send_proof_req": "send proof request",
                                   "proof_name": "Over-21",
                                   "target": " JaneDoe"})
 

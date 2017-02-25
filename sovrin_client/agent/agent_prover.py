@@ -65,6 +65,35 @@ class AgentProver:
 
         self.signAndSend(msg=op, linkName=link.name)
 
+    def sendProofReq(self, link: Link, schemaKey):
+        if self.loop.is_running():
+            self.loop.call_soon(asyncio.ensure_future,
+                                self.sendProofReqAsync(link, schemaKey))
+        else:
+            self.loop.run_until_complete(
+                self.sendProofReqAsync(link, schemaKey))
+
+    async def sendProofReqAsync(self, link: Link, schemaKey):
+        pass
+        name, version, origin = schemaKey
+        schemaKey = SchemaKey(name, version, origin)
+
+        claimReq = await self.prover.createClaimRequest(
+            schemaId=ID(schemaKey),
+            proverId=link.invitationNonce,
+            reqNonRevoc=False)
+
+        op = {
+            NONCE: link.invitationNonce,
+            TYPE: CLAIM_REQUEST,
+            NAME: name,
+            VERSION: version,
+            ORIGIN: origin,
+            CLAIM_REQ_FIELD: claimReq.toStrDict()
+        }
+
+        self.signAndSend(msg=op, linkName=link.name)
+
     async def handleReqClaimResponse(self, msg):
         body, _ = msg
         issuerId = body.get(IDENTIFIER)

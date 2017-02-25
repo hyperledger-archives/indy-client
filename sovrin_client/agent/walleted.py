@@ -644,7 +644,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         self.notifyMsgListener("Creating Link for {}.".
                                format(linkInvitationName))
-        # TODO: Would we always have a trust anchor corresponding ot a link?
+        # TODO: Would we always have a trust anchor corresponding to a link?
 
         li = Link(name=linkInvitationName,
                   trustAnchor=linkInvitationName,

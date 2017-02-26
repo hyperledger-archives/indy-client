@@ -120,7 +120,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Job-Application",
-            "claim-req-to-show": "Job-Application",
+            "proof-request-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
             "proof-req-to-match": "Job-Application",
             "claims": "<claim-name>",
@@ -245,15 +245,15 @@ def linkAlreadyExists():
 
 
 @pytest.fixture(scope="module")
-def jobApplicationClaimReqMap():
+def jobApplicationProofRequestMap():
     return {
-        'claim-req-version': '0.2',
-        'claim-req-attr-first_name': 'first_name',
-        'claim-req-attr-last_name': 'last_name',
-        'claim-req-attr-phone_number': 'phone_number',
-        'claim-req-attr-degree': 'degree',
-        'claim-req-attr-status': 'status',
-        'claim-req-attr-ssn': 'ssn'
+        'proof-request-version': '0.2',
+        'proof-request-attr-first_name': 'first_name',
+        'proof-request-attr-last_name': 'last_name',
+        'proof-request-attr-phone_number': 'phone_number',
+        'proof-request-attr-degree': 'degree',
+        'proof-request-attr-status': 'status',
+        'proof-request-attr-ssn': 'ssn'
     }
 
 
@@ -309,9 +309,9 @@ def unsycedAlreadyAcceptedInviteAcceptedOut():
 
 
 @pytest.fixture(scope="module")
-def showTranscriptClaimProofOut():
+def showTranscriptProofOut():
     return [
-        "Claim proof ({rcvd-claim-transcript-name} "
+        "Proof ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
         "student_name: {attr-student_name}",
@@ -323,26 +323,26 @@ def showTranscriptClaimProofOut():
 
 
 @pytest.fixture(scope="module")
-def showJobAppClaimReqOut(showTranscriptClaimProofOut):
+def showJobAppProofRequestOut(showTranscriptProofOut):
     return [
-        'Found claim request "{proof-req-to-match}" in link "{inviter}"',
-        "Name: {claim-req-to-show}",
-        "Version: {claim-req-version}",
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-request-to-show}",
+        "Version: {proof-request-version}",
         "Status: Requested",
         "Attributes:",
-        "{claim-req-attr-first_name}: {set-attr-first_name}",
-        "{claim-req-attr-last_name}: {set-attr-last_name}",
-        "{claim-req-attr-phone_number}: {set-attr-phone_number}",
-        "{claim-req-attr-degree}: {attr-degree}",
-        "{claim-req-attr-status}: {attr-status}",
-        "{claim-req-attr-ssn}: {attr-ssn}"
-    ] + showTranscriptClaimProofOut
+        "{proof-request-attr-first_name}: {set-attr-first_name}",
+        "{proof-request-attr-last_name}: {set-attr-last_name}",
+        "{proof-request-attr-phone_number}: {set-attr-phone_number}",
+        "{proof-request-attr-degree}: {attr-degree}",
+        "{proof-request-attr-status}: {attr-status}",
+        "{proof-request-attr-ssn}: {attr-ssn}"
+    ] + showTranscriptProofOut
 
 
 @pytest.fixture(scope="module")
-def showBankingClaimProofOut():
+def showBankingProofOut():
     return [
-        "Claim proof ({rcvd-claim-banking-name} "
+        "Proof ({rcvd-claim-banking-name} "
         "v{rcvd-claim-banking-version} "
         "from {rcvd-claim-banking-provider})",
         "title: {attr-title}",
@@ -360,13 +360,13 @@ def showBankingClaimProofOut():
 
 
 @pytest.fixture(scope="module")
-def claimReqNotExists():
-    return ["No matching claim request(s) found in current keyring"]
+def proofRequestNotExists():
+    return ["No matching Proof Requests found in current keyring"]
 
 
 @pytest.fixture(scope="module")
 def linkNotExists():
-    return ["No matching link invitation(s) found in current keyring"]
+    return ["No matching link invitations found in current keyring"]
 
 
 @pytest.fixture(scope="module")
@@ -465,7 +465,7 @@ def showUnSyncedLinkOut(unAcceptedLinkHeading, showLinkOut):
 
 @pytest.fixture(scope="module")
 def showClaimNotFoundOut():
-    return ["No matching claim(s) found in any links in current keyring"]
+    return ["No matching Claims found in any links in current keyring"]
 
 
 @pytest.fixture(scope="module")
@@ -766,11 +766,11 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Target Verification key: <same as target>",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted",
-            "Claim Request(s): {claim-requests}",
+            "Proof Request(s): {proof-requests}",
             "Available Claim(s): {claims}"] + \
            nextCommandsToTryUsageLine + \
            ['show claim "{claim-to-show}"',
-            'request claim "{claim-requests}"']
+            'send proof "{proof-requests}"']
 
 
 @pytest.yield_fixture(scope="module")

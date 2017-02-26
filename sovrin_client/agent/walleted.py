@@ -5,7 +5,7 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
-from typing import Dict, Union
+from typing import Dict, Union, NamedTuple, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
@@ -34,7 +34,8 @@ from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
     REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, constant, ProofRequest
+from sovrin_client.client.wallet.link import Link, constant
+from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
     NotConnectedToNetwork, LinkNotReady
@@ -81,7 +82,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             CLAIM_REQUEST: self.processReqClaim,
             CLAIM: self.handleReqClaimResponse,
 
-            PROOF: self.verifyClaimProof,
+            PROOF: self.verifyProof,
             PROOF_STATUS: self.handleProofStatusResponse,
 
             PONG: self._handlePong,
@@ -374,9 +375,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 self.notifyMsgListener("No matching link found")
 
     @staticmethod
-    def _getNewAvailableClaims(li, rcvdAvailableClaims):
-        receivedClaims = [(cl[NAME], cl[VERSION], li.remoteIdentifier)
-                              for cl in rcvdAvailableClaims]
+    def _getNewAvailableClaims(li, rcvdAvailableClaims) -> List[AvailableClaim]:
+        receivedClaims = [AvailableClaim(cl[NAME],
+                                         cl[VERSION],
+                                         li.remoteIdentifier)
+                          for cl in rcvdAvailableClaims]
         existingAvailableClaims = set(li.availableClaims)
         newReceivedClaims = set(receivedClaims)
         return list(newReceivedClaims - existingAvailableClaims)
@@ -490,11 +493,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     li.localIdentifier:
                 self.notifyMsgListener(
                     "    Confirmed identifier written to Sovrin.")
-                availableClaimNames = [n for n, _, _ in availableClaims]
-                self.notifyEventListeners(
-                    EVENT_POST_ACCEPT_INVITE,
-                    availableClaimNames=availableClaimNames,
-                    claimProofReqsCount=len(li.proofRequests))
+                self.notifyEventListeners(EVENT_POST_ACCEPT_INVITE, link=li)
             else:
                 self.notifyMsgListener(
                     "    Identifier is not yet written to Sovrin")

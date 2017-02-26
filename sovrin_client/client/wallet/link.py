@@ -1,6 +1,9 @@
+from typing import List
+
 from plenum.common.txn import NAME, NONCE
 from plenum.common.types import f
 from plenum.common.util import prettyDateDifference
+from sovrin_client.client.wallet.types import AvailableClaim
 
 from sovrin_common.exceptions import InvalidLinkException, \
     RemoteEndpointNotFound
@@ -59,9 +62,9 @@ class Link:
         # person, and that student ID can be put in this field
         self.internalId = internalId
 
-        self.proofRequests = proofRequests or []
+        self.proofRequests = proofRequests or []  # type: List[ProofRequest]
         self.verifiedClaimProofs = []
-        self.availableClaims = []  # type: List[tupe(name, version, origin)]
+        self.availableClaims = []  # type: List[AvailableClaim]
 
         self.targetVerkey = None
         self.linkStatus = None
@@ -182,43 +185,3 @@ class Link:
         else:
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
-
-
-class ProofRequest:
-    def __init__(self, name, version, attributes, verifiableAttributes):
-        self.name = name
-        self.version = version
-        self.attributes = attributes
-        self.verifiableAttributes = verifiableAttributes
-
-    @property
-    def toDict(self):
-        return {
-            "name": self.name,
-            "version": self.version,
-            "attributes": self.attributes
-        }
-
-    @property
-    def attributeValues(self):
-        return \
-            'Attributes:' + '\n    ' + \
-            format("\n    ".join(
-                ['{}: {}'.format(k, v)
-                 for k, v in self.attributes.items()])) + '\n'
-
-    @property
-    def verifiableAttributeValues(self):
-        return \
-            'Verifiable Attributes:' + '\n    ' + \
-            format("\n    ".join(
-                ['{}'.format(v)
-                 for v in self.verifiableAttributes])) + '\n'
-
-    def __str__(self):
-        fixedInfo = \
-            'Status: Requested' + '\n' \
-                                  'Name: ' + self.name + '\n' \
-                                                         'Version: ' + self.version + '\n'
-
-        return fixedInfo + self.attributeValues + self.verifiableAttributeValues

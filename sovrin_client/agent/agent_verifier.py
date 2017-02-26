@@ -16,7 +16,7 @@ class AgentVerifier(Verifier):
     def __init__(self, verifier: Verifier):
         self.verifier = verifier
 
-    async def verifyClaimProof(self, msg: Any):
+    async def verifyProof(self, msg: Any):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
@@ -31,14 +31,14 @@ class AgentVerifier(Verifier):
         result = await self.verifier.verify(proofInput, proof, revealedAttrs,
                                             nonce)
 
-        self.agentLogger.info('Claim request accepted with nonce {}'
+        self.agentLogger.info('Proof accepted with nonce {}'
                               .format(nonce))
-        self.agentLogger.info('Verifying claim proof request from {}'
+        self.agentLogger.info('Verifying proof from {}'
                               .format(link.name))
         status = 'verified' if result else 'failed verification'
         resp = {
             TYPE: PROOF_STATUS,
-            DATA: '    Your proof {} {} was received and {}\n'.
+            DATA: '    Your Proof {} {} was received and {}\n'.
                 format(body[NAME], body[VERSION], status),
         }
         self.signAndSend(resp, link.localIdentifier, frm,

@@ -7,7 +7,7 @@ import json
 import os
 from functools import partial
 from hashlib import sha256
-from typing import Dict, Any, Tuple, Callable
+from typing import Dict, Any, Tuple, Callable, List, NamedTuple
 
 import asyncio
 
@@ -36,14 +36,15 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showProofReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, \
-    addGenesisTxnCmd, sendProofRequestCmd
+    showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
+    sendProofRequestCmd, showProofRequestCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, ProofRequest
+from sovrin_client.client.wallet.link import Link
+from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.node import Node
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
@@ -78,6 +79,10 @@ cryptonym, and then an alias for bobto that cryptonym.)
 new client bob (cli uses the signer previously stored for this client)
 """
 
+Context = NamedTuple("Context", [("link", Link),
+                                 ("proofRequest", Any),
+                                 ("selfAttestedAttrs", Any)])
+
 
 class SovrinCli(PlenumCli):
     name = 'sovrin'
@@ -101,8 +106,9 @@ class SovrinCli(PlenumCli):
         # This specifies which environment the cli is connected to test or live
         self.activeEnv = None
         _, port = genHa()
-        self.curContext = (None, None, {})  # Current Link, Current Claim Req,
-        # set attributes
+
+        # TODO bad code smell
+        self.curContext = Context(None, None, {})  # type: Context
         self._agent = None
 
     @staticmethod
@@ -128,7 +134,7 @@ class SovrinCli(PlenumCli):
             'sync_link',
             'ping_target'
             'show_claim',
-            'show_claim_req',
+            # 'show_claim_req',
             'show_proof_req',
             'req_claim',
             'accept_link_invite',
@@ -164,8 +170,8 @@ class SovrinCli(PlenumCli):
         completers["sync_link"] = WordCompleter(["sync"])
         completers["ping_target"] = WordCompleter(["ping"])
         completers["show_claim"] = WordCompleter(["show", "claim"])
-        completers["show_claim_req"] = WordCompleter(["show",
-                                                      "claim", "request"])
+        # completers["show_claim_req"] = WordCompleter(["show",
+        #                                               "claim", "request"])
         completers["show_proof_req"] = WordCompleter(["show",
                                                       "proof", "request"])
         completers["req_claim"] = WordCompleter(["request", "claim"])
@@ -204,8 +210,7 @@ class SovrinCli(PlenumCli):
                         self._pingTarget,
                         self._showClaim,
                         self._reqClaim,
-                        self._showClaimReq,
-                        self._showProofReq,
+                        self._showProofRequest,
                         self._acceptInvitationLink,
                         self._setAttr,
                         self._sendProofRequest,
@@ -219,10 +224,11 @@ class SovrinCli(PlenumCli):
         return ['set <attr-name> to <attr-value>']
 
     @staticmethod
-    def _getSendClaimProofReqUsage(claimProofReqName=None, inviterName=None):
-        return ['send claim {} to {}'.format(
-            claimProofReqName or "<claim-req-name>",
-            inviterName or "<inviter-name>")]
+    def _getSendProofUsage(proofRequest: ProofRequest=None,
+                           inviter: Link=None):
+        return ['send proof "{}" to "{}"'.format(
+            proofRequest.name or "<proof-request-name>",
+            inviter.name or "<inviter-name>")]
 
     @staticmethod
     def _getShowFileUsage(filePath=None):
@@ -233,9 +239,9 @@ class SovrinCli(PlenumCli):
         return ['load {}'.format(filePath or "<file-path>")]
 
     @staticmethod
-    def _getShowClaimReqUsage(claimReqName=None):
-        return ['show claim request "{}"'.format(
-            claimReqName or '<claim-request-name>')]
+    def _getShowProofRequestUsage(proofRequest: ProofRequest=None):
+        return ['show proof request "{}"'.format(
+            (proofRequest and proofRequest.name) or '<proof-request-name>')]
 
     @staticmethod
     def _getShowClaimUsage(claimName=None):
@@ -268,28 +274,23 @@ class SovrinCli(PlenumCli):
     def _getConnectUsage(self):
         return ["connect <{}>".format(self.allEnvNames)]
 
-    def _printPostShowClaimReqSuggestion(self, claimProofReqName, inviterName):
-        msgs = self._getSetAttrUsage() + \
-               self._getSendClaimProofReqUsage(claimProofReqName, inviterName)
-        self.printSuggestion(msgs)
-
-    def _printShowClaimReqUsage(self):
-        self.printUsage(self._getShowClaimReqUsage())
-
     def _printMsg(self, notifier, msg):
         self.print(msg)
 
     def _printSuggestionPostAcceptLink(self, notifier,
-                                       availableClaimNames,
-                                       claimProofReqsCount):
-        if len(availableClaimNames) > 0:
-            claimName = "|".join([n for n in availableClaimNames])
+                                       link: Link):
+        suggestions = []
+        if len(link.availableClaims) > 0:
+            claimName = "|".join([n.name for n in link.availableClaims])
             claimName = claimName or "<claim-name>"
-            msgs = self._getShowClaimUsage(claimName) + \
-                   self._getReqClaimUsage(claimName)
-            self.printSuggestion(msgs)
-        elif claimProofReqsCount > 0:
-            self.printSuggestion(self._getShowClaimReqUsage())
+            suggestions += self._getShowClaimUsage(claimName)
+            suggestions += self._getReqClaimUsage(claimName)
+        if len(link.proofRequests) > 0:
+            for pr in link.proofRequests:
+                suggestions += self._getShowProofRequestUsage(pr)
+                suggestions += self._getSendProofUsage(pr, link)
+        if suggestions:
+            self.printSuggestion(suggestions)
         else:
             self.print("")
 
@@ -867,7 +868,7 @@ class SovrinCli(PlenumCli):
 
     @staticmethod
     def removeSpecialChars(name):
-        return name.replace('"', '').replace("'", "")
+        return name.replace('"', '').replace("'", "") if name else None
 
     def _printSyncLinkUsage(self, linkName):
         msgs = self._getSyncLinkUsage(linkName)
@@ -895,7 +896,7 @@ class SovrinCli(PlenumCli):
         self.printSuggestion(msgs)
 
     def _printNoLinkFoundMsg(self):
-        self.print("No matching link invitation(s) found in current keyring")
+        self.print("No matching link invitations found in current keyring")
         self._printShowAndLoadFileSuggestion()
 
     def _isConnectedToAnyEnv(self):
@@ -978,9 +979,7 @@ class SovrinCli(PlenumCli):
 
                 self.print("{}".format(str(li)))
                 if li.isAccepted:
-                    acn = [n for n, _, _ in li.availableClaims]
-                    self._printSuggestionPostAcceptLink(
-                        self, acn, len(li.proofRequests))
+                    self._printSuggestionPostAcceptLink(self, li)
                 else:
                     self._printSyncAndAcceptUsage(li.name)
             else:
@@ -990,14 +989,14 @@ class SovrinCli(PlenumCli):
 
             return True
 
-    def _printNoClaimReqFoundMsg(self):
-        self.print("No matching claim request(s) found in current keyring\n")
-
+    # def _printNoClaimReqFoundMsg(self):
+    #     self.print("No matching Claim Requests found in current keyring\n")
+    #
     def _printNoProofReqFoundMsg(self):
-        self.print("No matching proof request(s) found in current keyring\n")
+        self.print("No matching Proof Requests found in current keyring\n")
 
     def _printNoClaimFoundMsg(self):
-        self.print("No matching claim(s) found in "
+        self.print("No matching Claims found in "
                    "any links in current keyring\n")
 
     def _printMoreThanOneLinkFoundForRequest(self, requestedName, linkNames):
@@ -1020,13 +1019,12 @@ class SovrinCli(PlenumCli):
         for li, cl in linkAndClaimNames:
             self.print("{} in {}".format(li, cl))
 
-    def _findProofRequest(self, claimReqName, linkName=None) -> \
+    def _findProofRequest(self, claimReqName: str, linkName: str=None) -> \
             (Link, ProofRequest):
-        matchingLinksWithClaimReq = self.activeWallet. \
-            findAllProofRequests(claimReqName, linkName)
+        matchingLinksWithClaimReq = self.activeWallet.findAllProofRequests(claimReqName, linkName)
 
         if len(matchingLinksWithClaimReq) == 0:
-            self._printNoClaimReqFoundMsg()
+            self._printNoProofReqFoundMsg()
             return None, None
 
         if len(matchingLinksWithClaimReq) > 1:
@@ -1080,8 +1078,7 @@ class SovrinCli(PlenumCli):
                 selfAttestedAttrs[attrName] = attrValue
             else:
                 self.print("No context, use below command to set the context")
-                self._printShowClaimReqUsage()
-
+                self.printUsage(self._getShowProofRequestUsage())
             return True
 
     def _reqClaim(self, matchedVars):
@@ -1216,76 +1213,52 @@ class SovrinCli(PlenumCli):
                 self.print("")
             return rcvdClaim
         else:
-            self.print("No matching claim(s) found "
+            self.print("No matching Claims found "
                        "in any links in current keyring")
 
     def _printRequestClaimMsg(self, claimName):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
-    async def _showMatchingClaimProof(self, claimProofReq: ProofRequest,
-                                selfAttestedAttrs, matchingLink):
-        matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(claimProofReq.attributes)
+    async def _showMatchingClaimProof(self, c: Context):
+        matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(
+            c.proofRequest.attributes)
 
-        attributesWithValue = claimProofReq.attributes
-        for k, v in claimProofReq.attributes.items():
+        attributesWithValue = c.proofRequest.attributes
+        for k, v in c.proofRequest.attributes.items():
             for li, cl, issuedAttrs in matchingLinkAndReceivedClaim:
                 if k in issuedAttrs:
                     attributesWithValue[k] = issuedAttrs[k]
                 else:
                     defaultValue = attributesWithValue[k] or v
-                    attributesWithValue[k] = selfAttestedAttrs.get(k, defaultValue)
+                    attributesWithValue[k] = c.selfAttestedAttrs.get(k, defaultValue)
 
-        claimProofReq.attributes = attributesWithValue
-        self.print(str(claimProofReq))
+        c.proofRequest.attributes = attributesWithValue
+        self.print(str(c.proofRequest))
 
         for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
-            self.print('\n    Claim proof ({} v{} from {})'.format(
+            self.print('\n    Proof ({} v{} from {})'.format(
                 name, ver, li.name))
             for k, v in issuedAttrs.items():
                 self.print('        ' + k + ': ' + v + ' (verifiable)')
+        self.printSuggestion(
+            self._getSetAttrUsage() +
+            self._getSendProofUsage(c.proofRequest.name, c.link.name))
 
-        self._printPostShowClaimReqSuggestion(claimProofReq.name,
-                                              matchingLink.name)
-
-    def _showClaimReq(self, matchedVars):
-        if matchedVars.get('show_claim_req') == 'show claim request':
-            claimReqName = SovrinCli.removeSpecialChars(
-                matchedVars.get('claim_req_name'))
-            matchingLink, claimReq = \
-                self._findProofRequest(claimReqName)
-            if matchingLink and claimReq:
-                if matchingLink == self.curContext[0] and claimReq == self.curContext[1]:
-                    matchingLink, claimReq, attributes = self.curContext
-                else:
-                    attributes = {}
-                    self.curContext = matchingLink, claimReq, attributes
-                self.print('Found claim request "{}" in link "{}"'.
-                           format(claimReq.name, matchingLink.name))
-
-                self.agent.loop.call_soon(asyncio.ensure_future,
-                                          self._showMatchingClaimProof(claimReq,
-                                                                       attributes,
-                                                                       matchingLink))
-            return True
-
-    def _showProofReq(self, matchedVars):
+    def _showProofRequest(self, matchedVars):
         if matchedVars.get('show_proof_req') == 'show proof request':
-            proofReqName = SovrinCli.removeSpecialChars(
+            proof_request_name = SovrinCli.removeSpecialChars(
                 matchedVars.get('proof_req_name'))
-            matchingLink, proofReq = self._getOneLinkAndProofReq(proofReqName) #TODO change function
-            # if matchingLink and proofReq:
-            #     if matchingLink == self.curContext[0] and claimReq == self.curContext[1]:
-            #         matchingLink, claimReq, attributes = self.curContext
-            #     else:
-            #         attributes = {}
-            #         self.curContext = matchingLink, claimReq, attributes
-            #     self.print('Found claim request "{}" in link "{}"'.
-            #                format(claimReq.name, matchingLink.name))
-            #
-            #     self.agent.loop.call_soon(asyncio.ensure_future,
-            #                               self._showMatchingClaimProof(claimReq,
-            #                                                            attributes,
-            #                                                            matchingLink))
+            matchingLink, proofRequest = \
+                self._findProofRequest(proof_request_name)
+            if matchingLink and proofRequest:
+                if matchingLink != self.curContext.link or \
+                                proofRequest != self.curContext.proofRequest:
+                    self.curContext = Context(matchingLink, proofRequest, {})
+                self.print('Found proof request "{}" in link "{}"'.
+                           format(proofRequest.name, matchingLink.name))
+                self.agent.loop.call_soon(asyncio.ensure_future,
+                                          self._showMatchingClaimProof(
+                                              self.curContext))
             return True
 
     def _showClaim(self, matchedVars):
@@ -1587,8 +1560,8 @@ class SovrinCli(PlenumCli):
         mappings['pingTarget'] = pingTargetCmd
         mappings['showClaim'] = showClaimCmd
         mappings['reqClaim'] = reqClaimCmd
-        mappings['showClaimReq'] = showClaimReqCmd
-        mappings['showProofReq'] = showProofReqCmd
+        # mappings['showClaimReq'] = showClaimReqCmd
+        mappings['showProofRequest'] = showProofRequestCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd

@@ -597,18 +597,19 @@ def testShowAcmeLinkAfterInviteAccept(be, do, aliceCli, acmeMap,
        mapper=acmeMap)
 
 
-def testShowClaimReqNotExists(be, do, aliceCli, acmeMap, claimReqNotExists):
+def testShowProofRequestNotExists(be, do, aliceCli, acmeMap,
+                                  proofRequestNotExists):
     be(aliceCli)
-    do("show claim request claim-req-to-show-not-exists",
-       expect=claimReqNotExists,
+    do("show proof request proof-request-to-show-not-exists",
+       expect=proofRequestNotExists,
        mapper=acmeMap,
        within=3)
 
 
-def claimReqShown(be, do, userCli, agentMap,
-                  claimReqOut,
-                  claimReqMap,
-                  claimAttrValueMap):
+def proofRequestShown(be, do, userCli, agentMap,
+                      proofRequestOut,
+                      proofRequestMap,
+                      claimAttrValueMap):
     be(userCli)
 
     mapping = {
@@ -617,44 +618,44 @@ def claimReqShown(be, do, userCli, agentMap,
         "set-attr-phone_number": ""
     }
     mapping.update(agentMap)
-    mapping.update(claimReqMap)
+    mapping.update(proofRequestMap)
     mapping.update(claimAttrValueMap)
-    do("show claim request {claim-req-to-show}",
-       expect=claimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=proofRequestOut,
        mapper=mapping,
        within=3)
 
 
 def testShowJobAppClaimReqWithShortName(be, do, aliceCli, acmeMap,
-                                        showJobAppClaimReqOut,
-                                        jobApplicationClaimReqMap,
+                                        showJobAppProofRequestOut,
+                                        jobApplicationProofRequestMap,
                                         transcriptClaimAttrValueMap,
                                         aliceAcceptedAcmeJobInvitation):
     newAcmeMap = {}
     newAcmeMap.update(acmeMap)
-    newAcmeMap["claim-req-to-show"] = "Job"
+    newAcmeMap["proof-request-to-show"] = "Job"
 
-    claimReqShown(be, do, aliceCli, newAcmeMap,
-                  showJobAppClaimReqOut,
-                  jobApplicationClaimReqMap,
-                  transcriptClaimAttrValueMap)
+    proofRequestShown(be, do, aliceCli, newAcmeMap,
+                      showJobAppProofRequestOut,
+                      jobApplicationProofRequestMap,
+                      transcriptClaimAttrValueMap)
 
 
-def testShowJobAppilcationClaimReq(be, do, aliceCli, acmeMap,
-                                   showJobAppClaimReqOut,
-                                   jobApplicationClaimReqMap,
-                                   transcriptClaimAttrValueMap,
-                                   aliceAcceptedAcmeJobInvitation):
-    claimReqShown(be, do, aliceCli, acmeMap,
-                  showJobAppClaimReqOut,
-                  jobApplicationClaimReqMap,
-                  transcriptClaimAttrValueMap)
+def testShowJobAppilcationProofRequest(be, do, aliceCli, acmeMap,
+                                       showJobAppProofRequestOut,
+                                       jobApplicationProofRequestMap,
+                                       transcriptClaimAttrValueMap,
+                                       aliceAcceptedAcmeJobInvitation):
+    proofRequestShown(be, do, aliceCli, acmeMap,
+                      showJobAppProofRequestOut,
+                      jobApplicationProofRequestMap,
+                      transcriptClaimAttrValueMap)
 
 
 @pytest.fixture(scope="module")
 def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
-                               showJobAppClaimReqOut,
-                               jobApplicationClaimReqMap,
+                               showJobAppProofRequestOut,
+                               jobApplicationProofRequestMap,
                                transcriptClaimAttrValueMap,
                                aliceAcceptedAcmeJobInvitation):
     be(aliceCli)
@@ -665,10 +666,10 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
         "set-attr-phone_number": ""
     }
     mapping.update(acmeMap)
-    mapping.update(jobApplicationClaimReqMap)
+    mapping.update(jobApplicationProofRequestMap)
     mapping.update(transcriptClaimAttrValueMap)
-    do("show claim request {claim-req-to-show}",
-       expect=showJobAppClaimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=showJobAppProofRequestOut,
        mapper=mapping,
        within=3)
     do("set first_name to Alice")
@@ -683,11 +684,11 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
 
 
 def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
-                                               showJobAppClaimReqOut,
+                                               showJobAppProofRequestOut,
                                                aliceSelfAttestsAttributes):
     be(aliceCli)
-    do("show claim request {claim-req-to-show}",
-       expect=showJobAppClaimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=showJobAppProofRequestOut,
        mapper=aliceSelfAttestsAttributes,
        within=3)
 
@@ -738,7 +739,7 @@ def sendProof(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
     be(userCli)
 
     expectMsgs = [
-        "Your proof {proof-req-to-match} "
+        "Your Proof {proof-req-to-match} "
         "{claim-ver-req-to-show} was "
         "received and verified"
     ]
@@ -772,7 +773,7 @@ def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
 
 # TODO: Need to uncomment below tests once above testAliceSendClaimProofToAcme
 # test works correctly all the time and also we start supporting
-# building and sending claim proofs from more than one claim
+# building and sending proofs from more than one claim
 
 def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
                                    jobApplicationClaimSent,
@@ -894,7 +895,7 @@ def testAliceSendBankBasicClaim(bankBasicClaimSent):
 
 
 @pytest.fixture(scope="module")
-def bankKYCClaimSent(be, do, aliceCli, thriftMap,
+def bankKYCProofSent(be, do, aliceCli, thriftMap,
                      bankBasicClaimSent):
     mapping = {}
     mapping.update(thriftMap)
@@ -914,7 +915,7 @@ def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
     assert len(cli._activeWallet.identifiers) == 4
 
 
-def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
+def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCProofSent,
                               connectedToTest):
     be(aliceCli)
     exitFromCli(do)

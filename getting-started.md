@@ -418,7 +418,7 @@ ALICE> show sample/acme-job-application.sovrin
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "54.70.102.199:6666"
   },
-  "claim-requests": [{
+  "proof-requests": [{
     "name": "Job-Application",
     "version": "0.2",
     "attributes": {
@@ -495,7 +495,7 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show claim request "<claim-request-name>"
+    show proof request "<proof-request-name>"
 ```
 
 Notice what the claim request looks like now. Although the application is not submitted, it has various claims filled in:
@@ -514,7 +514,7 @@ Attributes:
     status: graduated
     ssn: 123-45-6789
 
-    Claim proof (Transcript v1.2 from Faber College)
+    Proof (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -527,7 +527,7 @@ Try Next:
 
 ```
 
-Alice only has one claim that meets claim proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
+Alice only has one claim that meets proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
 
 The pre - population doesn’t create data leakage, though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
 
@@ -555,7 +555,7 @@ Attributes:
     status: graduated
     ssn: 123-45-6789
 
-    Claim proof (Transcript v1.2 from Faber College)
+    Proof (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -599,13 +599,13 @@ Link
     Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: Accepted
-    Claim Request(s): Job-Application
+    Proof Request(s): Job-Application
     Available Claim(s): Job-Certificate
     Last synced: a minute ago
 
 Try Next:
-    show claim Job-Certificate
-    show claim request "<claim-request-name>"
+    show claim "Job-Certificate"
+    show proof request "Job-Application"
 ```
 
 ## Apply for a Loan
@@ -702,7 +702,7 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show claim request "<claim-request-name>"
+    show proof request "<proof-request-name>"
 ```
 
 Alice checks to see what the claim "Loan-Application-Basic" request looks like:
@@ -716,7 +716,7 @@ Attributes:
     salary_bracket: between $50,000 to $100,000
     employee_status: Permanent
 
-    Claim proof (Job-Certificate v0.2 from Acme Corp)
+    Proof (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -757,14 +757,14 @@ Attributes:
     last_name: Garcia
     ssn: 123-45-6789
 
-    Claim proof (Transcript v1.2 from Faber College)
+    Proof (Transcript v1.2 from Faber College)
         degree: Bachelor of Science, Marketing (verifiable)
         student_name: Alice Garcia (verifiable)
         year: 2015 (verifiable)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
 
-    Claim proof (Job-Certificate v0.2 from Acme Corp)
+    Proof (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -836,7 +836,7 @@ attributes = {
     "first_name": "string",
     "last_name": "string",
     "phone_number": "int",
-    "claim proofs": [{
+    "proofs": [{
         "claim_name": "Transcript",
         "version": 1.2,
         "attributes": {

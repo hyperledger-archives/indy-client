@@ -21,7 +21,7 @@ def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, 
     acme_link, acme_proof_req = aliceAgent.wallet.getMatchingLinksWithProofReq("Job-Application", "Acme Corp")[0]
     aliceAgent.sendProof(acme_link, acme_proof_req)
 
-    # 4. check that claim proof is verified by Acme
+    # 4. check that proof is verified by Acme
     def chkProof():
         internalId = acmeAgent.getInternalIdByInvitedNonce(acme_link.invitationNonce)
         link = acmeAgent.wallet.getLinkByInternalId(internalId)

@@ -117,13 +117,13 @@ reqClaimCmd = Command(
     usage="request claim <claim-name>",
     examples="request claim Transcript")
 
-showClaimReqCmd = Command(
-    id="show claim request",
-    title="Shows given claim request",
-    usage="show claim request <claim-req-name>",
-    examples="show claim request Job-Application")
-
-showProofReqCmd = Command(
+# showClaimReqCmd = Command(
+#     id="show claim request",
+#     title="Shows given claim request",
+#     usage="show claim request <claim-req-name>",
+#     examples="show claim request Job-Application")
+#
+showProofRequestCmd = Command(
     id="show proof request",
     title="Shows given proof request",
     usage="show proof request <proof-req-name>",

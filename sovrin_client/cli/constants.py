@@ -133,10 +133,10 @@ REQUEST_CLAIM_REG_EX = '(\s*(?P<req_claim>request \s+ claim) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s*)'
 
-SHOW_CLAIM_REQ_REG_EX = '(\s*(?P<show_claim_req>show \s+ claim \s+ request) ' \
-                    '\s+ (?P<claim_req_name>[A-Za-z0-9-." ]+) ' \
-                    '\s*)'
-
+# SHOW_CLAIM_REQ_REG_EX = '(\s*(?P<show_claim_req>show \s+ claim \s+ request) ' \
+#                     '\s+ (?P<claim_req_name>[A-Za-z0-9-." ]+) ' \
+#                     '\s*)'
+#
 SHOW_PROOF_REQ_REG_EX = '(\s*(?P<show_proof_req>show \s+ proof \s+ request) ' \
                     '\s+ (?P<proof_req_name>[A-Za-z0-9-." ]+) ' \
                     '\s*)'
@@ -194,7 +194,7 @@ SYNC_LINK_FORMATTED_REG_EX = getPipedRegEx(SYNC_LINK_REG_EX)
 ACCEPT_LINK_FORMATTED_REG_EX = getPipedRegEx(ACCEPT_LINK_REG_EX)
 SHOW_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REG_EX)
 REQUEST_CLAIM_FORMATTED_REG_EX = getPipedRegEx(REQUEST_CLAIM_REG_EX)
-SHOW_CLAIM_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REQ_REG_EX)
+# SHOW_CLAIM_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REQ_REG_EX)
 SHOW_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_PROOF_REQ_REG_EX)
 SET_ATTRIBUTE_FORMATTED_REG_EX = getPipedRegEx(SET_ATTRIBUTE_REG_EX)
 PING_TARGET_FORMATTED_REG_EX = getPipedRegEx(PING_TARGET_REG_EX)

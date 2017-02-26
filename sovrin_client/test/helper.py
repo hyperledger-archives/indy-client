@@ -106,7 +106,7 @@ def buildStewardClient(looper, tdir, stewardWallet):
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -124,12 +124,13 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
 
     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-                        nodeClass=TestNode, clientClass=TestClient, config=conf)
+                        nodeClass=TestNode, clientClass=TestClient, config=conf,
+                        unique_name=unique_name)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                   multiPoolNodes=None):
-    def _(subdir, looper=None):
+    def _(subdir, looper=None, unique_name=None):
         def new():
             return newCLI(looper,
                           tdir,
@@ -137,7 +138,8 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                           conf=tconf,
                           poolDir=tdirWithPoolTxns,
                           domainDir=tdirWithDomainTxns,
-                          multiPoolNodes=multiPoolNodes)
+                          multiPoolNodes=multiPoolNodes,
+                          unique_name=unique_name)
         if looper:
             yield new()
         else:

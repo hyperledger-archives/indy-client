@@ -160,7 +160,7 @@ def prompt_is(prompt):
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -178,23 +178,23 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
 
     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-                        nodeClass=TestNode, clientClass=TestClient, config=conf)
+                        nodeClass=TestNode, clientClass=TestClient, config=conf,
+                        unique_name=unique_name)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                   multiPoolNodes=None):
-    def _(subdir,
-          looper=None,
-          unique_name=None):
+    def _(space,
+          looper=None):
         def new():
             c = newCLI(looper,
                        tdir,
-                       subDirectory=subdir,
+                       subDirectory=space,
                        conf=tconf,
                        poolDir=tdirWithPoolTxns,
                        domainDir=tdirWithDomainTxns,
-                       multiPoolNodes=multiPoolNodes)
-            c.unique_name = unique_name
+                       multiPoolNodes=multiPoolNodes,
+                       unique_name=space)
             return c
         if looper:
             yield new()

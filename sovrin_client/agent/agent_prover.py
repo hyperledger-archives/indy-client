@@ -1,5 +1,6 @@
 import asyncio
 from typing import Any
+from collections import OrderedDict
 
 from plenum.common.txn import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
     DATA
@@ -151,18 +152,21 @@ class AgentProver:
             schemaKeyId = ID(
                 SchemaKey(name=name, version=version, issuerId=origin))
             schema = await self.prover.wallet.getSchema(schemaKeyId)
-            claimAttrs = set(schema.attrNames)
+            claimAttrs = OrderedDict()
+            for attr in schema.attrNames:
+                claimAttrs[attr] = None
             claim = None
             try:
                 claim = await self.prover.wallet.getClaims(schemaKeyId)
             except ValueError:
                 pass  # it means no claim was issued
-            attrs = {k: None for k in claimAttrs}
+
             if claim:
                 issuedAttributes = claim.primaryClaim.attrs
-                if claimAttrs.intersection(issuedAttributes.keys()):
-                    attrs = {k: issuedAttributes[k] for k in claimAttrs}
-            matchingLinkAndReceivedClaim.append((li, cl, attrs))
+                if set(claimAttrs.keys()).intersection(issuedAttributes.keys()):
+                    for k in claimAttrs.keys():
+                        claimAttrs[k] = issuedAttributes[k]
+            matchingLinkAndReceivedClaim.append((li, cl, claimAttrs))
         return matchingLinkAndReceivedClaim
 
     async def getMatchingRcvdClaimsAsync(self, attributes):

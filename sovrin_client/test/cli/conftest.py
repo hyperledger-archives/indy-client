@@ -72,10 +72,16 @@ def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf):
 
 
 @pytest.fixture(scope="module")
+def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns)
+
+
+@pytest.fixture(scope="module")
 def aliceMap():
     return {
         'keyring-name': 'Alice',
     }
+
 
 @pytest.fixture(scope="module")
 def earlMap():
@@ -264,7 +270,7 @@ def unsyncedInviteAcceptedWhenNotConnected(availableClaims):
         "Trust established.",
         "Identifier created in Sovrin."
     ] + availableClaims + [
-        "Can not check if identifier is written to Sovrin or not."
+        "Cannot check if identifier is written to Sovrin."
     ]
 
 @pytest.fixture(scope="module")
@@ -980,7 +986,11 @@ def expect(current_cli, get_bookmark, inc_bookmark):
 
             if len(expected_) > len(actual):
                 for e in expected_:
-                    p = re.compile(e) if type(e) == P else None
+                    try:
+                        p = re.compile(e) if type(e) == P else None
+                    except Exception as err:
+                        explanation += "ERROR COMPILING REGEX for {}: {}\n".\
+                            format(e, err)
                     for a in actual:
                         if (p and p.fullmatch(a)) or a == e:
                             break

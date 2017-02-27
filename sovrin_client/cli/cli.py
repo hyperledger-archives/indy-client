@@ -1242,7 +1242,7 @@ class SovrinCli(PlenumCli):
                 self.print('        ' + k + ': ' + v + ' (verifiable)')
         self.printSuggestion(
             self._getSetAttrUsage() +
-            self._getSendProofUsage(c.proofRequest.name, c.link.name))
+            self._getSendProofUsage(c.proofRequest, c.link))
 
     def _showProofRequest(self, matchedVars):
         if matchedVars.get('show_proof_req') == 'show proof request':

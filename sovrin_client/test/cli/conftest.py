@@ -941,7 +941,8 @@ def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePat
         poolCLIBabyGen = CliBuilder(newTdir, newTdirWithPoolTxns,
                                        newTdirWithDomainTxns, tconf)
         poolCLIBaby = next(poolCLIBabyGen(poolName, looper))
-        poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames)
+        poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames,
+                          tconf)
         testPoolNode.poolCli = poolCli
         multiNodes.append(testPoolNode)
         ensureNodesCreated(poolCli, newPoolTxnNodeNames)

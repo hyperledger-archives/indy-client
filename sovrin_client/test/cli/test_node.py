@@ -100,6 +100,9 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
                                            list(poolNodesStarted.nodes.values()),
                                            timeout=5))
 
+
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-603')
+@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-603')
 def testAddNewNode(newNodeAdded):
     pass
 
@@ -115,8 +118,10 @@ def tconf(tconf, request):
     request.addfinalizer(reset)
     return tconf
 
-# reason SOV-603
-# def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
-#     be(newStewardCli)
-#     sendNodeCmd(do)
-#     exitFromCli(do)
+
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-603')
+@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-603')
+def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
+    be(newStewardCli)
+    sendNodeCmd(do)
+    exitFromCli(do)

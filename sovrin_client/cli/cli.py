@@ -1025,7 +1025,7 @@ class SovrinCli(PlenumCli):
 
     def _findProofRequest(self, claimReqName: str, linkName: str=None) -> \
             (Link, ProofRequest):
-        matchingLinksWithClaimReq = self.activeWallet.findAllProofRequests(claimReqName, linkName)
+        matchingLinksWithClaimReq = self.activeWallet.findAllProofRequests(claimReqName, linkName)  # TODO rename claimReqName -> proofRequestName
 
         if len(matchingLinksWithClaimReq) == 0:
             self._printNoProofReqFoundMsg()
@@ -1164,10 +1164,10 @@ class SovrinCli(PlenumCli):
 
     def _sendProof(self, matchedVars):
         if matchedVars.get('send_proof') == 'send proof':
-            claimName = matchedVars.get('claim_name').strip()
+            claimName = matchedVars.get('claim_name').strip()  # TODO this should be proof_request_name, not claim_name
             linkName = matchedVars.get('link_name').strip()
 
-            li, claimPrfReq = self._findProofRequest(claimName, linkName)
+            li, claimPrfReq = self._findProofRequest(claimName, linkName)  # TODO rename claimPrfReq to proofRequest
 
             if not li or not claimPrfReq:
                 return False

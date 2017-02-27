@@ -5,12 +5,14 @@ AvailableClaim = NamedTuple("AvailableClaim", [("name", str),
                                                ("origin", str)])
 
 
+# TODO _F_ Proof Requests need a nonce! Cannot borrow from Link Invitation.
 class ProofRequest:
     def __init__(self, name, version, attributes, verifiableAttributes):
         self.name = name
         self.version = version
         self.attributes = attributes
         self.verifiableAttributes = verifiableAttributes
+        # TODO _F_ need to add support for predicates on unrevealed attibutes
 
     @property
     def toDict(self):

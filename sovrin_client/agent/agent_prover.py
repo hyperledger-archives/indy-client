@@ -108,23 +108,23 @@ class AgentProver:
         else:
             self.notifyMsgListener("No matching link found")
 
-    def sendProof(self, link: Link, claimPrfReq: ProofRequest):
+    def sendProof(self, link: Link, proofReq: ProofRequest):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendProofAsync(link, claimPrfReq))
+                                self.sendProofAsync(link, proofReq))
         else:
-            self.loop.run_until_complete(self.sendProofAsync(link, claimPrfReq))
+            self.loop.run_until_complete(self.sendProofAsync(link, proofReq))
 
-    async def sendProofAsync(self, link: Link, claimPrfReq: ProofRequest):  # TODO rename to proofRequest
+    async def sendProofAsync(self, link: Link, proofRequest: ProofRequest):
         nonce = getNonceForProof(link.invitationNonce)  # TODO _F_ this nonce should be from the Proof Request, not from an invitation
 
-        revealedAttrNames = claimPrfReq.verifiableAttributes
+        revealedAttrNames = proofRequest.verifiableAttributes
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
         proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)  # TODO rename presentProof to buildProof or generateProof
 
         op = {
-            NAME: claimPrfReq.name,
-            VERSION: claimPrfReq.version,
+            NAME: proofRequest.name,
+            VERSION: proofRequest.version,
             NONCE: link.invitationNonce,
             TYPE: PROOF,
             PROOF_FIELD: proof.toStrDict(),

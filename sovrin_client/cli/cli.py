@@ -1167,15 +1167,15 @@ class SovrinCli(PlenumCli):
             claimName = matchedVars.get('claim_name').strip()  # TODO this should be proof_request_name, not claim_name
             linkName = matchedVars.get('link_name').strip()
 
-            li, claimPrfReq = self._findProofRequest(claimName, linkName)  # TODO rename claimPrfReq to proofRequest
+            li, proofReq = self._findProofRequest(claimName, linkName)
 
-            if not li or not claimPrfReq:
+            if not li or not proofReq:
                 return False
 
             self.logger.debug("Building proof using {} for {}".
-                              format(claimPrfReq, li))
+                              format(proofReq, li))
 
-            self.agent.sendProof(li, claimPrfReq)
+            self.agent.sendProof(li, proofReq)
 
             return True
 
@@ -1186,13 +1186,13 @@ class SovrinCli(PlenumCli):
 
             li, proofReq = self._getOneLinkAndClaimReq(proofName, linkName)
 
-            if not li or not claimPrfReq:
+            if not li or not proofReq:
                 return False
 
             self.logger.debug("Building proof using {} for {}".
-                              format(claimPrfReq, li))
+                              format(proofReq, li))
 
-            self.agent.sendProofReq(li, claimPrfReq)
+            self.agent.sendProofReq(li, proofReq)
 
             return True
 

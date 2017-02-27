@@ -185,7 +185,8 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                   multiPoolNodes=None):
     def _(space,
-          looper=None):
+          looper=None,
+          unique_name=None):
         def new():
             c = newCLI(looper,
                        tdir,
@@ -194,7 +195,7 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                        poolDir=tdirWithPoolTxns,
                        domainDir=tdirWithDomainTxns,
                        multiPoolNodes=multiPoolNodes,
-                       unique_name=space)
+                       unique_name=unique_name or space)
             return c
         if looper:
             yield new()

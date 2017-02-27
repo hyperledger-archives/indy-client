@@ -96,12 +96,12 @@ class AgentProver:
         else:
             self.loop.run_until_complete(self.sendProofAsync(link, claimPrfReq))
 
-    async def sendProofAsync(self, link: Link, claimPrfReq: ProofRequest):
-        nonce = getNonceForProof(link.invitationNonce)
+    async def sendProofAsync(self, link: Link, claimPrfReq: ProofRequest):  # TODO rename to proofRequest
+        nonce = getNonceForProof(link.invitationNonce)  # TODO _F_ this nonce should be from the Proof Request, not from an invitation
 
         revealedAttrNames = claimPrfReq.verifiableAttributes
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
-        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)
+        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)  # TODO rename presentProof to buildProof or generateProof
 
         op = {
             NAME: claimPrfReq.name,
@@ -109,7 +109,7 @@ class AgentProver:
             NONCE: link.invitationNonce,
             TYPE: PROOF,
             PROOF_FIELD: proof.toStrDict(),
-            PROOF_INPUT_FIELD: proofInput.toStrDict(),
+            PROOF_INPUT_FIELD: proofInput.toStrDict(),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
             REVEALED_ATTRS_FIELD: toDictWithStrValues(revealedAttrs)
         }
 

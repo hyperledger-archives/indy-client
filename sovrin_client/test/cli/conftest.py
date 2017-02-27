@@ -9,6 +9,7 @@ import plenum
 import pytest
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
+from plenum.common.z_util import initNodeKeysForBothStacks
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
     dirName, tdirWithDomainTxns, poolTxnNodeNames
 from plenum.test.helper import createTempDir
@@ -883,13 +884,17 @@ def philCLI(CliBuilder):
 
 
 @pytest.fixture(scope="module")
-def poolCLI(poolCLI_baby, poolTxnData, poolTxnNodeNames):
+def poolCLI(poolCLI_baby, poolTxnData, poolTxnNodeNames, conf):
     seeds = poolTxnData["seeds"]
     for nName in poolTxnNodeNames:
-        initLocalKeep(nName,
-                      poolCLI_baby.basedirpath,
-                      seeds[nName],
-                      override=True)
+        if conf.UseZStack:
+            initNodeKeysForBothStacks(nName, poolCLI_baby.basedirpath,
+                                      seeds[nName], override=True)
+        else:
+            initLocalKeep(nName,
+                          poolCLI_baby.basedirpath,
+                          seeds[nName],
+                          override=True)
     return poolCLI_baby
 
 

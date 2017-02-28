@@ -79,14 +79,13 @@ showLinkCmd = Command(
 connectToCmd = Command(
     id="connect",
     title="Lets you connect to the respective environment (test/live)",
-    usage="connect <env-name>",
+    usage="connect test|live",
     examples=["connect test", "connect live"])
 
 disconnectCmd = Command(
     id="disconnect",
     title="Disconnects from currently connected environment",
-    usage="disconnect",
-    examples="disconnect")
+    usage="disconnect")
 
 syncLinkCmd = Command(
     id="sync link",
@@ -150,7 +149,9 @@ newIdentifierCmd = Command(
     id="new identifier",
     title="Creates new Identifier",
     usage="new identifier [<identifier>|abbr|crypto] [with seed <seed>] [as <alias>]",
+    note="crypto = cryptographic identifier, abbr = abbreviated verkey",
     examples=[
+        "new identifier",
         "new identifier abbr",
         "new identifier 4QxzWk3ajdnEA37NdNU5Kt",
         "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

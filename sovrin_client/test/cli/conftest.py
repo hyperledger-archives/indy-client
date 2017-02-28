@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import traceback
 
 import itertools
@@ -41,6 +42,15 @@ from plenum.test.conftest import nodeAndClientInfoFilePath
 config = getConfig()
 
 
+@pytest.yield_fixture(scope="session")
+def cliTempLogger():
+    file_name = "sovrin_cli_test.log"
+    file_path = os.path.join(tempfile.tempdir, file_name)
+    with open(file_path, 'w') as f:
+        pass
+    return file_path
+
+
 @pytest.yield_fixture(scope="module")
 def looper():
     with Looper(debug=False) as l:
@@ -67,13 +77,8 @@ def newKeyPairCreated(cli):
 
 
 @pytest.fixture(scope="module")
-def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns)
-
-
-@pytest.fixture(scope="module")
-def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns)
+def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns, logFileName=cliTempLogger)
 
 
 @pytest.fixture(scope="module")

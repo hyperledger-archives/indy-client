@@ -121,8 +121,10 @@ def trusteeWallet(trusteeData):
     return wallet
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, up, trusteeWallet):
+def trustee(nodeSet, looper, tdir, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 
 
@@ -146,8 +148,10 @@ def looper():
         yield l
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def steward(nodeSet, looper, tdir, up, stewardWallet):
+def steward(nodeSet, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
 
 

@@ -1,6 +1,7 @@
 import asyncio
 from typing import Dict
 from typing import Tuple
+import os
 
 from plenum.common.error import fault
 from plenum.common.exceptions import RemoteNotFound
@@ -29,6 +30,7 @@ from sovrin_common.config import agentLoggingLevel
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
+
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,
@@ -36,18 +38,23 @@ class Agent(Motor, AgentNet):
                  basedirpath: str,
                  client: Client = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None):
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
         self._name = name
         self._port = port
 
+        self.config = config or getConfig()
+        self.basedirpath = basedirpath or os.path.expanduser(self.config.baseDir)
+
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
                           port=port,
                           basedirpath=basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+                          msgHandler=self.handleEndpointMessage,
+                          config=self.config)
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -183,8 +190,10 @@ class WalletedAgent(Walleted, Agent, Caching):
                  port: int = None,
                  loop=None,
                  attrRepo=None,
-                 agentLogger=None):
-        Agent.__init__(self, name, basedirpath, client, port, loop=loop)
+                 agentLogger=None,
+                 config=None):
+        Agent.__init__(self, name, basedirpath, client, port, loop=loop,
+                       config=None)
         self._wallet = wallet or Wallet(name)
         self._attrRepo = attrRepo or AttributeRepoInMemory()
         Walleted.__init__(self, agentLogger=(agentLogger or None))

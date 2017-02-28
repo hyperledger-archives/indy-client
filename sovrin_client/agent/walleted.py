@@ -12,7 +12,7 @@ from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
 from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
-    TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
+    TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES, PUBKEY
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
     isMaxCheckTimeExpired, convertTimeBasedReqIdToMillis
@@ -719,6 +719,22 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                       link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)
 
+    # def _handleSyncNymResp(self, link, additionalCallback):
+    #     def _(reply, err):
+    #         if err:
+    #             raise RuntimeError(err)
+    #         reqId = self._updateLinkWithLatestInfo(link, reply)
+    #         if reqId:
+    #             self.loop.call_later(.2,
+    #                                  self.executeWhenResponseRcvd,
+    #                                  time.time(), 8000,
+    #                                  self.loop, reqId, PONG, True,
+    #                                  additionalCallback, reply, err)
+    #         else:
+    #             additionalCallback(reply, err)
+    #
+    #     return _
+
     def _handleSyncResp(self, link, additionalCallback):
         def _(reply, err):
             if err:
@@ -739,8 +755,15 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         if DATA in reply and reply[DATA]:
             data = json.loads(reply[DATA])
-            ip, port = data.get(ENDPOINT).split(":")
-            link.remoteEndPoint = (ip, int(port))
+            ep = data.get(ENDPOINT)
+            if ep:
+                # TODO: Handle this gracefully later, for now, crash/
+                assert 'ha' in ep and PUBKEY in ep
+                # TODO: Validate its an IP port pair or a malicious entity
+                # can crash the code
+                ip, port = ep['ha'].split(":")
+                link.remoteEndPoint = (ip, int(port))
+                link.remotePubKey = ep[PUBKEY]
 
         link.linkLastSynced = datetime.now()
         self.notifyMsgListener("    Link {} synced".format(link.name))
@@ -761,6 +784,19 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise NotConnectedToNetwork
         link = self.wallet.getLink(linkName, required=True)
         nym = getCryptonym(link.remoteIdentifier)
+        # identity = Identity(identifier=nym)
+        # req = self.wallet.requestIdentity(identity,
+        #                                   sender=self.wallet.defaultId)
+        # self.client.submitReqs(req)
+        #
+        # if doneCallback:
+        #     self.loop.call_later(.2,
+        #                          ensureReqCompleted,
+        #                          self.loop,
+        #                          req.key,
+        #                          self.client,
+        #                          self._handleSyncNymResp(link, doneCallback))
+
         attrib = Attribute(name=ENDPOINT,
                            value=None,
                            dest=nym,

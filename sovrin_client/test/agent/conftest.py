@@ -1,6 +1,9 @@
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
+from plenum.common.txn import PUBKEY
+from plenum.common.types import HA
 
+from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.bulldog import createBulldog
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
@@ -427,7 +430,10 @@ def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
               role=SPONSOR,
               verkey=agentVerkey)
     ep = '127.0.0.1:{}'.format(agentPort)
-    attributeData = json.dumps({ENDPOINT: ep})
+    attributeData = json.dumps({ENDPOINT: {
+        'ha': ep,
+        PUBKEY: friendlyVerkeyToPubkey(agentVerkey)
+    }})
 
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
                        origin=agentNym,

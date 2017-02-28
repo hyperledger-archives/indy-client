@@ -44,6 +44,7 @@ class Link:
                  trustAnchor=None,
                  remoteIdentifier=None,
                  remoteEndPoint=None,
+                 remotePubKey=None,
                  invitationNonce=None,
                  claimProofRequests=None,
                  internalId=None):
@@ -52,6 +53,7 @@ class Link:
         self.trustAnchor = trustAnchor
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
+        self.remotePubKey = remotePubKey
         self.invitationNonce = invitationNonce
 
         # for optionally storing a reference to an identifier in another system

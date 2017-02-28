@@ -36,7 +36,7 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
+    listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
     sendProofRequestCmd, showProofRequestCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
@@ -134,6 +134,7 @@ class SovrinCli(PlenumCli):
             'sync_link',
             'ping_target'
             'show_claim',
+            'list_claims',
             # 'show_claim_req',
             'show_proof_req',
             'req_claim',
@@ -170,6 +171,7 @@ class SovrinCli(PlenumCli):
         completers["sync_link"] = WordCompleter(["sync"])
         completers["ping_target"] = WordCompleter(["ping"])
         completers["show_claim"] = WordCompleter(["show", "claim"])
+        completers["list_claims"] = WordCompleter(["list", "claims"])
         # completers["show_claim_req"] = WordCompleter(["show",
         #                                               "claim", "request"])
         completers["show_proof_req"] = WordCompleter(["show",
@@ -209,6 +211,7 @@ class SovrinCli(PlenumCli):
                         self._syncLink,
                         self._pingTarget,
                         self._showClaim,
+                        self._listClaims,
                         self._reqClaim,
                         self._showProofRequest,
                         self._acceptInvitationLink,
@@ -1270,6 +1273,20 @@ class SovrinCli(PlenumCli):
 
             return True
 
+    def _listClaims(self, matchedVars):
+        if matchedVars.get('list_claims') == 'list claims':
+            link_name = matchedVars.get('link_name').replace('"', '')
+
+            li = self._getOneLinkForFurtherProcessing(link_name)
+            if li:
+                self._getTargetEndpoint(li, self._printUsagePostSync)
+                # TODO now that the sync is done print out the list of claims
+                #self.print("{}".format(str(li)))
+                if li.availableClaims:
+                    print("    Available Claim(s): {}".format(", ".join([name for name, _, _ in li.availableClaims])))
+
+            return True
+
     def _showFile(self, matchedVars):
         if matchedVars.get('show_file') == 'show':
             givenFilePath = matchedVars.get('file_path')
@@ -1559,6 +1576,7 @@ class SovrinCli(PlenumCli):
         mappings['syncLink'] = syncLinkCmd
         mappings['pingTarget'] = pingTargetCmd
         mappings['showClaim'] = showClaimCmd
+        mappings['listClaims'] = listClaimsCmd
         mappings['reqClaim'] = reqClaimCmd
         # mappings['showClaimReq'] = showClaimReqCmd
         mappings['showProofRequest'] = showProofRequestCmd

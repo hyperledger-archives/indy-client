@@ -534,7 +534,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 raise e
 
         def sendClaimList(reply=None, error=None):
-            logger.debug("sent to sovrin {}".format(identifier))
+            logger.debug("sending available claims to {}".format(identifier))
             resp = self.createAvailClaimListMsg(
                 self.getAvailableClaimList(), alreadyAccepted=alreadyAdded)
             self.signAndSend(resp, link.localIdentifier, frm,

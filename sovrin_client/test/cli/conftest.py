@@ -278,6 +278,7 @@ def unsyncedInviteAcceptedWhenNotConnected(availableClaims):
         "Cannot check if identifier is written to Sovrin."
     ]
 
+
 @pytest.fixture(scope="module")
 def syncedInviteAcceptedOutWithoutClaims():
     return [

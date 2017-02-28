@@ -104,15 +104,14 @@ class AgentProver:
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
         proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)  # TODO rename presentProof to buildProof or generateProof
 
-        op = {
-            NAME: proofRequest.name,
-            VERSION: proofRequest.version,
-            NONCE: link.invitationNonce,
-            TYPE: PROOF,
-            PROOF_FIELD: proof.toStrDict(),
-            PROOF_INPUT_FIELD: proofInput.toStrDict(),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
-            REVEALED_ATTRS_FIELD: toDictWithStrValues(revealedAttrs)
-        }
+        op = OrderedDict([
+            (TYPE, PROOF),
+            (NAME, proofRequest.name),
+            (VERSION, proofRequest.version),
+            (NONCE, link.invitationNonce),
+            (PROOF_FIELD, proof.toStrDict()),
+            (PROOF_INPUT_FIELD, proofInput.toStrDict()),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
+            (REVEALED_ATTRS_FIELD, toDictWithStrValues(revealedAttrs))])
 
         self.signAndSend(msg=op, linkName=link.name)
 

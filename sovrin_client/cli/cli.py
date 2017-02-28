@@ -1283,7 +1283,7 @@ class SovrinCli(PlenumCli):
                 # TODO now that the sync is done print out the list of claims
                 #self.print("{}".format(str(li)))
                 if li.availableClaims:
-                    print("    Available Claim(s): {}".format(", ".join([name for name, _, _ in li.availableClaims])))
+                    self.print("    Available Claim(s): {}".format(", ".join([name for name, _, _ in li.availableClaims])))
 
             return True
 

@@ -111,6 +111,12 @@ showClaimCmd = Command(
     usage="show claim <claim-name>",
     examples="show claim Transcript")
 
+listClaimsCmd = Command(
+    id="list claims",
+    title="Refresh the list of claims",
+    usage="list claims <link-name>",
+    examples="list claims faber")
+
 reqClaimCmd = Command(
     id="request claim",
     title="Request given claim",

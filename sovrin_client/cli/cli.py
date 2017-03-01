@@ -1250,8 +1250,9 @@ class SovrinCli(PlenumCli):
         c.proofRequest.attributes = attributesWithValue
         self.print(str(c.proofRequest))
 
+        self.print('\nThe Proof is constructed from the following claims:')
         for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
-            self.print('\n    Proof ({} v{} from {})'.format(
+            self.print('\n    Claim ({} v{} from {})'.format(
                 name, ver, li.name))
             for k, v in issuedAttrs.items():
                 self.print('        ' + k + ': ' + v + ' (verifiable)')

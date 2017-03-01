@@ -1,6 +1,7 @@
 import datetime
 import json
 import operator
+from collections import OrderedDict
 from collections import deque
 from typing import Dict, List
 from typing import Optional
@@ -46,7 +47,9 @@ class Wallet(PWallet, Sponsoring):
         self._nodes = {}
         self._upgrades = {}
 
-        self._links = {}  # type: Dict[str, Link]
+        self._links = OrderedDict()  # type: Dict[str, Link]
+        # Note, ordered dict to make iteration deterministic
+
         self.knownIds = {}  # type: Dict[str, Identifier]
 
         # transactions not yet submitted

@@ -1275,17 +1275,16 @@ class SovrinCli(PlenumCli):
 
     def _listClaims(self, matchedVars):
         if matchedVars.get('list_claims') == 'list claims':
-            link_name = matchedVars.get('link_name').replace('"', '')
+            link_name = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
 
             li = self._getOneLinkForFurtherProcessing(link_name)
             if li:
-                self._getTargetEndpoint(li, self._printUsagePostSync)
-                # TODO now that the sync is done print out the list of claims
-                #self.print("{}".format(str(li)))
-                if li.availableClaims:
-                    print("    Available Claim(s): {}".format(", ".join([name for name, _, _ in li.availableClaims])))
-
+                # TODO sync if needed, send msg to agent
+                self._printAvailClaims(li)
             return True
+
+    def _printAvailClaims(self, link):
+        self.print(link.avail_claims_str())
 
     def _showFile(self, matchedVars):
         if matchedVars.get('show_file') == 'show':

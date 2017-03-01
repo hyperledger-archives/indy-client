@@ -145,10 +145,7 @@ class Link:
                                  + '\n'
 
         if self.availableClaims:
-            optionalLinkItems += "Available Claim(s): {}". \
-                                     format(", ".join([name
-                                                       for name, _, _ in self.availableClaims])) \
-                                 + '\n'
+            optionalLinkItems += self.avail_claims_str()
 
         if self.linkLastSyncNo:
             optionalLinkItems += 'Last sync seq no: ' + self.linkLastSyncNo \
@@ -160,6 +157,11 @@ class Link:
         indentedLinkItems = constant.LINK_ITEM_PREFIX.join(
             linkItems.splitlines())
         return fixedLinkHeading + indentedLinkItems
+
+    def avail_claims_str(self):
+        claim_names = [name for name, _, _ in self.availableClaims]
+        return "Available Claim(s): {}".\
+                   format(", ".join(claim_names)) + '\n'
 
     @staticmethod
     def validate(invitationData):

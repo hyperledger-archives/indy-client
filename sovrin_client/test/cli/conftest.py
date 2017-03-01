@@ -324,7 +324,7 @@ def unsycedAlreadyAcceptedInviteAcceptedOut():
 @pytest.fixture(scope="module")
 def showTranscriptProofOut():
     return [
-        "Proof ({rcvd-claim-transcript-name} "
+        "Claim ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
         "student_name: {attr-student_name}",
@@ -355,7 +355,7 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
 @pytest.fixture(scope="module")
 def showBankingProofOut():
     return [
-        "Proof ({rcvd-claim-banking-name} "
+        "Claim ({rcvd-claim-banking-name} "
         "v{rcvd-claim-banking-version} "
         "from {rcvd-claim-banking-provider})",
         "title: {attr-title}",
@@ -1096,13 +1096,14 @@ def savedKeyringRestored():
 # TODO: Need to refactor following three fixture to reuse code
 @pytest.yield_fixture(scope="module")
 def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                         tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                         cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("susan")
+                             cliTempLogger, multiPoolNodesCreated)("susan")
 
     def reset():
         tconf.ENVS = oldENVS
@@ -1114,13 +1115,14 @@ def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                        tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                        cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("alice")
+                             cliTempLogger, multiPoolNodesCreated)("alice")
 
     def reset():
         tconf.ENVS = oldENVS
@@ -1132,13 +1134,14 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                       tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                       cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("earl")
+                             cliTempLogger, multiPoolNodesCreated)("earl")
 
     def reset():
         tconf.ENVS = oldENVS

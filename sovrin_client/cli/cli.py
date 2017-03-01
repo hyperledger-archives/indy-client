@@ -524,8 +524,9 @@ class SovrinCli(PlenumCli):
         self.activeWallet.addNode(node)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
-        self.print("Sending node request {} by {}".format(nym,
-                                                          self.activeIdentifier))
+        self.print("Sending node request for node identifier {} by {} "
+                   "(request id: {})".format(nym, self.activeIdentifier,
+                                             req.reqId))
 
         def out(reply, error, *args, **kwargs):
             if error:

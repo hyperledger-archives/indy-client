@@ -83,8 +83,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                     ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
         do('send NYM dest={target} role=SPONSOR',
-           within=3, expect=nymAddedOut, mapper=m)
-        do('send ATTRIB dest={target} raw={endpoint}', within=3,
+           within=5, expect=nymAddedOut, mapper=m)
+        do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent

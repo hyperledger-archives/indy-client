@@ -1542,16 +1542,13 @@ class SovrinCli(PlenumCli):
 
         return defaultdict(lambda: defaultHelper, **mappings)
 
-    def getBasicHelpCmdKeys(self):
-        return ["helpAction", "listAction", "connectTo", "statusAction",
-                "disconnect", "licenseAction", "exitAction"]
+    def getTopComdMappingKeysForHelp(self):
+        return ['helpAction', 'connectTo', 'disconnect', 'statusAction']
 
     def getHelpCmdIdsToShowUsage(self):
-        return ["help", "connect", "list"]
-
+        return ["help", "connect"]
 
     def cmdHandlerToCmdMappings(self):
-
         # The 'key' of 'mappings' dictionary is action handler function name
         # without leading underscore sign. Each such funcation name should be
         # mapped here, its other thing that if you don't want to display it
@@ -1561,6 +1558,10 @@ class SovrinCli(PlenumCli):
 
         mappings = OrderedDict()
         mappings.update(super().cmdHandlerToCmdMappings())
+        mappings['connectTo'] = connectToCmd
+        mappings['disconnect'] = disconnectCmd
+        mappings['addGenTxnAction'] = addGenesisTxnCmd
+        mappings['newIdentifier'] = newIdentifierCmd
         mappings['sendNymAction'] = sendNymCmd
         mappings['sendGetNymAction'] = sendGetNymCmd
         mappings['sendAttribAction'] = sendAttribCmd
@@ -1571,23 +1572,21 @@ class SovrinCli(PlenumCli):
         mappings['showFile'] = showFileCmd
         mappings['loadFile'] = loadFileCmd
         mappings['showLink'] = showLinkCmd
-        mappings['connectTo'] = connectToCmd
-        mappings['disconnect'] = disconnectCmd
         mappings['syncLink'] = syncLinkCmd
         mappings['pingTarget'] = pingTargetCmd
+        mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['showClaim'] = showClaimCmd
         mappings['listClaims'] = listClaimsCmd
         mappings['reqClaim'] = reqClaimCmd
         # mappings['showClaimReq'] = showClaimReqCmd
         mappings['showProofRequest'] = showProofRequestCmd
-        mappings['acceptInvitationLink'] = acceptLinkCmd
-        mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendProofRequest'] = sendProofRequestCmd
         mappings['sendProof'] = sendProofCmd
-        mappings['newIdentifier'] = newIdentifierCmd
 
-        mappings['addGenesisAction'] = None
+        # TODO: These seems to be obsolete, so either we need to remove these
+        # command handlers or let it point to None
+        mappings['addGenesisAction'] = None # overriden by addGenTxnAction
 
         return mappings
 

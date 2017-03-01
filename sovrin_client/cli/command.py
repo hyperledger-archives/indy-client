@@ -85,7 +85,7 @@ showLinkCmd = Command(
 connectToCmd = Command(
     id="connect",
     title="Lets you connect to the respective environment (test/live)",
-    usage="connect <env-name>",
+    usage="connect test|live",
     examples=["connect test", "connect live"])
 
 disconnectCmd = Command(

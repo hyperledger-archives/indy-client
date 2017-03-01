@@ -78,7 +78,8 @@ def newKeyPairCreated(cli):
 
 @pytest.fixture(scope="module")
 def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns, logFileName=cliTempLogger)
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+                         logFileName=cliTempLogger)
 
 
 @pytest.fixture(scope="module")
@@ -842,7 +843,7 @@ class TestMultiNode:
 
 @pytest.yield_fixture(scope="module")
 def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePath,
-                          namesOfPools=("pool1", "pool2")):
+                          cliTempLogger, namesOfPools=("pool1", "pool2")):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
@@ -862,7 +863,8 @@ def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePat
             newPoolTxnData, newTdirWithPoolTxns, newTdirWithDomainTxns, None)
 
         poolCLIBabyGen = CliBuilder(newTdir, newTdirWithPoolTxns,
-                                       newTdirWithDomainTxns, tconf)
+                                    newTdirWithDomainTxns, tconf,
+                                    cliTempLogger)
         poolCLIBaby = next(poolCLIBabyGen(poolName, looper))
         poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames)
         testPoolNode.poolCli = poolCli

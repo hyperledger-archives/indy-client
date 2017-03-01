@@ -16,6 +16,7 @@ from plenum.common.util import randomString
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
+from sovrin_client.agent.endpoint import ZEndpoint, Endpoint
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -39,7 +40,8 @@ class Agent(Motor, AgentNet):
                  client: Client = None,
                  port: int = None,
                  loop=None,
-                 config=None):
+                 config=None,
+                 endpointArgs=None):
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
@@ -54,7 +56,8 @@ class Agent(Motor, AgentNet):
                           port=port,
                           basedirpath=basedirpath,
                           msgHandler=self.handleEndpointMessage,
-                          config=self.config)
+                          config=self.config,
+                          endpointArgs=endpointArgs)
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -137,36 +140,48 @@ class Agent(Motor, AgentNet):
     def handleEndpointMessage(self, msg):
         raise NotImplementedError
 
-    def ensureConnectedToDest(self, destHa, clbk, *args):
-        if self.endpoint.isConnectedTo(ha=destHa):
+    def ensureConnectedToDest(self, name, ha, clbk, *args):
+        if self.endpoint.isConnectedTo(name=name, ha=ha):
             if clbk:
                 clbk(*args)
         else:
             self.loop.call_later(.2, self.ensureConnectedToDest,
-                                 destHa, clbk, *args)
+                                 name, ha, clbk, *args)
 
     def sendMessage(self, msg, name: str = None, ha: Tuple = None):
         try:
             remote = self.endpoint.getRemote(name=name, ha=ha)
+            name = remote.name
+            ha = remote.ha
         except RemoteNotFound as ex:
-            fault(ex, "Do not know {} {}".format(name, ha))
-            return
+            if not (isinstance(self.endpoint, ZEndpoint) and
+                    self.endpoint.hasRemote(name.encode() if
+                                            isinstance(name, str) else name)):
+                fault(ex, "Do not know {} {}".format(name, ha))
+                return
 
-        def _send(msg, remote):
-            self.endpoint.transmit(msg, remote.uid)
-            logger.debug("Message sent (to -> {}): {}".format(remote.ha, msg))
+        def _send(msg):
+            nonlocal name, ha
+            self.endpoint.send(msg, name)
+            logger.debug("Message sent (to -> {}): {}".format(ha, msg))
 
         # TODO: if we call following isConnectedTo method by ha,
         # there was a case it found more than one remote, so for now,
         # I have changed it to call by remote name (which I am not sure
         # fixes the issue), need to come back to this.
-        if not self.endpoint.isConnectedTo(name=remote.name):
-            self.ensureConnectedToDest(remote.ha, _send, msg, remote)
+        if not self.endpoint.isConnectedTo(name=name, ha=ha):
+            self.ensureConnectedToDest(name, ha, _send, msg)
         else:
-            _send(msg, remote)
+            _send(msg)
 
-    def connectToHa(self, ha):
-        self.endpoint.connectTo(ha)
+    def connectToHa(self, ha, verkey=None, pubkey=None):
+        if isinstance(self.endpoint, ZEndpoint):
+            assert pubkey
+            self.endpoint.connectTo(ha, verkey, pubkey)
+        elif isinstance(self.endpoint, Endpoint):
+            self.endpoint.connectTo(ha)
+        else:
+            RuntimeError('Non supported Endpoint type used')
 
     def registerEventListener(self, eventName, listener):
         cur = self._eventListeners.get(eventName)
@@ -191,10 +206,11 @@ class WalletedAgent(Walleted, Agent, Caching):
                  loop=None,
                  attrRepo=None,
                  agentLogger=None,
-                 config=None):
-        Agent.__init__(self, name, basedirpath, client, port, loop=loop,
-                       config=None)
+                 config=None,
+                 endpointArgs=None):
         self._wallet = wallet or Wallet(name)
+        Agent.__init__(self, name, basedirpath, client, port, loop=loop,
+                       config=config, endpointArgs=endpointArgs)
         self._attrRepo = attrRepo or AttributeRepoInMemory()
         Walleted.__init__(self, agentLogger=(agentLogger or None))
         if self.client:

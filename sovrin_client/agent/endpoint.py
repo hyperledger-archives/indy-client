@@ -75,7 +75,8 @@ class Endpoint(SimpleStack, EndpointCore):
 
 class ZEndpoint(SimpleZStack, EndpointCore):
     def __init__(self, port: int, msgHandler: Callable,
-                 name: str=None, basedirpath: str=None, seed=None):
+                 name: str=None, basedirpath: str=None, seed=None,
+                 onlyListener=False):
         stackParams = {
             "name": name or randomString(8),
             "ha": HA("0.0.0.0", port),
@@ -86,14 +87,15 @@ class ZEndpoint(SimpleZStack, EndpointCore):
 
         seed = seed or randomSeed()
         SimpleZStack.__init__(self, stackParams, self.baseMsgHandler,
-                              seed=seed)
+                              seed=seed, onlyListener=onlyListener)
 
         self.msgHandler = msgHandler
 
     def connectTo(self, ha, verkey, pubkey):
         if not self.findInRemotesByHA(ha):
-            zvk, zpk = z85.encode(friendlyToRaw(verkey)), \
-                       z85.encode(friendlyToRaw(pubkey))
-            self.connect(name=verkey, ha=ha, verKey=zvk, publicKey=zpk)
+            assert pubkey, 'Need public key to connect to {}'.format(ha)
+            zvk = z85.encode(friendlyToRaw(verkey)) if verkey else None
+            zpk = z85.encode(friendlyToRaw(pubkey))
+            self.connect(name=verkey or pubkey, ha=ha, verKey=zvk, publicKey=zpk)
         else:
             logger.debug('{} already connected {}'.format(self, ha))

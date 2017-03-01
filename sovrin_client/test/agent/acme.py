@@ -24,15 +24,14 @@ class AcmeAgent(TestWalletedAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
+                 loop=None,
+                 config=None):
 
         portParam, = self.getPassedArgs()
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         self.availableClaims = []
 

@@ -29,3 +29,11 @@ class TestWalletedAgent(WalletedAgent):
     @staticmethod
     def getPassedArgs():
         return getAgentCmdLineParams()
+
+    @staticmethod
+    def getEndpointArgs(wallet):
+        endpointSeed = wallet._signerById(wallet.defaultId).seed if wallet \
+            else None
+        onlyListener = True
+        return {'seed': endpointSeed,
+                'onlyListener': onlyListener}

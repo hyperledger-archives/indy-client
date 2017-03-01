@@ -16,7 +16,7 @@ class AgentIssuer:
         self.issuer = issuer
 
     async def processReqClaim(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError

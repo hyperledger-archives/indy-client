@@ -180,9 +180,12 @@ class Link:
 
         if isinstance(self.remoteEndPoint, tuple):
             return self.remoteEndPoint
-        else:
+        elif isinstance(self.remoteEndPoint, str):
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
+        else:
+            raise ValueError('Cannot convert endpoint {} to HA'.
+                             format(self.remoteEndPoint))
 
 
 class ClaimProofRequest:

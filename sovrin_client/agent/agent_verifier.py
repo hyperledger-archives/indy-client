@@ -17,7 +17,7 @@ class AgentVerifier(Verifier):
         self.verifier = verifier
 
     async def verifyClaimProof(self, msg: Any):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError

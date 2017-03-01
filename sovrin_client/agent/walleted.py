@@ -261,6 +261,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def handleEndpointMessage(self, msg):
         body, frm = msg
         logger.debug("Message received (from -> {}): {}".format(frm, body))
+        if isinstance(frm, bytes):
+            frm = frm.decode()
         for reqFieldName in (TYPE, f.REQ_ID.nm):
             reqFieldValue = body.get(reqFieldName)
             if not reqFieldValue:
@@ -315,7 +317,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         handler = self.msgHandlers.get(typ)
         if handler:
             # TODO we should verify signature here
-            frmHa = self.endpoint.getRemote(frm).ha
+            frmHa = self.endpoint.getHa(frm)
+            # `frmHa` can be None
             res = handler((body, (frm, frmHa)))
             if inspect.isawaitable(res):
                 self.loop.call_soon(asyncio.ensure_future, res)
@@ -329,14 +332,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                "msg: {}".format(body[DATA], body[REQ_MSG]))
 
     def _handlePing(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.wallet.getLinkByNonce(body.get(NONCE))
         if link:
             self.signAndSend({TYPE: 'pong'}, self.wallet.defaultId, frm,
                              origReqId=body.get(f.REQ_ID.nm))
 
     def _handlePong(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         identifier = body.get(IDENTIFIER)
         if identifier:
             li = self._getLinkByTarget(getCryptonym(identifier))
@@ -512,7 +515,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self.signAndSend(resp, signingIdr, to, origReqId=origReqId)
 
     def _handleAcceptance(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         # TODO this is really kludgy code... needs refactoring
         # exception handling, separation of concerns, etc.
@@ -603,7 +606,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def connectTo(self, linkName):
         link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
-        self.connectToHa(ha)
+        self.connectToHa(ha, link.targetVerkey, link.remotePubKey)
 
     def loadInvitation(self, invitationData):
         linkInvitation = invitationData["link-invitation"]

@@ -21,16 +21,15 @@ class BulldogAgent(TestWalletedAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
+                 loop=None,
+                 config=None):
 
         portParam, = self.getPassedArgs()
 
         super().__init__('Bulldog', basedirpath, client, wallet,
                          portParam or port, loop=loop,
-                         agentLogger=bulldogLogger)
+                         agentLogger=bulldogLogger, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         self.availableClaims = []
 

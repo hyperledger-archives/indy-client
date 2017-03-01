@@ -29,7 +29,8 @@ class FaberAgent(TestWalletedAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop, config=config)
+                         portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         self.availableClaims = []
 

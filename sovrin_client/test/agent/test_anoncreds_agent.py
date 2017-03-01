@@ -3,7 +3,8 @@ from plenum.common.eventually import eventually
 from anoncreds.protocol.types import SchemaKey, ID
 
 
-def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, emptyLooper):
+def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme,
+                  acmeAgent, emptyLooper):
     # 1. request Claims from Faber
     faberLink = aliceAgent.wallet.getLink('Faber College')
     name, version, origin = faberLink.availableClaims[0]

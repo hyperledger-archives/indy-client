@@ -3,6 +3,7 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.txn import PUBKEY
 from plenum.common.types import HA
 
+from sovrin_client.agent.endpoint import Endpoint
 from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.bulldog import createBulldog
@@ -415,7 +416,8 @@ def checkAcceptInvitation(emptyLooper,
         #                        format(internalId))
         # TODO: Get link from invitee wallet to check.
         assert link.remoteIdentifier == inviteeAcceptanceId
-        assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        if isinstance(inviteeAgent.endpoint, Endpoint):
+            assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
 
     emptyLooper.run(eventually(chk))
 

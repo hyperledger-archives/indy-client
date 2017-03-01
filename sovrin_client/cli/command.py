@@ -26,7 +26,7 @@ sendNodeCmd = Command(
     title="Adds a node to the pool",
     usage="send NODE dest=<target node identifier> data={<json-data>}",
     note="Only Steward (must be already added on sovrin) can execute this command to add new node to the pool",
-    examples='send NODE dest=87Ys5T2eZfau4AATsBZAYvqwvD8XL5xYCHgg2o1ffjqg data={"services":["VALIDATOR"], "node_ip": "127.0.0.1", "node_port": 9711, "client_ip": "127.0.0.1", "client_port": 9712, "alias": "Node1"}')
+    examples='send NODE dest=87Ys5T2eZfau4AATsBZAYvqwvD8XL5xYCHgg2o1ffjqg data={"services":["VALIDATOR"], "node_ip": "127.0.0.1", "node_port": 9711, "client_ip": "127.0.0.1", "client_port": 9712, "alias": "Node101"}')
 
 
 sendPoolUpgCmd = Command(

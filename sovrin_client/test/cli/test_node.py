@@ -11,27 +11,29 @@ from plenum.test.cli.helper import exitFromCli
 from sovrin_client.test.cli.test_tutorial import philCli
 
 
-newStewardSeed = randomSeed()
-newNodeSeed = randomSeed()
-nodeIp, nodePort = genHa()
-clientIp, clientPort = genHa()
+def getNewNodeData():
+    newStewardSeed = randomSeed()
+    newNodeSeed = randomSeed()
+    nodeIp, nodePort = genHa()
+    clientIp, clientPort = genHa()
 
-newNodeData = {
-    NODE_IP: nodeIp,
-    NODE_PORT: nodePort,
-    CLIENT_IP: clientIp,
-    CLIENT_PORT: clientPort,
-    ALIAS: randomString(6)
-}
+    newNodeData = {
+        NODE_IP: nodeIp,
+        NODE_PORT: nodePort,
+        CLIENT_IP: clientIp,
+        CLIENT_PORT: clientPort,
+        ALIAS: randomString(6)
+    }
 
+    return {
+        'newStewardSeed': newStewardSeed,
+        'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
+        'newNodeSeed': newNodeSeed,
+        'newNodeIdr': SimpleSigner(seed=newNodeSeed).identifier,
+        'newNodeData': newNodeData
+    }
 
-vals = {
-    'newStewardSeed': newStewardSeed,
-    'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
-    'newNodeSeed': newNodeSeed,
-    'newNodeIdr': SimpleSigner(seed=newNodeSeed).identifier,
-    'newNodeData': newNodeData
-}
+vals = getNewNodeData()
 
 
 @pytest.yield_fixture(scope="module")
@@ -70,16 +72,30 @@ def newStewardCli(be, do, poolNodesStarted, philCli,
     return newStewardCLI
 
 
-def sendNodeCmd(do):
+def sendNodeCmd(do, newNodeData=None, expMsgs=None):
+    mapper= newNodeData or vals
+    expect = expMsgs or ['Node request completed']
     do('send NODE dest={newNodeIdr} data={newNodeData}',
-       within=8, expect=['Node request completed'], mapper=vals)
+       within=8, expect=expect, mapper=mapper)
+
+
+@pytest.fixture(scope="module")
+def tconf(tconf, request):
+    oldVal = tconf.UpdateGenesisPoolTxnFile
+    tconf.UpdateGenesisPoolTxnFile = True
+
+    def reset():
+        tconf.UpdateGenesisPoolTxnFile = oldVal
+
+    request.addfinalizer(reset)
+    return tconf
 
 
 @pytest.fixture(scope="module")
 def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
     be(newStewardCli)
     sendNodeCmd(do)
-
+    newNodeData = vals["newNodeData"]
     def checkClientConnected(client):
         name = newNodeData[ALIAS]+CLIENT_STACK_SUFFIX
         assert name in client.nodeReg
@@ -101,27 +117,47 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
                                            timeout=5))
 
 
-@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-603')
-@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-603')
 def testAddNewNode(newNodeAdded):
     pass
 
 
-@pytest.fixture(scope="module")
-def tconf(tconf, request):
-    oldVal = tconf.UpdateGenesisPoolTxnFile
-    tconf.UpdateGenesisPoolTxnFile = True
-
-    def reset():
-        tconf.UpdateGenesisPoolTxnFile = oldVal
-
-    request.addfinalizer(reset)
-    return tconf
-
-
-@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-603')
-@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-603')
-def testConsecutiveAddNewNodes(be, do, newStewardCli, newNodeAdded):
+def testConsecutiveAddSameNodeWithoutAnyChange(be, do, newStewardCli,
+                                               newNodeAdded):
     be(newStewardCli)
-    sendNodeCmd(do)
+    sendNodeCmd(do, expMsgs=['node already has the same data as requested'])
+    exitFromCli(do)
+
+
+def testConsecutiveAddSameNodeWithNodeAndClientPortSame(be, do, newStewardCli,
+                                               newNodeAdded):
+    be(newStewardCli)
+    nodeIp, nodePort = genHa()
+    vals['newNodeData'][NODE_IP] = nodeIp
+    vals['newNodeData'][NODE_PORT] = nodePort
+    vals['newNodeData'][CLIENT_IP] = nodeIp
+    vals['newNodeData'][CLIENT_PORT] = nodePort
+    sendNodeCmd(do, newNodeData=vals,
+                expMsgs=["node and client ha can't be same"])
+    exitFromCli(do)
+
+
+def testConsecutiveAddSameNodeWithNonAliasChange(be, do, newStewardCli,
+                                                 newNodeAdded):
+    be(newStewardCli)
+    nodeIp, nodePort = genHa()
+    clientIp, clientPort = genHa()
+    vals['newNodeData'][NODE_IP] = nodeIp
+    vals['newNodeData'][NODE_PORT] = nodePort
+    vals['newNodeData'][CLIENT_IP] = nodeIp
+    vals['newNodeData'][CLIENT_PORT] = clientPort
+    sendNodeCmd(do, newNodeData=vals)
+    exitFromCli(do)
+
+
+def testConsecutiveAddSameNodeWithOnlyAliasChange(be, do,
+                                                  newStewardCli, newNodeAdded):
+    be(newStewardCli)
+    vals['newNodeData'][ALIAS] = randomString(6)
+    sendNodeCmd(do, newNodeData=vals,
+                expMsgs=['existing data has conflicts with request data'])
     exitFromCli(do)

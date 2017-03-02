@@ -827,6 +827,7 @@ def testAliceLoadedThriftLoanApplication(thriftInviteLoadedByAlice):
     pass
 
 
+@pytest.mark.skip('Cannot ping if not synced since will not have public key')
 def testPingThriftBeforeSync(be, do, aliceCli, thriftMap,
                              thriftInviteLoadedByAlice):
     be(aliceCli)

@@ -94,7 +94,7 @@ class AcmeAgent(TestWalletedAgent):
         self._schemaJobAppKey = SchemaKey("Job-Application", "0.2",
                                           self.wallet.defaultId)
 
-    def _addAtrribute(self, schemaKey, proverId, link):
+    def _addAttribute(self, schemaKey, proverId, link):
         attr = self._attrsJobCert[self.getInternalIdByInvitedNonce(proverId)]
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,

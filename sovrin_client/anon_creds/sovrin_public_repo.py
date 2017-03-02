@@ -182,9 +182,13 @@ class SovrinPublicRepo(PublicRepo):
         req = self.wallet.prepReq(req)
         self.client.submitReqs(req)
         try:
+            # TODO: Come up with an explanation, why retryWait had to be
+            # increases to 1 from .5 to pass some tests and from 1 to 2 to
+            # pass some other tests. The client was not getting a chance to
+            # service its stack, we need to find a way to stop this starvation.
             resp = await eventually(_ensureReqCompleted,
                                     req.key, self.client, clbk,
-                                    timeout=20, retryWait=0.5)
+                                    timeout=20, retryWait=2)
         except NoConsensusYet:
             raise TimeoutError('Request timed out')
         return resp

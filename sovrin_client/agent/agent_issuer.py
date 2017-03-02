@@ -36,7 +36,7 @@ class AgentIssuer:
         schema = await self.issuer.wallet.getSchema(ID(schemaKey))
         schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
 
-        self._addAtrribute(schemaKey=schemaKey, proverId=claimReq.userId,
+        self._addAttribute(schemaKey=schemaKey, proverId=claimReq.userId,
                            link=link)
 
         claim = await self.issuer.issueClaim(schemaId, claimReq)
@@ -53,5 +53,5 @@ class AgentIssuer:
                          origReqId=body.get(f.REQ_ID.nm))
 
     @abstractmethod
-    def _addAtrribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
+    def _addAttribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
         raise NotImplementedError

@@ -9,6 +9,7 @@ import plenum
 import pytest
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
+from plenum.common.txn import PUBKEY
 from plenum.common.z_util import initNodeKeysForBothStacks
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
     dirName, tdirWithDomainTxns, poolTxnNodeNames
@@ -92,23 +93,26 @@ def susanMap():
 
 @pytest.fixture(scope="module")
 def faberMap(agentIpAddress, faberAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, faberAgentPort)
+    ha = "{}:{}".format(agentIpAddress, faberAgentPort)
+    pubkey = '5hmMA64DDQz5NzGJNVtRzNwpkZxktNQds21q3Wxxa62z'
     return {'inviter': 'Faber College',
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
             "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
             "claim-req-to-match": "Transcript",
             }
 
+
 @pytest.fixture(scope="module")
 def bulldogMap(bulldogAgentPort):
-    endpoint = "127.0.0.1:{}".format(bulldogAgentPort)
+    ha = '127.0.0.1:{}'.format(bulldogAgentPort)
+    pubkey = '4PDgJmkpS1cD14uNPSYnbB6o9QxvNXWnGX5vdc2NzsGk'
     return {'inviter': 'Bulldog',
             'invite': 'sample/bulldog-invitation.sovrin',
             'invite-insurance': "sample/bulldog-credit-invitation.sovrin",
@@ -116,8 +120,8 @@ def bulldogMap(bulldogAgentPort):
             'inviter-not-exists': "non-existing-inviter",
             "target": "6do9CsML8QWFd125gNo958a35nSnjzdtJBsBRvgS9dfJ",
             "nonce": "2e9882ea71976ddf9",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
             "claims": "Banking-Relationship",
             "claim-to-show": "Banking-Relationship",
             "claim-req-to-match": "Banking-Relationship",
@@ -132,15 +136,16 @@ def bulldogMap(bulldogAgentPort):
 
 @pytest.fixture(scope="module")
 def acmeMap(agentIpAddress, acmeAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    ha = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    pubkey = 'C5eqjU7NMVMGGfGfx2ubvX5H9X346bQt5qeziVAo3naQ'
     return {'inviter': 'Acme Corp',
             'invite': "sample/acme-job-application.sovrin",
             'invite-not-exists': "sample/acme-job-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
             "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
             "claim-requests" : "Job-Application",
             "claim-req-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
@@ -154,15 +159,16 @@ def acmeMap(agentIpAddress, acmeAgentPort):
 
 @pytest.fixture(scope="module")
 def thriftMap(agentIpAddress, thriftAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
+    ha = "{}:{}".format(agentIpAddress, thriftAgentPort)
+    pubkey = 'AGBjYvyM3SFnoiDGAEzkSLHvqyzVkXeMZfKDvdpEsC2x'
     return {'inviter': 'Thrift Bank',
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
             "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
             "claim-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "claim-ver-req-to-show": "0.1"
             }
@@ -302,6 +308,7 @@ def unsyncedInviteAcceptedWhenNotConnected(availableClaims):
     ] + availableClaims + [
         "Can not check if identifier is written to Sovrin or not."
     ]
+
 
 @pytest.fixture(scope="module")
 def syncedInviteAcceptedOutWithoutClaims():

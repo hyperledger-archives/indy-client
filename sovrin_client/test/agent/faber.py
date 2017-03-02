@@ -102,7 +102,7 @@ class FaberAgent(TestWalletedAgent):
             "schemaSeqNo": schema.seqId
         })
 
-    def _addAtrribute(self, schemaKey, proverId, link):
+    def _addAttribute(self, schemaKey, proverId, link):
         attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,

@@ -36,7 +36,8 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd
+    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
+    reqAvailClaimsCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -130,7 +131,8 @@ class SovrinCli(PlenumCli):
             'accept_link_invite',
             'set_attr',
             'send_claim',
-            'new_id'
+            'new_id',
+            'req_avail_claims'
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -168,6 +170,7 @@ class SovrinCli(PlenumCli):
         completers["set_attr"] = WordCompleter(["set"])
         completers["send_claim"] = WordCompleter(["send", "claim"])
         completers["new_id"] = WordCompleter(["new", "identifier"])
+        completers["req_avail_claims"] = WordCompleter(["request", "available", "claims", "from"])
 
         return {**super().completers, **completers}
 
@@ -200,7 +203,8 @@ class SovrinCli(PlenumCli):
                         self._acceptInvitationLink,
                         self._setAttr,
                         self._sendClaim,
-                        self._newIdentifier
+                        self._newIdentifier,
+                        self._reqAvailClaims
                         ])
         return actions
 
@@ -1118,6 +1122,11 @@ class SovrinCli(PlenumCli):
         self.print("Key for identifier is {}".format(signer.verkey))
         self._setActiveIdentifier(id)
 
+    def _reqAvailClaims(self, matchedVars):
+        if matchedVars.get('req_avail_claims') == 'request available claims from':
+
+            return True
+
     def _newIdentifier(self, matchedVars):
         if matchedVars.get('new_id') == 'new identifier':
             id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
@@ -1538,6 +1547,7 @@ class SovrinCli(PlenumCli):
         mappings['showClaimReq'] = showClaimReqCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendClaim'] = sendClaimCmd
+        mappings['reqAvailClaims'] = reqAvailClaimsCmd
 
         # TODO: These seems to be obsolete, so either we need to remove these
         # command handlers or let it point to None

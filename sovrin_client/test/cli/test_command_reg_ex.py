@@ -285,3 +285,12 @@ def testAddGenTxnRegEx(grammar):
                                   "dest":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML",
                                   "identifier":"FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW", "role":None,
                                   "data":'{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'})
+
+
+def testReqAvailClaims(grammar):
+    matchedVars = getMatchedVariables(grammar,
+                                      "request available claims from Faber")
+
+    assertCliTokens(matchedVars, {
+        "req_avail_claims":"request available claims from",
+        "link_name":"Faber"})

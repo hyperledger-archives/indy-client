@@ -891,3 +891,9 @@ def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
     be(aliceCli)
     exitFromCli(do)
     restartCliAndTestWalletRestoration(be, do, susanCli, connectedToTest)
+
+
+def testAliceReqAvailClaims(be, do, aliceCli, bankKYCClaimSent, faberMap):
+    be(aliceCli)
+    do('request available claims from {target}', mapper=faberMap,
+       expect=["Available Claim(s): {claim-to-show}"])

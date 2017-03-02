@@ -4,13 +4,12 @@ from urllib.parse import urlparse, parse_qs
 from http.server import SimpleHTTPRequestHandler
 from json import load
 
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
-
+from sovrin_client.test.agent.bulldog_helper import getBulldogLogger
 
 PORT = 8182
 
 
-logger = bulldogLogger
+logger = getBulldogLogger()
 
 
 class BulldogServer(SimpleHTTPRequestHandler):

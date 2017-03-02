@@ -27,10 +27,11 @@ class BulldogAgent(TestWalletedAgent):
             basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
+        agentLogger = getBulldogLogger(basedirpath)
 
         super().__init__('Bulldog', basedirpath, client, wallet,
                          portParam or port, loop=loop,
-                         agentLogger=getBulldogLogger(basedirpath))
+                         agentLogger=agentLogger)
 
         self.availableClaims = []
 
@@ -95,18 +96,18 @@ class BulldogAgent(TestWalletedAgent):
                     file.write(str(claimVersionNumber))
                     file.truncate()
             except OSError as e:
-                bulldogLogger.warn('Error occurred while reading version file:'
+                agentLogger.warn('Error occurred while reading version file:'
                                    'error:{}'.format(e))
                 raise e
             except ValueError as e:
-                bulldogLogger.warn('Invalid version number')
+                agentLogger.warn('Invalid version number')
                 raise e
         else:
             try:
                 with open(claimVersionFilePath, mode='w') as file:
                     file.write(str(claimVersionNumber))
             except OSError as e:
-                bulldogLogger.warn('Error creating version file {}'.format(e))
+                agentLogger.warn('Error creating version file {}'.format(e))
                 raise e
 
         self._schemaKey = SchemaKey('Banking-Relationship',

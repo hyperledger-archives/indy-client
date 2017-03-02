@@ -7,9 +7,17 @@ from sovrin_common.config_util import getConfig
 from sovrin_common.config import agentLoggingLevel
 
 
-def getBulldogLogger():
-    config = getConfig()
-    path = expanduser('{}'.format(config.baseDir))
+bulldogLoggerMap = {}
+
+
+def getBulldogLogger(basedirpath=None):
+    key = basedirpath or 'default'
+    logger = bulldogLoggerMap.get(key)
+    if logger:
+        return logger
+
+    basedir = basedirpath or getConfig().baseDir
+    path = expanduser('{}'.format(basedir))
     filePath = '{}/bulldog.log'.format(path)
 
     try:
@@ -28,10 +36,11 @@ def getBulldogLogger():
         fileHandler.setFormatter(formatter)
         log.addHandler(fileHandler)
 
+        bulldogLoggerMap[key] = log
         return log
-    except OSError:
-        print('Could not create log file')
+    except OSError as e:
+        print('Could not create log file: {}'.format(str(e)))
         raise Exception
 
 
-bulldogLogger = getBulldogLogger()
+

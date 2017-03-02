@@ -7,9 +7,8 @@ from plenum.common.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.test.agent.bulldog_helper import getBulldogLogger
 from sovrin_common.config_util import getConfig
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
-
 
 def connectAgents(agent1, agent2):
     e1 = agent1.endpoint
@@ -72,7 +71,7 @@ def buildBulldogWallet():
             with open(seedFilePath, mode='r+') as file:
                 seed = file.read().strip(' \t\n\r')
         except OSError as e:
-            bulldogLogger.warn('Error occurred while reading seed file:'
+            getBulldogLogger(baseDir).warn('Error occurred while reading seed file:'
                                'error:{}'.format(e))
             raise e
 

@@ -1,18 +1,21 @@
-import pytest
 import logging
 import time
 import os
 
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
+from sovrin_client.test.agent.bulldog_helper import getBulldogLogger
 from sovrin_common.config import agentLoggingLevel
 
 
+def createTdirIfNotCreated(dir):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+
 def testLoggerLevelSuccess(tdir):
-    logger = bulldogLogger
+    createTdirIfNotCreated(tdir)
+    logger = getBulldogLogger(tdir)
     filePath = '{}/bulldog_test.log'.format(tdir)
     formatter = logging.Formatter('%(asctime)s %(message)s')
-    if not os.path.exists(tdir):
-        os.makedirs(tdir)
     fileHandler = logging.FileHandler(filePath, mode='a')
     fileHandler.setLevel(agentLoggingLevel)
     fileHandler.setFormatter(formatter)
@@ -30,12 +33,11 @@ def testLoggerLevelSuccess(tdir):
 
 
 def testLoggerLevelError(tdir):
-    logger = bulldogLogger
+    createTdirIfNotCreated(tdir)
+    logger = getBulldogLogger(tdir)
     logger.setLevel(logging.DEBUG)
     filePath = '{}/bulldog_test_fail.log'.format(tdir)
     formatter = logging.Formatter('%(asctime)s %(message)s')
-    if not os.path.exists(tdir):
-        os.makedirs(tdir)
     fileHandler = logging.FileHandler(filePath, mode='a')
     fileHandler.setLevel(logging.DEBUG)
     fileHandler.setFormatter(formatter)

@@ -7,12 +7,12 @@ from sovrin_client.agent.agent import createAgent, runAgent
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.test.agent.bulldog_helper import getBulldogLogger
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildBulldogWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.conftest import primes
 from sovrin_client.test.helper import TestClient
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
 
 
 class BulldogAgent(TestWalletedAgent):
@@ -30,7 +30,7 @@ class BulldogAgent(TestWalletedAgent):
 
         super().__init__('Bulldog', basedirpath, client, wallet,
                          portParam or port, loop=loop,
-                         agentLogger=bulldogLogger)
+                         agentLogger=getBulldogLogger(basedirpath))
 
         self.availableClaims = []
 

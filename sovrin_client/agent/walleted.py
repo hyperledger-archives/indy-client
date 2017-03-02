@@ -48,7 +48,6 @@ logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
 
-
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     """
     An agent with a self-contained wallet.

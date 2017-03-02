@@ -1124,7 +1124,10 @@ class SovrinCli(PlenumCli):
 
     def _reqAvailClaims(self, matchedVars):
         if matchedVars.get('req_avail_claims') == 'request available claims from':
-
+            linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
+            li = self._getOneLinkForFurtherProcessing(linkName)
+            if li:
+                self.agent.sendReqAvailClaims(li)
             return True
 
     def _newIdentifier(self, matchedVars):

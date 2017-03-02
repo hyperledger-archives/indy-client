@@ -35,6 +35,9 @@ class BulldogAgent(TestWalletedAgent):
 
         self.availableClaims = []
 
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
+
         # maps invitation nonces to internal ids
         self._invites = {
             '2e9882ea71976ddf9': 1,
@@ -123,8 +126,9 @@ class BulldogAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return claimName == 'Banking-Relationship'
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         pass

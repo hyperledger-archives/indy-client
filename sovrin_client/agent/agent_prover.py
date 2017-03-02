@@ -10,8 +10,10 @@ from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.types import SchemaKey, ID, Claims, ProofInput
 from anoncreds.protocol.utils import toDictWithStrValues
 from sovrin_client.agent.msg_constants import REQUEST_CLAIM, CLAIM_PROOF, CLAIM_FIELD, \
-    CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
+    CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD, \
+    REQ_AVAIL_CLAIMS
 from sovrin_client.client.wallet.link import ClaimProofRequest, Link
+from sovrin_common.exceptions import LinkNotReady
 from sovrin_common.util import getNonceForProof
 
 
@@ -19,6 +21,23 @@ class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
 
+    def sendReqAvailClaims(self, link: Link):
+        if self.loop.is_running():
+            self.loop.call_soon(asyncio.ensure_future,
+                                self.sendAvailClaimsAsync(link))
+        else:
+            self.loop.run_until_complete(
+                self.sendAvailClaimsAsync(link))
+
+    async def sendAvailClaimsAsync(self, link: Link):
+        op = {
+            TYPE: REQ_AVAIL_CLAIMS,
+            NONCE: link.invitationNonce
+        }
+        try:
+            self.signAndSend(msg=op, linkName=link.name)
+        except LinkNotReady as ex:
+            self.notifyMsgListener(str(ex))
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,

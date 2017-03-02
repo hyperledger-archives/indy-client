@@ -893,7 +893,26 @@ def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
     restartCliAndTestWalletRestoration(be, do, susanCli, connectedToTest)
 
 
-def testAliceReqAvailClaims(be, do, aliceCli, bankKYCClaimSent, faberMap):
+def testAliceReqAvailClaimsFromNonExistentConnection(
+        be, do, aliceCli, bankKYCClaimSent, faberMap):
     be(aliceCli)
-    do('request available claims from {target}', mapper=faberMap,
-       expect=["Available Claim(s): {claim-to-show}"])
+    do('request available claims from dummy-link', mapper=faberMap,
+       expect=["No matching link invitation(s) found in current keyring"])
+
+
+def testAliceReqAvailClaimsFromFaber(
+        be, do, aliceCli, bankKYCClaimSent, faberMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=faberMap,
+       expect=["Available Claim(s): {claim-to-show}"],
+       within=3)
+
+
+def testAliceReqAvailClaimsFromAcme(
+        be, do, aliceCli, bankKYCClaimSent, acmeMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=acmeMap,
+       expect=["Available Claim(s): No available claims found"],
+       within=3)

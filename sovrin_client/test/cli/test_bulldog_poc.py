@@ -236,10 +236,8 @@ def testEarlAcceptBulldogInvitation(earlAcceptedBulldogInvitation):
     pass
 
 
-@pytest.mark.skip(reason="SOV-567. Incorrect implementation")
-def testLogsFilePresentForBulldogAgent(earlAcceptedBulldogInvitation):
-    config = getConfig()
-    path = expanduser('{}'.format(config.baseDir))
+def testLogsFilePresentForBulldogAgent(earlAcceptedBulldogInvitation, tdir):
+    path = expanduser('{}'.format(tdir))
     filePath = '{}/bulldog.log'.format(path)
     assert exists(filePath)
 

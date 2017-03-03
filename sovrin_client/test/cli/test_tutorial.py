@@ -1,6 +1,7 @@
 import pytest
 from plenum.common.eventually import eventually
-from plenum.test.cli.helper import exitFromCli
+from plenum.test.cli.helper import exitFromCli, \
+    createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
 
@@ -174,7 +175,18 @@ def preRequisite(poolNodesStarted,
 
 
 @pytest.fixture(scope="module")
-def aliceCli(preRequisite, be, do, aliceCLI, newKeyringOut, aliceMap):
+def walletCreatedForTestEnv(preRequisite, be, do, earlCLI, connectedToTest):
+    be(earlCLI)
+    createAndAssertNewKeyringCreation(do, "default1")
+    createAndAssertNewKeyringCreation(do, "default2")
+    connectIfNotAlreadyConnected(do, connectedToTest, earlCLI, {})
+    createAndAssertNewKeyringCreation(do, "test2")
+    exitFromCli(do)
+
+
+@pytest.fixture(scope="module")
+def aliceCli(preRequisite, be, do, walletCreatedForTestEnv,
+             aliceCLI, newKeyringOut, aliceMap):
     be(aliceCLI)
     setPromptAndKeyring(do, "Alice", newKeyringOut, aliceMap)
     return aliceCLI

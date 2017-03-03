@@ -13,7 +13,7 @@ import asyncio
 
 import base58
 from libnacl import randombytes
-from plenum.cli.cli import Cli as PlenumCli
+from plenum.cli.cli import Cli as PlenumCli, Cli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.common.port_dispenser import genHa
@@ -1028,7 +1028,8 @@ class SovrinCli(PlenumCli):
 
     def _findProofRequest(self, claimReqName: str, linkName: str=None) -> \
             (Link, ProofRequest):
-        matchingLinksWithClaimReq = self.activeWallet.findAllProofRequests(claimReqName, linkName)  # TODO rename claimReqName -> proofRequestName
+        matchingLinksWithClaimReq = self.activeWallet.\
+            findAllProofRequests(claimReqName, linkName)  # TODO rename claimReqName -> proofRequestName
 
         if len(matchingLinksWithClaimReq) == 0:
             self._printNoProofReqFoundMsg()
@@ -1167,8 +1168,10 @@ class SovrinCli(PlenumCli):
 
     def _sendProof(self, matchedVars):
         if matchedVars.get('send_proof') == 'send proof':
-            claimName = matchedVars.get('claim_name').strip()  # TODO this should be proof_request_name, not claim_name
-            linkName = matchedVars.get('link_name').strip()
+            claimName = SovrinCli.removeSpecialChars(
+                matchedVars.get('claim_name').strip())  # TODO this should be proof_request_name, not claim_name
+            linkName = SovrinCli.removeSpecialChars(
+                matchedVars.get('link_name').strip())
 
             li, proofReq = self._findProofRequest(claimName, linkName)
 
@@ -1184,10 +1187,10 @@ class SovrinCli(PlenumCli):
 
     def _sendProofRequest(self, matchedVars):
         if matchedVars.get('send_proof_req') == 'send proof request':
-            proofName = matchedVars.get('proof_name').strip()
-            target = matchedVars.get('target').strip()
+            proofName = SovrinCli.removeSpecialChars(matchedVars.get('proof_name').strip())
+            target = SovrinCli.removeSpecialChars(matchedVars.get('target').strip())
 
-            li, proofReq = self._getOneLinkAndClaimReq(proofName, linkName)
+            li, proofReq = self._getOneLinkAndClaimReq(proofName, target)
 
             if not li or not proofReq:
                 return False
@@ -1350,7 +1353,12 @@ class SovrinCli(PlenumCli):
             self.print("Disconnected from {}".format(oldEnv), Token.BoldGreen)
 
         if toConnectToNewEnv is None:
-            self.restoreLastActiveWallet()
+            self._restoreLastActiveWalletAndUpdateAgentWallet()
+
+    def _restoreLastActiveWalletAndUpdateAgentWallet(self):
+        self.restoreLastActiveWallet()
+        if self._activeWallet and self._agent:
+            self._agent._wallet = self._activeWallet
 
     def printWarningIfActiveWalletIsIncompatible(self):
         if self._activeWallet:
@@ -1358,6 +1366,53 @@ class SovrinCli(PlenumCli):
                 self.print(self.getWalletContextMistmatchMsg, Token.BoldOrange)
                 self.print("Any changes made to this keyring won't "
                            "be persisted.", Token.BoldOrange)
+
+    def moveActiveWalletToNewContext(self, newEnv):
+        if self._activeWallet:
+            if not self._activeWallet.env or self._activeWallet.env == NO_ENV:
+                currentWalletName = self._activeWallet.name
+                self._activeWallet.env = newEnv
+                randomSuffix = ''
+                sourceWalletFilePath = Cli.getWalletFilePath(
+                    self.getContextBasedKeyringsBaseDir(), self.walletFileName)
+                targetContextDir = os.path.join(self.getKeyringsBaseDir(),
+                                                newEnv)
+                if os.path.exists(sourceWalletFilePath):
+                    while True:
+                        targetWalletName = currentWalletName + randomSuffix
+                        toBeTargetWalletFileExists = self.checkIfPersistentWalletExists(
+                            targetWalletName, inContextDir=targetContextDir)
+                        if not toBeTargetWalletFileExists:
+                            self._activeWallet.name = targetWalletName
+                            break
+                        randomSuffix = "-{}".format(randomString(6))
+                    self._saveActiveWalletInDir(contextDir=targetContextDir,
+                                                printMsgs=False)
+                    os.remove(sourceWalletFilePath)
+                targetWalletFilePath = Cli.getWalletFilePath(
+                    targetContextDir, self.walletFileName)
+
+                self.print("Current active keyring got moved to '{}' "
+                           "environment. Here is the detail:".format(newEnv),
+                           Token.BoldBlue)
+                self.print("    keyring name: {}".format(
+                    currentWalletName), Token.BoldBlue)
+                self.print("    old location: {}".format(
+                    sourceWalletFilePath), Token.BoldBlue)
+                self.print("    new location: {}".format(
+                    targetWalletFilePath), Token.BoldBlue)
+                if randomSuffix != '':
+                    self.print("    new keyring name: {} ".format(
+                        self._activeWallet.name), Token.BoldBlue)
+                    self.print("    Note:\n       Target environment "
+                               "already had a keyring with name '{}', so we "
+                               "renamed current active keyring to '{}'.\n      "
+                               " You can always rename any keyring with more "
+                               "meaningful name with 'rename keyring' command.".
+                               format(currentWalletName, self._activeWallet.name),
+                        Token.BoldBlue)
+                self._activeWallet = None
+        pass
 
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':
@@ -1369,6 +1424,12 @@ class SovrinCli(PlenumCli):
             else:
                 if self.nodeReg:
                     oldEnv = self.activeEnv
+
+                    self._saveActiveWallet()
+
+                    if not oldEnv:
+                        self.moveActiveWalletToNewContext(envName)
+
                     isAnyWalletExistsForNewEnv = \
                         self.isAnyWalletFileExistsForGivenEnv(envName)
 
@@ -1384,7 +1445,8 @@ class SovrinCli(PlenumCli):
                         PROMPT_ENV_SEPARATOR, oldEnv), ""))
 
                     if isAnyWalletExistsForNewEnv:
-                        self.restoreLastActiveWallet()
+                        self._restoreLastActiveWalletAndUpdateAgentWallet()
+
 
                     self.printWarningIfActiveWalletIsIncompatible()
 

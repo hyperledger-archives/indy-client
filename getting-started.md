@@ -495,13 +495,14 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show proof request "<proof-request-name>"
+    show proof request "Job-Application"
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 Notice what the claim request looks like now. Although the application is not submitted, it has various claims filled in:
 
 ```
-ALICE> show claim request Job-Application
+ALICE> show proof request Job-Application
 Found claim request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -523,7 +524,7 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Job-Application to Acme Corp
+    send proof "Job-Application" to "Acme Corp"
 
 ```
 
@@ -542,7 +543,7 @@ ALICE> set phone_number to 123-45-6789
 Alice checks to see what the claim request looks like now.
 
 ```
-ALICE> show claim request Job-Application
+ALICE> show proof request Job-Application
 Found claim request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -564,13 +565,13 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Job-Application to Acme Corp
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 She decides to submit.
 
 ```
-ALICE> send claim Job-Application to Acme
+ALICE> send proof Job-Application to Acme
 Signature accepted.
 
 Response from Acme Corp (451.9 ms):
@@ -707,7 +708,7 @@ Try Next:
 
 Alice checks to see what the claim "Loan-Application-Basic" request looks like:
 ```
-ALICE@test> show claim request Loan-Application-Basic
+ALICE@test> show proof request Loan-Application-Basic
 Found claim request "Loan-Application-Basic" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-Basic
@@ -725,7 +726,7 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Loan-Application-Basic to Thrift Bank
+    send proof Loan-Application-Basic to Thrift Bank
 ```
 
 Alice sends just the "Loan-Application-Basic"
@@ -733,12 +734,12 @@ claim to the bank. This allows her to minimize the PII that she has to share
 when all she's trying to do right now is prove basic eligibility.
 
 ```
-ALICE@test> send claim Loan-Application-Basic to Thrift Bank
+ALICE@test> send proof Loan-Application-Basic to Thrift Bank
 
 Signature accepted.
 
 Response from Thrift Bank (479.17 ms):
-    Your claim Loan-Application-Basic 0.1 has been received and verified
+    Your Proof Loan-Application-Basic 0.1 has been received and verified
 
     Loan eligibility criteria satisfied, please send another claim 'Loan-Application-KYC'
 ```
@@ -747,7 +748,7 @@ Alice now checks the second claim request where she needs to share her
 personal information with bank.
 
 ```
-ALICE@test> show claim request Loan-Application-KYC
+ALICE@test> show proof request Loan-Application-KYC
 Found claim request "Loan-Application-KYC" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-KYC
@@ -773,17 +774,17 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Loan-Application-KYC to Thrift Bank
+    send proof Loan-Application-KYC to Thrift Bank
 ```
 
 Alice now sends "Loan-Application-KYC" claim to the bank: 
 ```
-ALICE@test> send claim Loan-Application-KYC to Thrift Bank
+ALICE@test> send proof Loan-Application-KYC to Thrift Bank
 
 Signature accepted.
 
 Response from Thrift Bank (69.9 ms):
-    Your claim Loan-Application-KYC 0.1 has been received and verified
+    Your Proof Loan-Application-KYC 0.1 has been received and verified
 ```
 
 

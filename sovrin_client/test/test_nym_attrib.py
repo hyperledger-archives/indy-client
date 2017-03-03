@@ -238,7 +238,7 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     req = sponsorWallet.preparePending()[0]
     _, key = sponsorWallet._prepared.pop((req.identifier, req.reqId))
     req.reqId = lastReqId
-    req.signature = sponsorWallet.signMsg(msg=req.getSigningState(),
+    req.signature = sponsorWallet.signMsg(msg=req.signingState,
                                           identifier=req.identifier)
     sponsorWallet._prepared[req.identifier, req.reqId] = req, key
     sponsor.submitReqs(req)

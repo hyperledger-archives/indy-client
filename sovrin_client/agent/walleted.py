@@ -427,8 +427,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 except NotConnectedToAny:
                     self.notifyEventListeners(
                         EVENT_NOT_CONNECTED_TO_ANY_ENV,
-                        msg="Can not check if identifier is written to "
-                            "Sovrin or not.")
+                        msg="Cannot check if identifier is written to Sovrin.")
 
 
         else:

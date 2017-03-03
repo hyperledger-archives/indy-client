@@ -21,6 +21,23 @@ class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
 
+    def sendReqAvailClaims(self, link: Link):
+        if self.loop.is_running():
+            self.loop.call_soon(asyncio.ensure_future,
+                                self.sendAvailClaimsAsync(link))
+        else:
+            self.loop.run_until_complete(
+                self.sendAvailClaimsAsync(link))
+
+    async def sendAvailClaimsAsync(self, link: Link):
+        op = {
+            TYPE: REQ_AVAIL_CLAIMS,
+            NONCE: link.invitationNonce
+        }
+        try:
+            self.signAndSend(msg=op, linkName=link.name)
+        except LinkNotReady as ex:
+            self.notifyMsgListener(str(ex))
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,

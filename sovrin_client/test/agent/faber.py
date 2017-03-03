@@ -35,6 +35,9 @@ class FaberAgent(TestWalletedAgent):
 
         self.availableClaims = []
 
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
+
         # maps invitation nonces to internal ids
         self._invites = {
             "b1134a647eb818069c089e7694f63e6d": 1,
@@ -89,8 +92,9 @@ class FaberAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return claimName == "Transcript"
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         pass

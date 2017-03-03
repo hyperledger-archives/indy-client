@@ -36,6 +36,11 @@ class ThriftAgent(TestWalletedAgent):
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
 
+        self.availableClaims = []
+
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
+
     def getInternalIdByInvitedNonce(self, nonce):
         if nonce in self._invites:
             return self._invites[nonce]
@@ -45,8 +50,10 @@ class ThriftAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return True
 
-    def getAvailableClaimList(self):
-        return []
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
+
 
     def _addAtrribute(self, schemaKey, proverId, link):
         pass

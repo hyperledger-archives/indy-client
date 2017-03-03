@@ -36,6 +36,9 @@ class AcmeAgent(TestWalletedAgent):
 
         self.availableClaims = []
 
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
+
         # maps invitation nonces to internal ids
         self._invites = {
             "57fbf9dc8c8e6acde33de98c6d747b28c": 1,
@@ -111,11 +114,16 @@ class AcmeAgent(TestWalletedAgent):
         return claimName == "Job-Certificate" and \
                "Job-Application" in link.verifiedClaimProofs
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
+        oldClaims = self.requesterAvailClaims.get(link.localIdentifier)
+        if oldClaims:
+            newClaims = oldClaims.extend(nac)
+            self.requesterAvailClaims[link.localIdentifier] = newClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):

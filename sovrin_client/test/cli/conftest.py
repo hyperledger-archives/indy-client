@@ -1211,5 +1211,5 @@ def poolNodesStarted(be, do, poolCLI):
         ]
 
     do('new node all', within=6, expect = connectedExpect)
-    do(None, within=4, expect=primarySelectedExpect)
+    # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI

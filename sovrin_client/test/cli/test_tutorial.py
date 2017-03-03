@@ -900,8 +900,8 @@ def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
     be(cli)
     connectIfNotAlreadyConnected(do, connectedToTest, cli, {})
     do(None, expect=[
-        'Saved keyring "Alice" restored',
-        'Active keyring set to "Alice"'
+        'Saved keyring ',
+        'Active keyring set to '
     ], within=5)
     assert cli._activeWallet is not None
     assert len(cli._activeWallet._links) == 3

@@ -13,8 +13,6 @@ $ sovrin "new nodes all"
 
 """
 
-# Do not remove this import
-
 import logging
 import os
 import sys

@@ -17,6 +17,7 @@ from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.exceptions import LinkNotReady
 from sovrin_common.util import getNonceForProof
+from sovrin_common.exceptions import LinkNotReady
 
 
 class AgentProver:

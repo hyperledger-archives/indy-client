@@ -221,7 +221,7 @@ class SovrinCli(PlenumCli):
                         self._sendProofRequest,
                         self._sendProof,
                         self._newIdentifier,
-			self._reqAvailClaims
+                        self._reqAvailClaims
                         ])
         return actions
 

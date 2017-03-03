@@ -427,14 +427,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 except NotConnectedToAny:
                     self.notifyEventListeners(
                         EVENT_NOT_CONNECTED_TO_ANY_ENV,
-<<<<<<< f5e840e65ba3dc9743fcbc26cc0e113897ea6a4f
                         msg="Cannot check if identifier is written to Sovrin.")
-=======
-                        msg="Can not check if identifier is written to "
-                            "Sovrin or not.")
->>>>>>> changes during merging from master branch
-
-
         else:
             self.notifyMsgListener("No matching link found")
 

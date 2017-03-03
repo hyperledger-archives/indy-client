@@ -554,8 +554,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         def sendClaimList(reply=None, error=None):
             logger.debug("sending available claims to {}".format(identifier))
-            resp = self.createAvailClaimListMsg(
-                self.getAvailableClaimList(), alreadyAccepted=alreadyAdded)
+            resp = self.createInviteAcceptedMsg(
+                self.getAvailableClaimList(link.localIdentifier),
+                alreadyAccepted=alreadyAdded)
             self.signAndSend(resp, link.localIdentifier, frm,
                              origReqId=body.get(f.REQ_ID.nm))
 

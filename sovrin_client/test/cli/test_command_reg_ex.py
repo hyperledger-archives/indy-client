@@ -150,7 +150,6 @@ def testShowClaimRegEx(grammar):
     assertCliTokens(matchedVars, {"show_claim": "show claim",
                                   "claim_name": '"Transcript"'})
 
-
 def testRequestClaimRegEx(grammar):
     matchedVars = getMatchedVariables(grammar, "request claim Transcript")
     assertCliTokens(matchedVars, {"req_claim": "request claim",
@@ -172,6 +171,24 @@ def testProofReqRegEx(grammar):
     assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
                                   "proof_req_name": "Transcript "})
 
+
+def testSendProofReqRegEx(grammar):
+    matchedVars = getMatchedVariables(grammar,
+                                      "send proofreq Over-21 to JaneDoe")
+    assertCliTokens(matchedVars, {"send_proof_req": "send proofreq",
+                                  "proof_name": "Over-21",
+                                  "target": " JaneDoe"})
+
+def testProofReqRegEx(grammar):
+    matchedVars = getMatchedVariables(grammar,
+                                      "show proof request Transcript")
+    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
+                                  "proof_req_name": "Transcript"})
+
+    matchedVars = getMatchedVariables(grammar,
+                                      "show proof request Transcript ")
+    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
+                                  "proof_req_name": "Transcript "})
 
 def testSendProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,

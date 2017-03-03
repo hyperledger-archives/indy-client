@@ -1592,9 +1592,12 @@ class SovrinCli(PlenumCli):
         mappings['reqClaim'] = reqClaimCmd
         # mappings['showClaimReq'] = showClaimReqCmd
         mappings['showProofRequest'] = showProofRequestCmd
+        mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
         mappings['sendProofRequest'] = sendProofRequestCmd
         mappings['sendProof'] = sendProofCmd
+        mappings['newIdentifier'] = newIdentifierCmd
         mappings['reqAvailClaims'] = reqAvailClaimsCmd
 
         # TODO: These seems to be obsolete, so either we need to remove these

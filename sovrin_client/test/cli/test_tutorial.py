@@ -904,14 +904,14 @@ def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCProofSent,
 
 
 def testAliceReqAvailClaimsFromNonExistentConnection(
-        be, do, aliceCli, bankKYCClaimSent, faberMap):
+        be, do, aliceCli, bankKYCProofSent, faberMap):
     be(aliceCli)
     do('request available claims from dummy-link', mapper=faberMap,
-       expect=["No matching link invitation(s) found in current keyring"])
+       expect=["No matching link invitations found in current keyring"])
 
 
 def testAliceReqAvailClaimsFromFaber(
-        be, do, aliceCli, bankKYCClaimSent, faberMap):
+        be, do, aliceCli, bankKYCProofSent, faberMap):
     be(aliceCli)
     do('request available claims from {inviter}',
        mapper=faberMap,
@@ -920,7 +920,7 @@ def testAliceReqAvailClaimsFromFaber(
 
 
 def testAliceReqAvailClaimsFromAcme(
-        be, do, aliceCli, bankKYCClaimSent, acmeMap):
+        be, do, aliceCli, bankKYCProofSent, acmeMap):
     be(aliceCli)
     do('request available claims from {inviter}',
        mapper=acmeMap,

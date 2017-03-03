@@ -37,7 +37,7 @@ from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
     listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
-    sendProofRequestCmd, showProofRequestCmd
+    sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -143,6 +143,7 @@ class SovrinCli(PlenumCli):
             'send_proof_request'
             'send_proof',
             'new_id',
+            'req_avail_claims'
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -184,6 +185,7 @@ class SovrinCli(PlenumCli):
         completers["send_proof_request"] = WordCompleter(["send", "proof", "request"])
         completers["send_proof"] = WordCompleter(["send", "proof"])
         completers["new_id"] = WordCompleter(["new", "identifier"])
+        completers["req_avail_claims"] = WordCompleter(["request", "available", "claims", "from"])
 
         return {**super().completers, **completers}
 
@@ -218,7 +220,8 @@ class SovrinCli(PlenumCli):
                         self._setAttr,
                         self._sendProofRequest,
                         self._sendProof,
-                        self._newIdentifier
+                        self._newIdentifier,
+			self._reqAvailClaims
                         ])
         return actions
 
@@ -1135,6 +1138,14 @@ class SovrinCli(PlenumCli):
         self.print("Key for identifier is {}".format(signer.verkey))
         self._setActiveIdentifier(id)
 
+    def _reqAvailClaims(self, matchedVars):
+        if matchedVars.get('req_avail_claims') == 'request available claims from':
+            linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
+            li = self._getOneLinkForFurtherProcessing(linkName)
+            if li:
+                self.agent.sendReqAvailClaims(li)
+            return True
+
     def _newIdentifier(self, matchedVars):
         if matchedVars.get('new_id') == 'new identifier':
             id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
@@ -1584,6 +1595,7 @@ class SovrinCli(PlenumCli):
         mappings['setAttr'] = setAttrCmd
         mappings['sendProofRequest'] = sendProofRequestCmd
         mappings['sendProof'] = sendProofCmd
+        mappings['reqAvailClaims'] = reqAvailClaimsCmd
 
         # TODO: These seems to be obsolete, so either we need to remove these
         # command handlers or let it point to None

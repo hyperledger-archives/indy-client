@@ -175,3 +175,11 @@ newIdentifierCmd = Command(
         "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"])
+
+
+reqAvailClaimsCmd = Command(
+    id="request available claims",
+    title="Requests all available claims from given connection",
+    usage="request available claims from <connection-name>",
+    examples="request available claims from Faber"
+)

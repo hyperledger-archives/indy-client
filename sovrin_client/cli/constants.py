@@ -172,6 +172,10 @@ SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
                        "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)"
 
 
+REQ_AVAIL_CLAIMS_REG_EX = '(\s*(?P<req_avail_claims>request \s+ available \s+ claims \s+ from) ' \
+                   '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+
+
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
 GET_NYM_FORMATTED_REG_EX = getPipedRegEx(GET_NYM_REG_EX)
 ADD_ATTRIB_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRIB_REG_EX)
@@ -206,4 +210,5 @@ SEND_PROOF_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REG_EX)
 SEND_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REQ_REG_EX)
 SEND_NODE_FORMATTED_REG_EX = getPipedRegEx(SEND_NODE_REG_EX)
 SEND_POOL_UPG_FORMATTED_REG_EX = getPipedRegEx(SEND_POOL_UPG_REG_EX)
+REQ_AVAIL_CLAIMS_FORMATTED_REG_EX = getPipedRegEx(REQ_AVAIL_CLAIMS_REG_EX)
 NEW_ID_FORMATTED_REG_EX = getPipedRegEx(NEW_ID_REG_EX)

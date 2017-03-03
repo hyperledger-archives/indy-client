@@ -427,7 +427,10 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 except NotConnectedToAny:
                     self.notifyEventListeners(
                         EVENT_NOT_CONNECTED_TO_ANY_ENV,
-                        msg="Cannot check if identifier is written to Sovrin.")
+                        msg="Can not check if identifier is written to "
+                            "Sovrin or not.")
+
+
         else:
             self.notifyMsgListener("No matching link found")
 

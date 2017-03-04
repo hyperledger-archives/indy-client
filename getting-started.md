@@ -514,8 +514,15 @@ Attributes:
     degree: Bachelor of Science, Marketing
     status: graduated
     ssn: 123-45-6789
+Verifiable Attributes:
+    degree
+    status
+    ssn
 
-    Proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -555,8 +562,15 @@ Attributes:
     degree: Bachelor of Science, Marketing
     status: graduated
     ssn: 123-45-6789
+Verifiable Attributes:
+    degree
+    status
+    ssn
 
-    Proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -606,7 +620,9 @@ Link
 
 Try Next:
     show claim "Job-Certificate"
+    request claim "Job-Certificate"
     show proof request "Job-Application"
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 ## Apply for a Loan
@@ -625,6 +641,9 @@ Attributes:
     employement_status
     experience
     salary_bracket
+
+Try Next:
+    request claim "Job-Certificate"
 ```
 
 Next, she requests it:
@@ -703,7 +722,10 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show proof request "<proof-request-name>"
+    show proof request "Loan-Application-Basic"
+    send proof "Loan-Application-Basic" to "Thrift Bank"
+    show proof request "Loan-Application-KYC"
+    send proof "Loan-Application-KYC" to "Thrift Bank"
 ```
 
 Alice checks to see what the claim "Loan-Application-Basic" request looks like:
@@ -716,8 +738,14 @@ Version: 0.1
 Attributes:
     salary_bracket: between $50,000 to $100,000
     employee_status: Permanent
+Verifiable Attributes:
+    salary_bracket
+    employee_status
 
-    Proof (Job-Certificate v0.2 from Acme Corp)
+
+The Proof is constructed from the following claims:
+
+    Claim (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -757,8 +785,15 @@ Attributes:
     first_name: Alice
     last_name: Garcia
     ssn: 123-45-6789
+Verifiable Attributes:
+    first_name
+    last_name
+    ssn
 
-    Proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         degree: Bachelor of Science, Marketing (verifiable)
         student_name: Alice Garcia (verifiable)
         year: 2015 (verifiable)

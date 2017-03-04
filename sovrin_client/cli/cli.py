@@ -1407,7 +1407,7 @@ class SovrinCli(PlenumCli):
                 self.print("    new location: {}".format(
                     targetWalletFilePath), Token.BoldBlue)
                 if randomSuffix != '':
-                    self.print("    new keyring name: {} ".format(
+                    self.print("    new keyring name: {}".format(
                         self._activeWallet.name), Token.BoldBlue)
                     self.print("    Note:\n       Target environment "
                                "already had a keyring with name '{}', so we "

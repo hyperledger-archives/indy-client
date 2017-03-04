@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from plenum.common.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
@@ -95,10 +97,23 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
     return philCli
 
 
+def checkIfInvalidAttribIsRejected(do, map):
+    data = json.loads(map.get('invalidEndpointAttr'))
+    endpoint = data.get(ENDPOINT)
+    errorMsg = 'client request invalid: InvalidClientRequest(' \
+               '"invalid endpoint: \'{}\'",)'.format(endpoint)
+
+    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+       within=5,
+       expect=[errorMsg],
+       mapper=map)
+
+
 @pytest.fixture(scope="module")
 def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, faberMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
@@ -110,6 +125,7 @@ def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, acmeMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -121,6 +137,7 @@ def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, thriftMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,

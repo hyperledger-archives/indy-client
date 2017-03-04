@@ -1055,6 +1055,14 @@ def faberAdded(poolNodesCreated,
 
 
 @pytest.fixture(scope="module")
+def faberIsRunningWithoutNymAdded(emptyLooper, tdirWithPoolTxns, faberWallet,
+                                  faberAgent):
+    faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
+                                      faberWallet, faberAgent, None)
+    return faber, faberWallet
+
+
+@pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
                    faberAddedByPhil, faberAgent):
     faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,

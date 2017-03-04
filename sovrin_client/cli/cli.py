@@ -100,6 +100,7 @@ class SovrinCli(PlenumCli):
         self.aliases = {}  # type: Dict[str, Signer]
         self.sponsors = set()
         self.users = set()
+        self._agent = None
         super().__init__(*args, **kwargs)
         # Available environments
         self.envs = self.config.ENVS
@@ -109,7 +110,7 @@ class SovrinCli(PlenumCli):
 
         # TODO bad code smell
         self.curContext = Context(None, None, {})  # type: Context
-        self._agent = None
+
 
     @staticmethod
     def getCliVersion():
@@ -225,8 +226,9 @@ class SovrinCli(PlenumCli):
                         ])
         return actions
 
-
-    def postActiveWalletChange(self):
+    @PlenumCli.activeWallet.setter
+    def activeWallet(self, wallet):
+        PlenumCli.activeWallet.fset(self, wallet)
         if self._agent:
             self._agent._wallet = self._activeWallet
 

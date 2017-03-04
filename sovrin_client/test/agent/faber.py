@@ -4,7 +4,8 @@ from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent, runAgent, \
+    isSchemaFound
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -114,24 +115,28 @@ class FaberAgent(TestWalletedAgent):
 
     async def addSchemasToWallet(self):
         schema = await self.issuer.genSchema(self._schema.name,
-                                                 self._schema.version,
-                                                 self._attrDef.attribNames(),
-                                                 'CL')
-        schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
-        p_prime, q_prime = primes["prime2"]
-        await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
-        await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
-        await self.initAvailableClaimList()
+                                             self._schema.version,
+                                             self._attrDef.attribNames(),
+                                             'CL')
+        if schema:
+            schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+            p_prime, q_prime = primes["prime2"]
+            await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
+            await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
+            await self.initAvailableClaimList()
+        return schema
 
     async def bootstrap(self):
-        await self.addSchemasToWallet()
+        ranViaScript = False
+        if __name__ == "__main__":
+            ranViaScript = True
+        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
 
 
 def createFaber(name=None, wallet=None, basedirpath=None, port=None):
     return createAgent(FaberAgent, name or "Faber College",
                        wallet or buildFaberWallet(),
                        basedirpath, port, clientClass=TestClient)
-
 
 if __name__ == "__main__":
     faber = createFaber(port=5555)

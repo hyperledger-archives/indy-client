@@ -5,7 +5,7 @@ from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent, runAgent, isSchemaFound
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -144,15 +144,20 @@ class AcmeAgent(TestWalletedAgent):
             self._schemaJobCertKey.version,
             self._attrDefJobCert.attribNames(),
             'CL')
-        schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
-                               schemaId=schemaJobCert.seqId)
-        p_prime, q_prime = primes["prime1"]
-        await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
-                                  q_prime=q_prime)
-        await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
+        if schemaJobCert:
+            schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
+                                   schemaId=schemaJobCert.seqId)
+            p_prime, q_prime = primes["prime1"]
+            await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
+                                      q_prime=q_prime)
+            await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
+        return schemaJobCert
 
     async def bootstrap(self):
-        await self.addSchemasToWallet()
+        ranViaScript = False
+        if __name__ == "__main__":
+            ranViaScript = True
+        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):

@@ -249,3 +249,19 @@ def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                         clientClass)
     runAgent(agent, looper, bootstrap)
     return agent
+
+
+def isSchemaFound(schema, ranViaScript):
+    if not schema:
+        msg = "Schema not found, check if Sovrin is running and " \
+              "agent's identifier is added"
+        msgHalfLength = int(len(msg)/2)
+        errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
+        print("\n" + errorLine)
+        print("Schema not found, check if Sovrin is running and "
+              "agent's identifier is added")
+        print(errorLine + "\n")
+        if ranViaScript:
+            exit(1)
+        else:
+            raise Exception

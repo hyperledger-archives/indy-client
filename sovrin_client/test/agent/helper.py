@@ -1,13 +1,11 @@
 import argparse
 import sys
-import os
 
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
 
 
 def connectAgents(agent1, agent2):

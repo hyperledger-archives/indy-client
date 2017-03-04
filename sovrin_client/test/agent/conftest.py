@@ -34,7 +34,8 @@ from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
     buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
-from sovrin_node.test.helper import createNym, addAttributeAndCheck, TestClient
+from sovrin_node.test.helper import addAttributeAndCheck
+from sovrin_client.test.helper import createNym, TestClient
 
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import nodeSet, updatedDomainTxnFile, \

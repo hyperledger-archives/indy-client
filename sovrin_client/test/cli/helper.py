@@ -23,7 +23,7 @@ from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.txn import NYM
 from sovrin_common.txn import STEWARD
-from sovrin_node.test.helper import TestNode, TestClient
+from sovrin_client.test.helper import TestClient
 
 
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -176,7 +176,7 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
             initDirWithGenesisTxns(
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
-
+    from sovrin_node.test.helper import TestNode
     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
                         nodeClass=TestNode, clientClass=TestClient, config=conf,
                         unique_name=unique_name, logFileName=logFileName)

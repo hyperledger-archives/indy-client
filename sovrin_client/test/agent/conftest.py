@@ -2,7 +2,6 @@ from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
 
 from sovrin_common.strict_types import strict_types
-from sovrin_client.test.agent.bulldog import createBulldog
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
 strict_types.defaultShouldCheck = True
@@ -33,9 +32,10 @@ from sovrin_common.txn import SPONSOR, ENDPOINT
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
-    buildAcmeWallet, buildThriftWallet, buildBulldogWallet
+    buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
-from sovrin_node.test.helper import createNym, addAttributeAndCheck, TestClient
+from sovrin_node.test.helper import addAttributeAndCheck
+from sovrin_client.test.helper import createNym, TestClient
 
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import nodeSet, updatedDomainTxnFile, \
@@ -68,11 +68,6 @@ def aliceWallet(walletBuilder):
 @pytest.fixture(scope="module")
 def faberWallet():
     return buildFaberWallet()
-
-
-@pytest.fixture(scope="module")
-def bulldogWallet():
-    return buildBulldogWallet()
 
 
 @pytest.fixture(scope="module")
@@ -139,11 +134,6 @@ def faberAgentPort():
 
 
 @pytest.fixture(scope="module")
-def bulldogAgentPort():
-    return genHa()[1]
-
-
-@pytest.fixture(scope="module")
 def acmeAgentPort():
     return genHa()[1]
 
@@ -158,13 +148,6 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
     return createFaber(faberWallet.name, faberWallet,
                        basedirpath=tdirWithPoolTxns,
                        port=faberAgentPort)
-
-
-@pytest.fixture(scope="module")
-def bulldogAgent(tdirWithPoolTxns, bulldogAgentPort, bulldogWallet):
-    return createBulldog(bulldogWallet.name, bulldogWallet,
-                         basedirpath=tdirWithPoolTxns,
-                         port=bulldogAgentPort)
 
 
 @pytest.fixture(scope="module")
@@ -196,27 +179,6 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
     runAgent(faber, emptyLooper)
 
     return faber, faberWallet
-
-
-def runBulldogAgent(emptyLooper, bulldogWallet, bulldogAgent):
-
-    def run():
-        bulldog = bulldogAgent
-        bulldogWallet.pendSyncRequests()
-        prepared = bulldogWallet.preparePending()
-        bulldog.client.submitReqs(*prepared)
-
-        runAgent(bulldog, emptyLooper)
-
-        return bulldog, bulldogWallet
-
-    return run
-
-
-@pytest.fixture(scope="module")
-def bulldogIsRunning(emptyLooper, tdirWithPoolTxns, bulldogWallet,
-                     bulldogAgent, bulldogAdded):
-    return runBulldogAgent(emptyLooper, bulldogWallet, bulldogAgent)()
 
 
 @pytest.fixture(scope="module")
@@ -281,11 +243,6 @@ def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
 # who is adding
 @pytest.fixture(scope="module")
 def faberLinkAdded(faberIsRunning):
-    pass
-
-
-@pytest.fixture(scope="module")
-def bulldogLinkAdded(bulldogIsRunning):
     pass
 
 

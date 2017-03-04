@@ -129,12 +129,19 @@ SHOW_CLAIM_REG_EX = '(\s*(?P<show_claim>show \s+ claim) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s*)'
 
+LIST_CLAIMS_REG_EX = '(\s*(?P<list_claims>list \s+ claims) ' \
+                   '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+
 REQUEST_CLAIM_REG_EX = '(\s*(?P<req_claim>request \s+ claim) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s*)'
 
-SHOW_CLAIM_REQ_REG_EX = '(\s*(?P<show_claim_req>show \s+ claim \s+ request) ' \
-                    '\s+ (?P<claim_req_name>[A-Za-z0-9-." ]+) ' \
+# SHOW_CLAIM_REQ_REG_EX = '(\s*(?P<show_claim_req>show \s+ claim \s+ request) ' \
+#                     '\s+ (?P<claim_req_name>[A-Za-z0-9-." ]+) ' \
+#                     '\s*)'
+#
+SHOW_PROOF_REQ_REG_EX = '(\s*(?P<show_proof_req>show \s+ proof \s+ request) ' \
+                    '\s+ (?P<proof_req_name>[A-Za-z0-9-." ]+) ' \
                     '\s*)'
 
 SET_ATTRIBUTE_REG_EX = '(\s*(?P<set_attr>set) ' \
@@ -142,9 +149,13 @@ SET_ATTRIBUTE_REG_EX = '(\s*(?P<set_attr>set) ' \
                     '\s+ to \s+ (?P<attr_value>[A-Za-z0-9+-_,." /]+)' \
                     '\s*)'
 
-SEND_CLAIM_REG_EX = '(\s*(?P<send_claim>send \s+ claim) ' \
+SEND_PROOF_REG_EX = '(\s*(?P<send_proof>send \s+ proof) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s+ to (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+
+SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proofreq) ' \
+                    '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
+                    '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
 
 SEND_NODE_REG_EX = "(\s* (?P<send_node>send\s+NODE) " \
     "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+/]+) " \
@@ -159,6 +170,10 @@ SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
                        '(\s+ (?P<justification_key>justification=)\s*(?P<justification>\"[a-zA-z0-9-_\s]+\") \s*)? ' \
                        "(\s+ (?P<schedule_key>schedule=)\s*(?P<schedule>\{\s*.*\}) \s*)? " \
                        "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)"
+
+
+REQ_AVAIL_CLAIMS_REG_EX = '(\s*(?P<req_avail_claims>request \s+ available \s+ claims \s+ from) ' \
+                   '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
 
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
@@ -185,11 +200,15 @@ DISCONNECT_FORMATTED_REG_EX = getPipedRegEx(DISCONNECT_REG_EX)
 SYNC_LINK_FORMATTED_REG_EX = getPipedRegEx(SYNC_LINK_REG_EX)
 ACCEPT_LINK_FORMATTED_REG_EX = getPipedRegEx(ACCEPT_LINK_REG_EX)
 SHOW_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REG_EX)
+LIST_CLAIMS_FORMATTED_REG_EX = getPipedRegEx(LIST_CLAIMS_REG_EX)
 REQUEST_CLAIM_FORMATTED_REG_EX = getPipedRegEx(REQUEST_CLAIM_REG_EX)
-SHOW_CLAIM_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REQ_REG_EX)
+# SHOW_CLAIM_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REQ_REG_EX)
+SHOW_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_PROOF_REQ_REG_EX)
 SET_ATTRIBUTE_FORMATTED_REG_EX = getPipedRegEx(SET_ATTRIBUTE_REG_EX)
 PING_TARGET_FORMATTED_REG_EX = getPipedRegEx(PING_TARGET_REG_EX)
-SEND_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SEND_CLAIM_REG_EX)
+SEND_PROOF_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REG_EX)
+SEND_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SEND_PROOF_REQ_REG_EX)
 SEND_NODE_FORMATTED_REG_EX = getPipedRegEx(SEND_NODE_REG_EX)
 SEND_POOL_UPG_FORMATTED_REG_EX = getPipedRegEx(SEND_POOL_UPG_REG_EX)
+REQ_AVAIL_CLAIMS_FORMATTED_REG_EX = getPipedRegEx(REQ_AVAIL_CLAIMS_REG_EX)
 NEW_ID_FORMATTED_REG_EX = getPipedRegEx(NEW_ID_REG_EX)

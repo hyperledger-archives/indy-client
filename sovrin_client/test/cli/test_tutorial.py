@@ -1,11 +1,14 @@
+import json
+
 import pytest
 from plenum.common.eventually import eventually
-from plenum.test.cli.helper import exitFromCli
+from plenum.test.cli.helper import exitFromCli, \
+    createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.txn import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
 
 
 def getSampleLinkInvitation():
@@ -16,7 +19,7 @@ def getSampleLinkInvitation():
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             "endpoint": "127.0.0.1:1213"
         },
-        "claim-requests": [{
+        "proof-requests": [{
             "name": "Job-Application",
             "version": "0.2",
             "attributes": {
@@ -94,10 +97,23 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
     return philCli
 
 
+def checkIfInvalidAttribIsRejected(do, map):
+    data = json.loads(map.get('invalidEndpointAttr'))
+    endpoint = data.get(ENDPOINT)
+    errorMsg = 'client request invalid: InvalidClientRequest(' \
+               '"invalid endpoint: \'{}\'",)'.format(endpoint)
+
+    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+       within=5,
+       expect=[errorMsg],
+       mapper=map)
+
+
 @pytest.fixture(scope="module")
 def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, faberMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
@@ -109,6 +125,7 @@ def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, acmeMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -120,6 +137,7 @@ def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
     be(philCli)
+    checkIfInvalidAttribIsRejected(do, thriftMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -174,7 +192,18 @@ def preRequisite(poolNodesStarted,
 
 
 @pytest.fixture(scope="module")
-def aliceCli(preRequisite, be, do, aliceCLI, newKeyringOut, aliceMap):
+def walletCreatedForTestEnv(preRequisite, be, do, earlCLI, connectedToTest):
+    be(earlCLI)
+    createAndAssertNewKeyringCreation(do, "default1")
+    createAndAssertNewKeyringCreation(do, "default2")
+    connectIfNotAlreadyConnected(do, connectedToTest, earlCLI, {})
+    createAndAssertNewKeyringCreation(do, "test2")
+    exitFromCli(do)
+
+
+@pytest.fixture(scope="module")
+def aliceCli(preRequisite, be, do, walletCreatedForTestEnv,
+             aliceCLI, newKeyringOut, aliceMap):
     be(aliceCLI)
     setPromptAndKeyring(do, "Alice", newKeyringOut, aliceMap)
     return aliceCLI
@@ -212,8 +241,7 @@ def testLoadLinkInviteWithoutSig():
 
 def testShowFaberInvite(be, do, aliceCli, faberMap):
     be(aliceCli)
-    inviteContents = getFileLines(faberMap.get("invite"))
-
+    inviteContents = doubleBraces(getFileLines(faberMap.get("invite")))
     do('show {invite}', expect=inviteContents,
        mapper=faberMap)
 
@@ -246,8 +274,10 @@ def testShowLinkNotExists(be, do, aliceCli, linkNotExists, faberMap):
 def testShowFaberLink(be, do, aliceCli, faberInviteLoadedByAlice,
                       showUnSyncedLinkOut, faberMap):
     be(aliceCli)
-    do('show link {inviter}', expect=showUnSyncedLinkOut,
-       mapper=faberMap)
+    cp = faberMap.copy()
+    cp.update(endpoint='<unknown, waiting for sync>',
+              last_synced='<this link has not yet been synchronized>')
+    do('show link {inviter}', expect=showUnSyncedLinkOut, mapper=cp)
 
 
 def testSyncLinkNotExists(be, do, aliceCli, linkNotExists, faberMap):
@@ -316,11 +346,15 @@ def testShowSyncedFaberInvite(be, do, aliceCli, faberMap, linkNotYetSynced,
 
     be(aliceCli)
 
+    cp = faberMap.copy()
+    cp.update(endpoint='<unknown, waiting for sync>',
+              last_synced='<this link has not yet been synchronized>')
+
     do('show link {inviter}', within=4,
        expect=showSyncedLinkWithoutEndpointOut,
        # TODO, need to come back to not_expect
        # not_expect=linkNotYetSynced,
-       mapper=faberMap)
+       mapper=cp)
 
 
 def syncInvite(be, do, userCli, expectedMsgs, mapping):
@@ -334,9 +368,10 @@ def syncInvite(be, do, userCli, expectedMsgs, mapping):
 @pytest.fixture(scope="module")
 def faberInviteSyncedWithEndpoint(be, do, faberMap, aliceCLI, preRequisite,
                                   faberInviteSyncedWithoutEndpoint,
-                                  syncLinkOutWithEndpoint,
-                                  ):
-    syncInvite(be, do, aliceCLI, syncLinkOutWithEndpoint, faberMap)
+                                  syncLinkOutWithEndpoint):
+    cp = faberMap.copy()
+    cp.update(last_synced='<this link has not yet been synchronized>')
+    syncInvite(be, do, aliceCLI, syncLinkOutWithEndpoint, cp)
     return aliceCLI
 
 
@@ -348,8 +383,9 @@ def testShowSyncedFaberInviteWithEndpoint(be, do, aliceCLI, faberMap,
                                           faberInviteSyncedWithEndpoint,
                                           showSyncedLinkWithEndpointOut):
     be(aliceCLI)
-    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut,
-       mapper=faberMap)
+    cp = faberMap.copy()
+    cp.update(last_synced='just now')
+    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut, mapper=cp)
 
 
 def testPingBeforeAccept(be, do, aliceCli, faberMap, connectedToTest,
@@ -504,7 +540,7 @@ def testShowFaberClaimPostReqClaim(be, do, aliceCli,
 
 def testShowAcmeInvite(be, do, aliceCli, acmeMap):
     be(aliceCli)
-    inviteContents = getFileLines(acmeMap.get("invite"))
+    inviteContents = doubleBraces(getFileLines(acmeMap.get("invite")))
 
     do('show {invite}', expect=inviteContents,
        mapper=acmeMap)
@@ -526,12 +562,14 @@ def testLoadAcmeInvite(acmeInviteLoadedByAlice):
 
 
 def testShowAcmeLink(be, do, aliceCli, acmeInviteLoadedByAlice,
-                     showUnSyncedLinkOut, showLinkWithClaimReqOut, acmeMap):
+                     showUnSyncedLinkOut, showLinkWithProofRequestsOut, acmeMap):
     showUnSyncedLinkWithClaimReqs = \
-        showUnSyncedLinkOut + showLinkWithClaimReqOut
+        showUnSyncedLinkOut + showLinkWithProofRequestsOut
     be(aliceCli)
-    do('show link {inviter}', expect=showUnSyncedLinkWithClaimReqs,
-       mapper=acmeMap)
+
+    cp = acmeMap.copy()
+    cp.update(last_synced='<this link has not yet been synchronized>')
+    do('show link {inviter}', expect=showUnSyncedLinkWithClaimReqs, mapper=cp)
 
 
 @pytest.fixture(scope="module")
@@ -569,18 +607,19 @@ def testShowAcmeLinkAfterInviteAccept(be, do, aliceCli, acmeMap,
        mapper=acmeMap)
 
 
-def testShowClaimReqNotExists(be, do, aliceCli, acmeMap, claimReqNotExists):
+def testShowProofRequestNotExists(be, do, aliceCli, acmeMap,
+                                  proofRequestNotExists):
     be(aliceCli)
-    do("show claim request claim-req-to-show-not-exists",
-       expect=claimReqNotExists,
+    do("show proof request proof-request-to-show-not-exists",
+       expect=proofRequestNotExists,
        mapper=acmeMap,
        within=3)
 
 
-def claimReqShown(be, do, userCli, agentMap,
-                  claimReqOut,
-                  claimReqMap,
-                  claimAttrValueMap):
+def proofRequestShown(be, do, userCli, agentMap,
+                      proofRequestOut,
+                      proofRequestMap,
+                      claimAttrValueMap):
     be(userCli)
 
     mapping = {
@@ -589,44 +628,44 @@ def claimReqShown(be, do, userCli, agentMap,
         "set-attr-phone_number": ""
     }
     mapping.update(agentMap)
-    mapping.update(claimReqMap)
+    mapping.update(proofRequestMap)
     mapping.update(claimAttrValueMap)
-    do("show claim request {claim-req-to-show}",
-       expect=claimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=proofRequestOut,
        mapper=mapping,
        within=3)
 
 
 def testShowJobAppClaimReqWithShortName(be, do, aliceCli, acmeMap,
-                                        showJobAppClaimReqOut,
-                                        jobApplicationClaimReqMap,
+                                        showJobAppProofRequestOut,
+                                        jobApplicationProofRequestMap,
                                         transcriptClaimAttrValueMap,
                                         aliceAcceptedAcmeJobInvitation):
     newAcmeMap = {}
     newAcmeMap.update(acmeMap)
-    newAcmeMap["claim-req-to-show"] = "Job"
+    newAcmeMap["proof-request-to-show"] = "Job"
 
-    claimReqShown(be, do, aliceCli, newAcmeMap,
-                  showJobAppClaimReqOut,
-                  jobApplicationClaimReqMap,
-                  transcriptClaimAttrValueMap)
+    proofRequestShown(be, do, aliceCli, newAcmeMap,
+                      showJobAppProofRequestOut,
+                      jobApplicationProofRequestMap,
+                      transcriptClaimAttrValueMap)
 
 
-def testShowJobAppilcationClaimReq(be, do, aliceCli, acmeMap,
-                                   showJobAppClaimReqOut,
-                                   jobApplicationClaimReqMap,
-                                   transcriptClaimAttrValueMap,
-                                   aliceAcceptedAcmeJobInvitation):
-    claimReqShown(be, do, aliceCli, acmeMap,
-                  showJobAppClaimReqOut,
-                  jobApplicationClaimReqMap,
-                  transcriptClaimAttrValueMap)
+def testShowJobAppilcationProofRequest(be, do, aliceCli, acmeMap,
+                                       showJobAppProofRequestOut,
+                                       jobApplicationProofRequestMap,
+                                       transcriptClaimAttrValueMap,
+                                       aliceAcceptedAcmeJobInvitation):
+    proofRequestShown(be, do, aliceCli, acmeMap,
+                      showJobAppProofRequestOut,
+                      jobApplicationProofRequestMap,
+                      transcriptClaimAttrValueMap)
 
 
 @pytest.fixture(scope="module")
 def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
-                               showJobAppClaimReqOut,
-                               jobApplicationClaimReqMap,
+                               showJobAppProofRequestOut,
+                               jobApplicationProofRequestMap,
                                transcriptClaimAttrValueMap,
                                aliceAcceptedAcmeJobInvitation):
     be(aliceCli)
@@ -637,10 +676,10 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
         "set-attr-phone_number": ""
     }
     mapping.update(acmeMap)
-    mapping.update(jobApplicationClaimReqMap)
+    mapping.update(jobApplicationProofRequestMap)
     mapping.update(transcriptClaimAttrValueMap)
-    do("show claim request {claim-req-to-show}",
-       expect=showJobAppClaimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=showJobAppProofRequestOut,
        mapper=mapping,
        within=3)
     do("set first_name to Alice")
@@ -655,11 +694,11 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
 
 
 def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
-                                               showJobAppClaimReqOut,
+                                               showJobAppProofRequestOut,
                                                aliceSelfAttestsAttributes):
     be(aliceCli)
-    do("show claim request {claim-req-to-show}",
-       expect=showJobAppClaimReqOut,
+    do("show proof request {proof-request-to-show}",
+       expect=showJobAppProofRequestOut,
        mapper=aliceSelfAttestsAttributes,
        within=3)
 
@@ -706,11 +745,11 @@ def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
 #              expect=["Nonce not found".format(msg)])
 
 
-def sendClaim(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
+def sendProof(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
     be(userCli)
 
     expectMsgs = [
-        "Your claim {claim-req-to-match} "
+        "Your Proof {proof-req-to-match} "
         "{claim-ver-req-to-show} was "
         "received and verified"
     ]
@@ -722,7 +761,7 @@ def sendClaim(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
         mapping['new-available-claims'] = newAvailableClaims
         expectMsgs.append("Available Claim(s): {new-available-claims}")
 
-    do("send claim {claim-req-to-match} to {inviter}",
+    do("send proof {proof-req-to-match} to {inviter}",
        within=7,
        expect=expectMsgs,
        mapper=mapping)
@@ -734,7 +773,7 @@ def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
                             aliceRequestedTranscriptClaim,
                             aliceSelfAttestsAttributes):
     totalAvailableClaimsBefore = getTotalAvailableClaims(aliceCli)
-    sendClaim(be, do, aliceCli, acmeMap, "Job-Certificate")
+    sendProof(be, do, aliceCli, acmeMap, "Job-Certificate")
     assert totalAvailableClaimsBefore + 1 == getTotalAvailableClaims(aliceCli)
 
 
@@ -744,7 +783,7 @@ def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
 
 # TODO: Need to uncomment below tests once above testAliceSendClaimProofToAcme
 # test works correctly all the time and also we start supporting
-# building and sending claim proofs from more than one claim
+# building and sending proofs from more than one claim
 
 def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
                                    jobApplicationClaimSent,
@@ -855,10 +894,10 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)
-    mapping["claim-req-to-match"] = "Loan-Application-Basic"
+    mapping["proof-req-to-match"] = "Loan-Application-Basic"
     extraMsgs = ["Loan eligibility criteria satisfied, "
                  "please send another claim 'Loan-Application-KYC'"]
-    sendClaim(be, do, aliceCli, mapping, None, extraMsgs)
+    sendProof(be, do, aliceCli, mapping, None, extraMsgs)
 
 
 def testAliceSendBankBasicClaim(bankBasicClaimSent):
@@ -866,28 +905,53 @@ def testAliceSendBankBasicClaim(bankBasicClaimSent):
 
 
 @pytest.fixture(scope="module")
-def bankKYCClaimSent(be, do, aliceCli, thriftMap,
+def bankKYCProofSent(be, do, aliceCli, thriftMap,
                      bankBasicClaimSent):
     mapping = {}
     mapping.update(thriftMap)
-    mapping["claim-req-to-match"] = "Loan-Application-KYC"
-    sendClaim(be, do, aliceCli, mapping, None)
+    mapping["proof-req-to-match"] = "Loan-Application-KYC"
+    sendProof(be, do, aliceCli, mapping, None)
 
 
 def restartCliAndTestWalletRestoration(be, do, cli, connectedToTest):
     be(cli)
     connectIfNotAlreadyConnected(do, connectedToTest, cli, {})
     do(None, expect=[
-        'Saved keyring "Alice" restored',
-        'Active keyring set to "Alice"'
+        'Saved keyring ',
+        'Active keyring set to '
     ], within=5)
     assert cli._activeWallet is not None
-    assert len(cli._activeWallet._links) == 3
-    assert len(cli._activeWallet.identifiers) == 4
+    # assert len(cli._activeWallet._links) == 3
+    # assert len(cli._activeWallet.identifiers) == 4
 
 
-def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCClaimSent,
+def testAliceSendBankKYCClaim(be, do, aliceCli, susanCli, bankKYCProofSent,
                               connectedToTest):
     be(aliceCli)
     exitFromCli(do)
     restartCliAndTestWalletRestoration(be, do, susanCli, connectedToTest)
+
+
+def testAliceReqAvailClaimsFromNonExistentConnection(
+        be, do, aliceCli, bankKYCProofSent, faberMap):
+    be(aliceCli)
+    do('request available claims from dummy-link', mapper=faberMap,
+       expect=["No matching link invitations found in current keyring"])
+
+
+def testAliceReqAvailClaimsFromFaber(
+        be, do, aliceCli, bankKYCProofSent, faberMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=faberMap,
+       expect=["Available Claim(s): {claim-to-show}"],
+       within=3)
+
+
+def testAliceReqAvailClaimsFromAcme(
+        be, do, aliceCli, bankKYCProofSent, acmeMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=acmeMap,
+       expect=["Available Claim(s): No available claims found"],
+       within=3)

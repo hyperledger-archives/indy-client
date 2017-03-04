@@ -12,8 +12,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.conftest import primes
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.helper import TestClient, primes
 
 logger = getlogger()
 
@@ -35,6 +34,9 @@ class AcmeAgent(TestWalletedAgent):
                          portParam or port, loop=loop)
 
         self.availableClaims = []
+
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -111,11 +113,16 @@ class AcmeAgent(TestWalletedAgent):
         return claimName == "Job-Certificate" and \
                "Job-Application" in link.verifiedClaimProofs
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
+        oldClaims = self.requesterAvailClaims.get(link.localIdentifier)
+        if oldClaims:
+            newClaims = oldClaims.extend(nac)
+            self.requesterAvailClaims[link.localIdentifier] = newClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):

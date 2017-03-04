@@ -3,7 +3,6 @@ import logging
 import re
 
 import pytest
-from plenum.common.eventually import eventually
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
 from sovrin_common.setup_util import Setup
@@ -20,7 +19,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
-    jobCertClaimRequested, bankBasicClaimSent, bankKYCClaimSent, \
+    jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
 
@@ -222,7 +221,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert acmeIssuerKey == thriftAcmeIssuerKey
         passed = False
         try:
-            bankKYCClaimSent(be, do, userCLI, tMap, None)
+            bankKYCProofSent(be, do, userCLI, tMap, None)
             passed = True
         except:
             thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(

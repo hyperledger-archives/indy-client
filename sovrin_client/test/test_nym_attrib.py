@@ -18,9 +18,10 @@ from sovrin_common.identity import Identity
 from sovrin_common.txn import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
     SPONSOR, TXN_ID, NONCE, SKEY
 from sovrin_common.util import getSymmetricallyEncryptedVal
-from sovrin_node.test.helper import genTestClient, createNym, submitAndCheck, \
+from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
-from sovrin_client.test.helper import checkNacks, submitAndCheckNacks
+from sovrin_client.test.helper import checkNacks, submitAndCheckNacks, \
+    genTestClient, createNym
 
 logger = getlogger()
 
@@ -183,7 +184,7 @@ def nymsAddedInQuickSuccession(nodeSet, addedSponsor, looper,
     sponsor.submitReqs(*reqs)
 
     def check():
-         assert sponsorWallet._sponsored[nym].seqNo
+        assert sponsorWallet._sponsored[nym].seqNo
 
     looper.run(eventually(check, timeout=2))
 

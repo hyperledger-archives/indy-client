@@ -7,13 +7,24 @@ from plenum.common.types import f
 from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.types import SchemaKey, ID
 from anoncreds.protocol.types import ClaimRequest
-from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD
+from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, CLAIMS_LIST_FIELD
+from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD, \
+    AVAIL_CLAIM_LIST
 
 
 class AgentIssuer:
     def __init__(self, issuer: Issuer):
         self.issuer = issuer
+
+    async def processReqAvailClaims(self, msg):
+        body, (frm, ha) = msg
+        link = self.verifyAndGetLink(msg)
+        acs = self.getAvailableClaimList(link.localIdentifier)
+        data = {
+            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link.localIdentifier)
+        }
+        resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
+        self.signAndSend(resp, link.localIdentifier, frm)
 
     async def processReqClaim(self, msg):
         body, (frm, ha) = msg

@@ -58,6 +58,12 @@ sendIssuerCmd = Command(
     usage="send ISSUER_KEY ref=<ref-no-of-SCHEMA-txn>",
     examples="send ISSUER_KEY ref=10")
 
+sendProofRequestCmd = Command(
+    id="send proofreq",
+    title="Send a proof request.",
+    usage="send proofreq <proof-name> to <target>",
+    examples="send proofreq Over-21 to JaneDo")
+
 showFileCmd = Command(
     id="show file",
     title="Shows content of given file",
@@ -105,17 +111,41 @@ showClaimCmd = Command(
     usage="show claim <claim-name>",
     examples="show claim Transcript")
 
+listClaimsCmd = Command(
+    id="list claims",
+    title="Refresh the list of claims",
+    usage="list claims <link-name>",
+    examples="list claims faber")
+
 reqClaimCmd = Command(
     id="request claim",
     title="Request given claim",
     usage="request claim <claim-name>",
     examples="request claim Transcript")
 
-showClaimReqCmd = Command(
-    id="show claim request",
-    title="Shows given claim request",
-    usage="show claim request <claim-req-name>",
-    examples="show claim request Job-Application")
+# showClaimReqCmd = Command(
+#     id="show claim request",
+#     title="Shows given claim request",
+#     usage="show claim request <claim-req-name>",
+#     examples="show claim request Job-Application")
+#
+showProofRequestCmd = Command(
+    id="show proof request",
+    title="Shows given proof request",
+    usage="show proof request <proof-req-name>",
+    examples="show proof request Transcription")
+
+showProofReqCmd = Command(
+    id="show proof request",
+    title="Shows given proof request",
+    usage="show proof request <proof-req-name>",
+    examples="show proof request Transcription")
+
+showProofReqCmd = Command(
+    id="show proof request",
+    title="Shows given proof request",
+    usage="show proof request <proof-req-name>",
+    examples="show proof request Transcription")
 
 acceptLinkCmd = Command(
     id="accept invitation",
@@ -129,11 +159,11 @@ setAttrCmd = Command(
     usage="set <attr-name> to <attr-value>",
     examples="set first_name to Alice")
 
-sendClaimCmd = Command(
-    id="send claim",
-    title="Sends given claim to given target",
-    usage="send claim <claim-name> to <target>",
-    examples="send claim Job-Application to Acme Corp")
+sendProofCmd = Command(
+    id="send proof",
+    title="Sends given proof to given target",
+    usage="send proof <claim-name> to <target>",
+    examples="send proof Job-Application to Acme Corp")
 
 addGenesisTxnCmd = Command(
     id="add genesis transaction",
@@ -157,3 +187,11 @@ newIdentifierCmd = Command(
         "new identifier with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"])
+
+
+reqAvailClaimsCmd = Command(
+    id="request available claims",
+    title="Requests all available claims from given connection",
+    usage="request available claims from <connection-name>",
+    examples="request available claims from Faber"
+)

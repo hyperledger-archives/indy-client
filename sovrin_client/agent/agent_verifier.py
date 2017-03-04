@@ -7,7 +7,7 @@ from anoncreds.protocol.types import FullProof
 from anoncreds.protocol.types import ProofInput
 from anoncreds.protocol.utils import fromDictWithStrValues
 from anoncreds.protocol.verifier import Verifier
-from sovrin_client.agent.msg_constants import CLAIM_PROOF_STATUS, PROOF_FIELD, \
+from sovrin_client.agent.msg_constants import PROOF_STATUS, PROOF_FIELD, \
     PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
 from sovrin_common.util import getNonceForProof
 
@@ -16,7 +16,7 @@ class AgentVerifier(Verifier):
     def __init__(self, verifier: Verifier):
         self.verifier = verifier
 
-    async def verifyClaimProof(self, msg: Any):
+    async def verifyProof(self, msg: Any):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
@@ -31,14 +31,14 @@ class AgentVerifier(Verifier):
         result = await self.verifier.verify(proofInput, proof, revealedAttrs,
                                             nonce)
 
-        self.agentLogger.info('Claim request accepted with nonce {}'
+        self.agentLogger.info('Proof accepted with nonce {}'
                               .format(nonce))
-        self.agentLogger.info('Verifying claim proof request from {}'
+        self.agentLogger.info('Verifying proof from {}'
                               .format(link.name))
         status = 'verified' if result else 'failed verification'
         resp = {
-            TYPE: CLAIM_PROOF_STATUS,
-            DATA: '    Your claim {} {} was received and {}\n'.
+            TYPE: PROOF_STATUS,
+            DATA: '    Your Proof {} {} was received and {}\n'.
                 format(body[NAME], body[VERSION], status),
         }
         self.signAndSend(resp, link.localIdentifier, frm,
@@ -47,5 +47,6 @@ class AgentVerifier(Verifier):
         if result:
             for attribute in proofInput.revealedAttrs:
                 # Log attributes that were verified
-                self.agentLogger.info('{}: verified'.format(attribute))
+                self.agentLogger.info('verified {}: {}'.format(attribute,
+                                                               revealedAttrs[attribute]))
             await self._postClaimVerif(claimName, link, frm)

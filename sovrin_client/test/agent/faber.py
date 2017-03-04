@@ -11,8 +11,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.conftest import primes
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.helper import TestClient, primes
 
 logger = getlogger()
 
@@ -34,6 +33,9 @@ class FaberAgent(TestWalletedAgent):
                          portParam or port, loop=loop)
 
         self.availableClaims = []
+
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -89,8 +91,9 @@ class FaberAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return claimName == "Transcript"
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         pass

@@ -5,7 +5,7 @@
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "127.0.0.1:1213"
   },
-  "claim-requests": [{
+  "proof-requests": [{
     "name": "Job-Application",
     "version": "0.2",
     "attributes": {

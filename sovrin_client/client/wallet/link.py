@@ -1,6 +1,9 @@
+from typing import List
+
 from plenum.common.txn import NAME, NONCE
 from plenum.common.types import f
 from plenum.common.util import prettyDateDifference
+from sovrin_client.client.wallet.types import AvailableClaim
 
 from sovrin_common.exceptions import InvalidLinkException, \
     RemoteEndpointNotFound
@@ -34,7 +37,7 @@ class constant:
 
     NOT_AVAILABLE = "Not Available"
 
-    NOT_ASSIGNED = "Not Assigned yet"
+    NOT_ASSIGNED = "not yet assigned"
 
 
 class Link:
@@ -45,7 +48,7 @@ class Link:
                  remoteIdentifier=None,
                  remoteEndPoint=None,
                  invitationNonce=None,
-                 claimProofRequests=None,
+                 proofRequests=None,
                  internalId=None):
         self.name = name
         self.localIdentifier = localIdentifier
@@ -59,9 +62,10 @@ class Link:
         # person, and that student ID can be put in this field
         self.internalId = internalId
 
-        self.claimProofRequests = claimProofRequests or []
+        self.proofRequests = proofRequests or []  # type: List[ProofRequest]
         self.verifiedClaimProofs = []
-        self.availableClaims = []  # type: List[tupe(name, version, origin)]
+        self.availableClaims = []  # type: List[AvailableClaim]
+
         self.targetVerkey = None
         self.linkStatus = None
         self.linkLastSynced = None
@@ -135,16 +139,13 @@ class Link:
         #     print(targetEndPoint, linkStatus, )
 
         optionalLinkItems = ""
-        if len(self.claimProofRequests) > 0:
-            optionalLinkItems += "Claim Request(s): {}". \
-                                     format(", ".join([cr.name for cr in self.claimProofRequests])) \
+        if len(self.proofRequests) > 0:
+            optionalLinkItems += "Proof Request(s): {}". \
+                                     format(", ".join([cr.name for cr in self.proofRequests])) \
                                  + '\n'
 
         if self.availableClaims:
-            optionalLinkItems += "Available Claim(s): {}". \
-                                     format(", ".join([name
-                                                       for name, _, _ in self.availableClaims])) \
-                                 + '\n'
+            optionalLinkItems += self.avail_claims_str()
 
         if self.linkLastSyncNo:
             optionalLinkItems += 'Last sync seq no: ' + self.linkLastSyncNo \
@@ -156,6 +157,11 @@ class Link:
         indentedLinkItems = constant.LINK_ITEM_PREFIX.join(
             linkItems.splitlines())
         return fixedLinkHeading + indentedLinkItems
+
+    def avail_claims_str(self):
+        claim_names = [name for name, _, _ in self.availableClaims]
+        return "Available Claim(s): {}".\
+                   format(", ".join(claim_names)) + '\n'
 
     @staticmethod
     def validate(invitationData):
@@ -181,43 +187,3 @@ class Link:
         else:
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
-
-
-class ClaimProofRequest:
-    def __init__(self, name, version, attributes, verifiableAttributes):
-        self.name = name
-        self.version = version
-        self.attributes = attributes
-        self.verifiableAttributes = verifiableAttributes
-
-    @property
-    def toDict(self):
-        return {
-            "name": self.name,
-            "version": self.version,
-            "attributes": self.attributes
-        }
-
-    @property
-    def attributeValues(self):
-        return \
-            'Attributes:' + '\n    ' + \
-            format("\n    ".join(
-                ['{}: {}'.format(k, v)
-                 for k, v in self.attributes.items()])) + '\n'
-
-    @property
-    def verifiableAttributeValues(self):
-        return \
-            'Verifiable Attributes:' + '\n    ' + \
-            format("\n    ".join(
-                ['{}'.format(v)
-                 for v in self.verifiableAttributes])) + '\n'
-
-    def __str__(self):
-        fixedInfo = \
-            'Status: Requested' + '\n' \
-                                  'Name: ' + self.name + '\n' \
-                                                         'Version: ' + self.version + '\n'
-
-        return fixedInfo + self.attributeValues + self.verifiableAttributeValues

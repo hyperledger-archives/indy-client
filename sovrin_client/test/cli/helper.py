@@ -219,22 +219,28 @@ def check_wallet(cli,
                  totalClaimsRcvd=None,
                  within=None):
     async def check():
-        assert (totalLinks is None or
-                totalLinks == len(cli.activeWallet._links))
+        actualLinks = len(cli.activeWallet._links)
+        assert (totalLinks is None or (totalLinks == actualLinks)),\
+            'links expected to be {} but is {}'.format(totalLinks, actualLinks)
 
         tac = 0
         for li in cli.activeWallet._links.values():
             tac += len(li.availableClaims)
 
         assert (totalAvailableClaims is None or
-                totalAvailableClaims == tac)
+                totalAvailableClaims == tac), \
+            'available claims {} must be equal to {}'.\
+                format(tac, totalAvailableClaims)
 
         if cli.agent.prover is None:
             assert (totalSchemas + totalClaimsRcvd) == 0
         else:
             w = cli.agent.prover.wallet
+            actualSchemas = len(await w.getAllSchemas())
             assert (totalSchemas is None or
-                    totalSchemas == len(await w.getAllSchemas()))
+                    totalSchemas == actualSchemas),\
+                'schemas expected to be {} but is {}'.\
+                    format(totalSchemas, actualSchemas)
 
             assert (totalClaimsRcvd is None or
                     totalClaimsRcvd == len((await w.getAllClaims()).keys()))
@@ -242,14 +248,11 @@ def check_wallet(cli,
     if within:
         cli.looper.run(eventually(check, timeout=within))
     else:
-        # check is a co-routine, looper should be used to run that like
-        # `userCli.looper.run(check())`, but then the tests start failing,
-        # see https://evernym.atlassian.net/browse/SOV-656
-        check()
+        cli.looper.run(check)
 
 
-def wallet_starting_state(totalLinks=0,
-                          totalAvailableClaims=0,
-                          totalSchemas=0,
-                          totalClaimsRcvd=0):
+def wallet_state(totalLinks=0,
+                 totalAvailableClaims=0,
+                 totalSchemas=0,
+                 totalClaimsRcvd=0):
     return locals()

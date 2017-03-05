@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from _sha256 import sha256
 
 import pytest
@@ -22,7 +23,7 @@ from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.txn import NYM
 from sovrin_common.txn import STEWARD
-from sovrin_node.test.helper import TestNode, TestClient
+from sovrin_client.test.helper import TestClient
 
 
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -93,10 +94,16 @@ def ensureNodesCreated(cli, nodeNames):
     checkAllNodesStarted(cli, *nodeNames)
 
 
-def getFileLines(path):
-    filePath = SovrinCli._getFilePath(path)
+def getFileLines(path, caller_file=None):
+    filePath = SovrinCli._getFilePath(path, caller_file)
     with open(filePath, 'r') as fin:
-        lines = fin.readlines()
+        lines = fin.read().splitlines()
+    return lines
+
+
+def doubleBraces(lines):
+    # TODO this is needed to accommodate mappers in 'do' fixture; this can be
+    # removed when refactoring to the new 'expect' fixture is complete
     alteredLines = []
     for line in lines:
         alteredLines.append(line.replace('{', '{{').replace('}', '}}'))
@@ -153,7 +160,7 @@ def prompt_is(prompt):
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None, logFileName=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -169,25 +176,80 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
             initDirWithGenesisTxns(
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
-
+    from sovrin_node.test.helper import TestNode
     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-                        nodeClass=TestNode, clientClass=TestClient, config=conf)
+                        nodeClass=TestNode, clientClass=TestClient, config=conf,
+                        unique_name=unique_name, logFileName=logFileName)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  multiPoolNodes=None):
-    def _(subdir, looper=None):
+                  logFileName=None, multiPoolNodes=None):
+    def _(space,
+          looper=None,
+          unique_name=None):
         def new():
-            return newCLI(looper,
-                          tdir,
-                          subDirectory=subdir,
-                          conf=tconf,
-                          poolDir=tdirWithPoolTxns,
-                          domainDir=tdirWithDomainTxns,
-                          multiPoolNodes=multiPoolNodes)
+            c = newCLI(looper,
+                       tdir,
+                       subDirectory=space,
+                       conf=tconf,
+                       poolDir=tdirWithPoolTxns,
+                       domainDir=tdirWithDomainTxns,
+                       multiPoolNodes=multiPoolNodes,
+                       unique_name=unique_name or space,
+                       logFileName=logFileName)
+            return c
         if looper:
             yield new()
         else:
             with Looper(debug=False) as looper:
                 yield new()
     return _
+
+
+# marker class for regex pattern
+class P(str):
+    def match(self, other):
+        return re.match('^{}$'.format(self), other)
+
+
+def check_wallet(cli,
+                 totalLinks=None,
+                 totalAvailableClaims=None,
+                 totalSchemas=None,
+                 totalClaimsRcvd=None,
+                 within=None):
+    async def check():
+        assert (totalLinks is None or
+                totalLinks == len(cli.activeWallet._links))
+
+        tac = 0
+        for li in cli.activeWallet._links.values():
+            tac += len(li.availableClaims)
+
+        assert (totalAvailableClaims is None or
+                totalAvailableClaims == tac)
+
+        if cli.agent.prover is None:
+            assert (totalSchemas + totalClaimsRcvd) == 0
+        else:
+            w = cli.agent.prover.wallet
+            assert (totalSchemas is None or
+                    totalSchemas == len(await w.getAllSchemas()))
+
+            assert (totalClaimsRcvd is None or
+                    totalClaimsRcvd == len((await w.getAllClaims()).keys()))
+
+    if within:
+        cli.looper.run(eventually(check, timeout=within))
+    else:
+        # check is a co-routine, looper should be used to run that like
+        # `userCli.looper.run(check())`, but then the tests start failing,
+        # see https://evernym.atlassian.net/browse/SOV-656
+        check()
+
+
+def wallet_starting_state(totalLinks=0,
+                          totalAvailableClaims=0,
+                          totalSchemas=0,
+                          totalClaimsRcvd=0):
+    return locals()

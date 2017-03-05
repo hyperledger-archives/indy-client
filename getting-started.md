@@ -145,7 +145,7 @@ Unlike the show command for files, this one asks Sovrin to show a link. More det
 Expanding Faber to "Faber College"
 Link (not yet accepted)
     Name: Faber College
-    Identifier: Not Assigned yet
+    Identifier: not yet assigned
     Trust anchor: Faber College (not yet written to Sovrin)
     Verification key: <same as local identifier>
     Signing key: <hidden>
@@ -170,7 +170,7 @@ Name: Faber College
 This is a friendly name for the link that Alice has been invited to accept. The name is stored locally and not shared. Alice can always rename a link; its initial value is just provided by Faber for convenience.
 
 ```
-Identifier: Not Assigned yet
+Identifier: not yet assigned
 ```
 
 Identifier is a unique value that, that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a pairwise relationship when accepted, and each pairwise relationship uses different identifiers. Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
@@ -418,7 +418,7 @@ ALICE> show sample/acme-job-application.sovrin
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "54.70.102.199:6666"
   },
-  "claim-requests": [{
+  "proof-requests": [{
     "name": "Job-Application",
     "version": "0.2",
     "attributes": {
@@ -455,7 +455,7 @@ ALICE> show link Acme
 Expanding Acme to "Acme Corp"
 Link (not yet accepted)
     Name: Acme Corp
-    Identifier: Not Assigned yet
+    Identifier: not yet assigned
     Trust anchor: Acme Corp (not yet written to Sovrin)
     Verification key: <same as local identifier>
     Signing key: <hidden>
@@ -495,13 +495,14 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show claim request "<claim-request-name>"
+    show proof request "Job-Application"
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 Notice what the claim request looks like now. Although the application is not submitted, it has various claims filled in:
 
 ```
-ALICE> show claim request Job-Application
+ALICE> show proof request Job-Application
 Found claim request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -513,8 +514,15 @@ Attributes:
     degree: Bachelor of Science, Marketing
     status: graduated
     ssn: 123-45-6789
+Verifiable Attributes:
+    degree
+    status
+    ssn
 
-    Claim proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -523,11 +531,11 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Job-Application to Acme Corp
+    send proof "Job-Application" to "Acme Corp"
 
 ```
 
-Alice only has one claim that meets claim proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
+Alice only has one claim that meets proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
 
 The pre - population doesn’t create data leakage, though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
 
@@ -542,7 +550,7 @@ ALICE> set phone_number to 123-45-6789
 Alice checks to see what the claim request looks like now.
 
 ```
-ALICE> show claim request Job-Application
+ALICE> show proof request Job-Application
 Found claim request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -554,8 +562,15 @@ Attributes:
     degree: Bachelor of Science, Marketing
     status: graduated
     ssn: 123-45-6789
+Verifiable Attributes:
+    degree
+    status
+    ssn
 
-    Claim proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
         year: 2015 (verifiable)
@@ -564,13 +579,13 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Job-Application to Acme Corp
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 She decides to submit.
 
 ```
-ALICE> send claim Job-Application to Acme
+ALICE> send proof Job-Application to Acme
 Signature accepted.
 
 Response from Acme Corp (451.9 ms):
@@ -599,13 +614,15 @@ Link
     Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: Accepted
-    Claim Request(s): Job-Application
+    Proof Request(s): Job-Application
     Available Claim(s): Job-Certificate
     Last synced: a minute ago
 
 Try Next:
-    show claim Job-Certificate
-    show claim request "<claim-request-name>"
+    show claim "Job-Certificate"
+    request claim "Job-Certificate"
+    show proof request "Job-Application"
+    send proof "Job-Application" to "Acme Corp"
 ```
 
 ## Apply for a Loan
@@ -624,6 +641,9 @@ Attributes:
     employement_status
     experience
     salary_bracket
+
+Try Next:
+    request claim "Job-Certificate"
 ```
 
 Next, she requests it:
@@ -702,12 +722,15 @@ Synchronizing...
     Confirmed identifier written to Sovrin.
 
 Try Next:
-    show claim request "<claim-request-name>"
+    show proof request "Loan-Application-Basic"
+    send proof "Loan-Application-Basic" to "Thrift Bank"
+    show proof request "Loan-Application-KYC"
+    send proof "Loan-Application-KYC" to "Thrift Bank"
 ```
 
 Alice checks to see what the claim "Loan-Application-Basic" request looks like:
 ```
-ALICE@test> show claim request Loan-Application-Basic
+ALICE@test> show proof request Loan-Application-Basic
 Found claim request "Loan-Application-Basic" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-Basic
@@ -715,8 +738,14 @@ Version: 0.1
 Attributes:
     salary_bracket: between $50,000 to $100,000
     employee_status: Permanent
+Verifiable Attributes:
+    salary_bracket
+    employee_status
 
-    Claim proof (Job-Certificate v0.2 from Acme Corp)
+
+The Proof is constructed from the following claims:
+
+    Claim (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -725,7 +754,7 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Loan-Application-Basic to Thrift Bank
+    send proof Loan-Application-Basic to Thrift Bank
 ```
 
 Alice sends just the "Loan-Application-Basic"
@@ -733,12 +762,12 @@ claim to the bank. This allows her to minimize the PII that she has to share
 when all she's trying to do right now is prove basic eligibility.
 
 ```
-ALICE@test> send claim Loan-Application-Basic to Thrift Bank
+ALICE@test> send proof Loan-Application-Basic to Thrift Bank
 
 Signature accepted.
 
 Response from Thrift Bank (479.17 ms):
-    Your claim Loan-Application-Basic 0.1 has been received and verified
+    Your Proof Loan-Application-Basic 0.1 has been received and verified
 
     Loan eligibility criteria satisfied, please send another claim 'Loan-Application-KYC'
 ```
@@ -747,7 +776,7 @@ Alice now checks the second claim request where she needs to share her
 personal information with bank.
 
 ```
-ALICE@test> show claim request Loan-Application-KYC
+ALICE@test> show proof request Loan-Application-KYC
 Found claim request "Loan-Application-KYC" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-KYC
@@ -756,15 +785,22 @@ Attributes:
     first_name: Alice
     last_name: Garcia
     ssn: 123-45-6789
+Verifiable Attributes:
+    first_name
+    last_name
+    ssn
 
-    Claim proof (Transcript v1.2 from Faber College)
+
+The Proof is constructed from the following claims:
+
+    Claim (Transcript v1.2 from Faber College)
         degree: Bachelor of Science, Marketing (verifiable)
         student_name: Alice Garcia (verifiable)
         year: 2015 (verifiable)
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
 
-    Claim proof (Job-Certificate v0.2 from Acme Corp)
+    Proof (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -773,17 +809,17 @@ Attributes:
 
 Try Next:
     set <attr-name> to <attr-value>
-    send claim Loan-Application-KYC to Thrift Bank
+    send proof Loan-Application-KYC to Thrift Bank
 ```
 
 Alice now sends "Loan-Application-KYC" claim to the bank: 
 ```
-ALICE@test> send claim Loan-Application-KYC to Thrift Bank
+ALICE@test> send proof Loan-Application-KYC to Thrift Bank
 
 Signature accepted.
 
 Response from Thrift Bank (69.9 ms):
-    Your claim Loan-Application-KYC 0.1 has been received and verified
+    Your Proof Loan-Application-KYC 0.1 has been received and verified
 ```
 
 
@@ -836,7 +872,7 @@ attributes = {
     "first_name": "string",
     "last_name": "string",
     "phone_number": "int",
-    "claim proofs": [{
+    "proofs": [{
         "claim_name": "Transcript",
         "version": 1.2,
         "attributes": {

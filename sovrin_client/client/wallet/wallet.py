@@ -1,6 +1,7 @@
 import datetime
 import json
 import operator
+from collections import OrderedDict
 from collections import deque
 from typing import Dict, List
 from typing import Optional
@@ -46,7 +47,9 @@ class Wallet(PWallet, Sponsoring):
         self._nodes = {}
         self._upgrades = {}
 
-        self._links = {}  # type: Dict[str, Link]
+        self._links = OrderedDict()  # type: Dict[str, Link]
+        # Note, ordered dict to make iteration deterministic
+
         self.knownIds = {}  # type: Dict[str, Identifier]
 
         # transactions not yet submitted
@@ -89,15 +92,25 @@ class Wallet(PWallet, Sponsoring):
                     matchingLinkAndAvailableClaim.append((li, cl))
         return matchingLinkAndAvailableClaim
 
-    def getMatchingLinksWithClaimReq(self, claimReqName, linkName=None):
-        matchingLinkAndClaimReq = []
+    def findAllProofRequests(self, claimReqName, linkName=None):
+        matches = []
         for k, li in self._links.items():
-            for cpr in li.claimProofRequests:
+            for cpr in li.proofRequests:
                 if Wallet._isMatchingName(claimReqName, cpr.name):
                     if linkName is None or Wallet._isMatchingName(linkName,
                                                                   li.name):
-                        matchingLinkAndClaimReq.append((li, cpr))
-        return matchingLinkAndClaimReq
+                        matches.append((li, cpr))
+        return matches
+
+    def getMatchingLinksWithProofReq(self, proofReqName, linkName=None):
+        matchingLinkAndProofReq = []
+        for k, li in self._links.items():
+            for cpr in li.proofRequests:
+                if Wallet._isMatchingName(proofReqName, cpr.name):
+                    if linkName is None or Wallet._isMatchingName(linkName,
+                                                                  li.name):
+                        matchingLinkAndProofReq.append((li, cpr))
+        return matchingLinkAndProofReq
 
     def addAttribute(self, attrib: Attribute):
         """

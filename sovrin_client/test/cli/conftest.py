@@ -1,12 +1,16 @@
 import json
 import os
+import tempfile
 import traceback
 
 import itertools
 from time import sleep
+import re
+from typing import List
 
 import plenum
 import pytest
+from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
 from plenum.common.txn import PUBKEY
@@ -28,17 +32,25 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder
+    getPoolTxnData, newCLI, getCliBuilder, P
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
     acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
-    thriftAgent, bulldogIsRunning as runningBulldog, bulldogWallet, bulldogLinkAdded, \
-    bulldogAgent, bulldogAgentPort, agentIpAddress
+    thriftAgent, agentIpAddress
 
 from plenum.test.conftest import nodeAndClientInfoFilePath
 
 config = getConfig()
+
+
+@pytest.yield_fixture(scope="session")
+def cliTempLogger():
+    file_name = "sovrin_cli_test.log"
+    file_path = os.path.join(tempfile.tempdir, file_name)
+    with open(file_path, 'w') as f:
+        pass
+    return file_path
 
 
 @pytest.yield_fixture(scope="module")
@@ -67,8 +79,9 @@ def newKeyPairCreated(cli):
 
 
 @pytest.fixture(scope="module")
-def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns)
+def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+                         logFileName=cliTempLogger)
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +89,7 @@ def aliceMap():
     return {
         'keyring-name': 'Alice',
     }
+
 
 @pytest.fixture(scope="module")
 def earlMap():
@@ -102,35 +116,11 @@ def faberMap(agentIpAddress, faberAgentPort):
             "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: ha,
+            "invalidEndpointAttr": json.dumps({ENDPOINT: " 127.0.0.1:4578"}),
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
-            "claim-req-to-match": "Transcript",
-            }
-
-
-@pytest.fixture(scope="module")
-def bulldogMap(bulldogAgentPort):
-    ha = '127.0.0.1:{}'.format(bulldogAgentPort)
-    pubkey = '4PDgJmkpS1cD14uNPSYnbB6o9QxvNXWnGX5vdc2NzsGk'
-    return {'inviter': 'Bulldog',
-            'invite': 'sample/bulldog-invitation.sovrin',
-            'invite-insurance': "sample/bulldog-credit-invitation.sovrin",
-            'invite-not-exists': "sample/bulldog-credit-invitation.sovrin.not.exists",
-            'inviter-not-exists': "non-existing-inviter",
-            "target": "6do9CsML8QWFd125gNo958a35nSnjzdtJBsBRvgS9dfJ",
-            "nonce": "2e9882ea71976ddf9",
-            ENDPOINT: ha,
-            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
-            "claims": "Banking-Relationship",
-            "claim-to-show": "Banking-Relationship",
-            "claim-req-to-match": "Banking-Relationship",
-            "claim-requests": "Banking-Relationship",
-            "claim-req-to-show": "Banking-Relationship",
-            "claim-ver-req-to-show": "0.8",
-            "rcvd-claim-banking-provider": "Bulldog",
-            "rcvd-claim-banking-name": "Banking-Relationship",
-            "rcvd-claim-banking-version": "0.8"
+            "proof-req-to-match": "Transcript",
             }
 
 
@@ -146,10 +136,11 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
-            "claim-requests" : "Job-Application",
-            "claim-req-to-show": "Job-Application",
+            "invalidEndpointAttr": json.dumps({ENDPOINT: "127.0.0.1 :4578"}),
+            "proof-requests": "Job-Application",
+            "proof-request-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
-            "claim-req-to-match": "Job-Application",
+            "proof-req-to-match": "Job-Application",
             "claims": "<claim-name>",
             "rcvd-claim-transcript-provider": "Faber College",
             "rcvd-claim-transcript-name": "Transcript",
@@ -169,7 +160,8 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
-            "claim-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "invalidEndpointAttr": json.dumps({ENDPOINT: "127.0.0.1:4A78"}),
+            "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "claim-ver-req-to-show": "0.1"
             }
 
@@ -177,10 +169,13 @@ def thriftMap(agentIpAddress, thriftAgentPort):
 @pytest.fixture(scope="module")
 def loadInviteOut(nextCommandsToTryUsageLine):
     return ["1 link invitation found for {inviter}.",
-            "Creating Link for {inviter}."] + \
+            "Creating Link for {inviter}.",
+            ''] + \
            nextCommandsToTryUsageLine + \
-           ['accept invitation from "{inviter}"',
-            'show link "{inviter}"']
+           ['    show link "{inviter}"',
+            '    accept invitation from "{inviter}"',
+            '',
+            '']
 
 
 @pytest.fixture(scope="module")
@@ -247,13 +242,14 @@ def nextCommandsToTryUsageLine():
 
 @pytest.fixture(scope="module")
 def connectUsage(usageLine):
-    return usageLine + ["connect <test|live>"]
+    return usageLine + ["    connect <test|live>"]
 
 
 @pytest.fixture(scope="module")
 def notConnectedStatus(connectUsage):
-    return ['Not connected to Sovrin network. Please connect first.'] +\
-            connectUsage
+    return ['Not connected to Sovrin network. Please connect first.', ''] +\
+            connectUsage +\
+            ['', '']
 
 
 @pytest.fixture(scope="module")
@@ -269,33 +265,15 @@ def linkAlreadyExists():
 
 
 @pytest.fixture(scope="module")
-def jobApplicationClaimReqMap():
+def jobApplicationProofRequestMap():
     return {
-        'claim-req-version': '0.2',
-        'claim-req-attr-first_name': 'first_name',
-        'claim-req-attr-last_name': 'last_name',
-        'claim-req-attr-phone_number': 'phone_number',
-        'claim-req-attr-degree': 'degree',
-        'claim-req-attr-status': 'status',
-        'claim-req-attr-ssn': 'ssn'
-    }
-
-
-@pytest.fixture(scope="module")
-def bulldogInsuranceClaimReqMap():
-    return {
-        'claim-req-version': '0.8',
-        'claim-req-attr-title': 'title',
-        'claim-req-attr-first_name': 'first_name',
-        'claim-req-attr-last_name': 'last_name',
-        'claim-req-attr-address_1': 'address_1',
-        'claim-req-attr-address_2': 'address_2',
-        'claim-req-attr-address_3': 'address_3',
-        'claim-req-attr-postcode_zip': 'postcode_zip',
-        'claim-req-attr-date_of_birth': 'date_of_birth',
-        'claim-req-attr-account_type': 'account_type',
-        'claim-req-attr-year_opened': 'year_opened',
-        'claim-req-attr-account_status': 'account_status'
+        'proof-request-version': '0.2',
+        'proof-request-attr-first_name': 'first_name',
+        'proof-request-attr-last_name': 'last_name',
+        'proof-request-attr-phone_number': 'phone_number',
+        'proof-request-attr-degree': 'degree',
+        'proof-request-attr-status': 'status',
+        'proof-request-attr-ssn': 'ssn'
     }
 
 
@@ -306,7 +284,7 @@ def unsyncedInviteAcceptedWhenNotConnected(availableClaims):
         "Trust established.",
         "Identifier created in Sovrin."
     ] + availableClaims + [
-        "Can not check if identifier is written to Sovrin or not."
+        "Cannot check if identifier is written to Sovrin."
     ]
 
 
@@ -352,9 +330,9 @@ def unsycedAlreadyAcceptedInviteAcceptedOut():
 
 
 @pytest.fixture(scope="module")
-def showTranscriptClaimProofOut():
+def showTranscriptProofOut():
     return [
-        "Claim proof ({rcvd-claim-transcript-name} "
+        "Claim ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
         "student_name: {attr-student_name}",
@@ -366,26 +344,26 @@ def showTranscriptClaimProofOut():
 
 
 @pytest.fixture(scope="module")
-def showJobAppClaimReqOut(showTranscriptClaimProofOut):
+def showJobAppProofRequestOut(showTranscriptProofOut):
     return [
-        'Found claim request "{claim-req-to-match}" in link "{inviter}"',
-        "Name: {claim-req-to-show}",
-        "Version: {claim-req-version}",
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-request-to-show}",
+        "Version: {proof-request-version}",
         "Status: Requested",
         "Attributes:",
-        "{claim-req-attr-first_name}: {set-attr-first_name}",
-        "{claim-req-attr-last_name}: {set-attr-last_name}",
-        "{claim-req-attr-phone_number}: {set-attr-phone_number}",
-        "{claim-req-attr-degree}: {attr-degree}",
-        "{claim-req-attr-status}: {attr-status}",
-        "{claim-req-attr-ssn}: {attr-ssn}"
-    ] + showTranscriptClaimProofOut
+        "{proof-request-attr-first_name}: {set-attr-first_name}",
+        "{proof-request-attr-last_name}: {set-attr-last_name}",
+        "{proof-request-attr-phone_number}: {set-attr-phone_number}",
+        "{proof-request-attr-degree}: {attr-degree}",
+        "{proof-request-attr-status}: {attr-status}",
+        "{proof-request-attr-ssn}: {attr-ssn}"
+    ] + showTranscriptProofOut
 
 
 @pytest.fixture(scope="module")
-def showBankingClaimProofOut():
+def showBankingProofOut():
     return [
-        "Claim proof ({rcvd-claim-banking-name} "
+        "Claim ({rcvd-claim-banking-name} "
         "v{rcvd-claim-banking-version} "
         "from {rcvd-claim-banking-provider})",
         "title: {attr-title}",
@@ -403,35 +381,13 @@ def showBankingClaimProofOut():
 
 
 @pytest.fixture(scope="module")
-def showBulldogInsuranceClaimReqOut(showBankingClaimProofOut):
-    return [
-        'Found claim request "{claim-req-to-match}" in link "{inviter}"',
-        "Name: {claim-req-to-show}",
-        "Version: {claim-req-version}",
-        "Status: Requested",
-        "Attributes:",
-        "{claim-req-attr-title}: {attr-title}",
-        "{claim-req-attr-first_name}: {attr-first_name}",
-        "{claim-req-attr-last_name}: {attr-last_name}",
-        "{claim-req-attr-address_1}: {attr-address_1}",
-        "{claim-req-attr-address_2}: {attr-address_2}",
-        "{claim-req-attr-address_3}: {attr-address_3}",
-        "{claim-req-attr-postcode_zip}: {attr-postcode_zip}",
-        "{claim-req-attr-date_of_birth}: {attr-date_of_birth}",
-        "{claim-req-attr-account_type}: {attr-account_type}",
-        "{claim-req-attr-year_opened}: {attr-year_opened}",
-        "{claim-req-attr-account_status}: {attr-account_status}"
-    ] + showBankingClaimProofOut
-
-
-@pytest.fixture(scope="module")
-def claimReqNotExists():
-    return ["No matching claim request(s) found in current keyring"]
+def proofRequestNotExists():
+    return ["No matching Proof Requests found in current keyring"]
 
 
 @pytest.fixture(scope="module")
 def linkNotExists():
-    return ["No matching link invitation(s) found in current keyring"]
+    return ["No matching link invitations found in current keyring"]
 
 
 @pytest.fixture(scope="module")
@@ -500,8 +456,7 @@ def syncLinkOutWithoutEndpoint(syncLinkOutStartsWith):
 @pytest.fixture(scope="module")
 def showSyncedLinkWithEndpointOut(acceptedLinkHeading, showLinkOut):
     return acceptedLinkHeading + showLinkOut + \
-        ["Last synced: "] + \
-        ["Target endpoint: {endpoint}"]
+        ["Last synced: "]
 
 
 @pytest.fixture(scope="module")
@@ -511,7 +466,7 @@ def showSyncedLinkWithoutEndpointOut(showLinkOut):
 
 @pytest.fixture(scope="module")
 def linkNotYetSynced():
-    return ["Last synced: <this link has not yet been synchronized>"]
+    return ["    Last synced: <this link has not yet been synchronized>"]
 
 
 @pytest.fixture(scope="module")
@@ -525,14 +480,13 @@ def unAcceptedLinkHeading():
 
 
 @pytest.fixture(scope="module")
-def showUnSyncedLinkOut(unAcceptedLinkHeading, showLinkOut, linkNotYetSynced):
-    return unAcceptedLinkHeading + showLinkOut + linkNotYetSynced
+def showUnSyncedLinkOut(unAcceptedLinkHeading, showLinkOut):
+    return unAcceptedLinkHeading + showLinkOut
 
 
 @pytest.fixture(scope="module")
 def showClaimNotFoundOut():
-    return [ "No matching claim(s) found in any links in current keyring"
-    ]
+    return ["No matching Claims found in any links in current keyring"]
 
 
 @pytest.fixture(scope="module")
@@ -572,18 +526,6 @@ def bankingRelationshipClaimAttrValueMap():
         "attr-year_opened": "2000",
         "attr-account_status": "active"
     }
-
-
-@pytest.fixture(scope="module")
-def bankingRelationshipClaimValueMap(bankingRelationshipClaimAttrValueMap):
-    basic = {
-        'inviter': 'Bulldog',
-        'name': 'Banking-Relationship',
-        "version": "0.8",
-        'status': "available (not yet issued)"
-    }
-    basic.update(bankingRelationshipClaimAttrValueMap)
-    return basic
 
 
 @pytest.fixture(scope="module")
@@ -636,27 +578,6 @@ def jobCertificateClaimMap():
         "attr-employee_status": "string",
         "attr-experience": "string",
         "attr-salary_bracket": "string"
-    }
-
-
-@pytest.fixture(scope="module")
-def bankingRelationshipClaimMap():
-    return {
-        "inviter": "Bulldog",
-        "name": "Banking-Relationship",
-        'status': "available (not yet issued)",
-        "version": "0.8",
-        "attr-title": "string",
-        "attr-first_name": "string",
-        "attr-last_name": "string",
-        "attr-address_1": "string",
-        "attr-address_2": "string",
-        "attr-address_3": "string",
-        "attr-postcode_zip": "string",
-        "attr-date_of_birth": "string",
-        "attr-account_type": "string",
-        "attr-year_opened": "string",
-        "attr-account_status": "string"
     }
 
 
@@ -780,8 +701,8 @@ def showBankingRelationshipClaimOut(nextCommandsToTryUsageLine):
 
 
 @pytest.fixture(scope="module")
-def showLinkWithClaimReqOut():
-    return ["Claim Request(s): {claim-requests}"]
+def showLinkWithProofRequestsOut():
+    return ["Proof Request(s): {proof-requests}"]
 
 
 @pytest.fixture(scope="module")
@@ -791,25 +712,25 @@ def showLinkWithAvailableClaimsOut():
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithClaimReqsOut(showAcceptedLinkOut,
-                                     showLinkWithClaimReqOut,
+                                     showLinkWithProofRequestsOut,
                                      showLinkWithAvailableClaimsOut,
                                      showLinkSuggestion):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut + \
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut + \
            showLinkWithAvailableClaimsOut + \
            showLinkSuggestion
 
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithoutAvailableClaimsOut(showAcceptedLinkOut,
-                                        showLinkWithClaimReqOut):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut
+                                        showLinkWithProofRequestsOut):
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut
 
 
 @pytest.fixture(scope="module")
 def showAcceptedLinkWithAvailableClaimsOut(showAcceptedLinkOut,
-                                           showLinkWithClaimReqOut,
+                                           showLinkWithProofRequestsOut,
                                            showLinkWithAvailableClaimsOut):
-    return showAcceptedLinkOut + showLinkWithClaimReqOut + \
+    return showAcceptedLinkOut + showLinkWithProofRequestsOut + \
            showLinkWithAvailableClaimsOut
 
 
@@ -833,17 +754,25 @@ def showAcceptedLinkOut():
 
 
 @pytest.fixture(scope="module")
-def showLinkOut(nextCommandsToTryUsageLine):
+def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
     return [
-            "Name: {inviter}",
-            "Target: {target}",
-            "Target Verification key: <unknown, waiting for sync>",
-            "Trust anchor: {inviter} (not yet written to Sovrin)",
-            "Invitation nonce: {nonce}",
-            "Invitation status: not verified, target verkey unknown"] + \
+            "    Name: {inviter}",
+            "    Identifier: not yet assigned",
+            "    Trust anchor: {inviter} (not yet written to Sovrin)",
+            "    Verification key: <same as local identifier>",
+            "    Signing key: <hidden>",
+            "    Target: {target}",
+            "    Target Verification key: <unknown, waiting for sync>",
+            "    Target endpoint: {endpoint}",
+            "    Invitation nonce: {nonce}",
+            "    Invitation status: not verified, target verkey unknown",
+            "    Last synced: {last_synced}"] + \
+           [""] + \
            nextCommandsToTryUsageLine + \
-           ['accept invitation from "{inviter}"',
-            'sync "{inviter}"']
+           ['    sync "{inviter}"',
+            '    accept invitation from "{inviter}"',
+            '',
+            '']
 
 
 @pytest.fixture(scope="module")
@@ -858,11 +787,11 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Target Verification key: <same as target>",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted",
-            "Claim Request(s): {claim-requests}",
+            "Proof Request(s): {proof-requests}",
             "Available Claim(s): {claims}"] + \
            nextCommandsToTryUsageLine + \
            ['show claim "{claim-to-show}"',
-            'request claim "{claim-requests}"']
+            'send proof "{proof-requests}"']
 
 
 @pytest.yield_fixture(scope="module")
@@ -926,7 +855,7 @@ class TestMultiNode:
 
 @pytest.yield_fixture(scope="module")
 def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePath,
-                          namesOfPools=("pool1", "pool2")):
+                          cliTempLogger, namesOfPools=("pool1", "pool2")):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
@@ -946,7 +875,8 @@ def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePat
             newPoolTxnData, newTdirWithPoolTxns, newTdirWithDomainTxns, None)
 
         poolCLIBabyGen = CliBuilder(newTdir, newTdirWithPoolTxns,
-                                       newTdirWithDomainTxns, tconf)
+                                    newTdirWithDomainTxns, tconf,
+                                    cliTempLogger)
         poolCLIBaby = next(poolCLIBabyGen(poolName, looper))
         poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames,
                           tconf)
@@ -992,6 +922,132 @@ def do(ctx):
 
 
 @pytest.fixture(scope="module")
+def dump(ctx):
+
+    def _dump():
+        logger = getlogger()
+
+        cli = ctx['current_cli']
+        nocli = {"cli": False}
+        wrts = ''.join(cli.cli.output.writes)
+        logger.info('=========================================', extra=nocli)
+        logger.info('|             OUTPUT DUMP               |', extra=nocli)
+        logger.info('-----------------------------------------', extra=nocli)
+        for w in wrts.splitlines():
+            logger.info('> ' + w, extra=nocli)
+        logger.info('=========================================', extra=nocli)
+    return _dump
+
+
+@pytest.fixture(scope="module")
+def bookmark(ctx):
+    BM = '~bookmarks~'
+    if BM not in ctx:
+        ctx[BM] = {}
+    return ctx[BM]
+
+
+@pytest.fixture(scope="module")
+def current_cli(ctx):
+    def _():
+        return ctx['current_cli']
+    return _
+
+
+@pytest.fixture(scope="module")
+def get_bookmark(bookmark, current_cli):
+    def _():
+        return bookmark.get(current_cli(), 0)
+    return _
+
+
+@pytest.fixture(scope="module")
+def set_bookmark(bookmark, current_cli):
+    def _(val):
+        bookmark[current_cli()] = val
+    return _
+
+
+@pytest.fixture(scope="module")
+def inc_bookmark(get_bookmark, set_bookmark):
+    def _(inc):
+        val = get_bookmark()
+        set_bookmark(val + inc)
+    return _
+
+
+@pytest.fixture(scope="module")
+def expect(current_cli, get_bookmark, inc_bookmark):
+
+    def _expect(expected, mapper=None, line_no=None, within=None, ignore_extra_lines=None):
+        cur_cli = current_cli()
+
+        def _():
+            expected_ = expected if not mapper \
+                else [s.format(**mapper) for s in expected]
+            assert isinstance(expected_, List)
+            bm = get_bookmark()
+            actual = ''.join(cur_cli.cli.output.writes).splitlines()[bm:]
+            assert isinstance(actual, List)
+            explanation = ''
+            expected_index = 0
+            for i in range(min(len(expected_), len(actual))):
+                e = expected_[expected_index]
+                assert isinstance(e, str)
+                a = actual[i]
+                assert isinstance(a, str)
+                is_p = type(e) == P
+                if (not is_p and a != e) or (is_p and not e.match(a)):
+                    if ignore_extra_lines:
+                        continue
+                    explanation += "line {} doesn't match\n"\
+                                   "  expected: {}\n"\
+                                   "    actual: {}\n".format(i, e, a)
+                expected_index += 1
+
+            if len(expected_) > len(actual):
+                for e in expected_:
+                    try:
+                        p = re.compile(e) if type(e) == P else None
+                    except Exception as err:
+                        explanation += "ERROR COMPILING REGEX for {}: {}\n".\
+                            format(e, err)
+                    for a in actual:
+                        if (p and p.fullmatch(a)) or a == e:
+                            break
+                    else:
+                        explanation += "missing: {}\n".format(e)
+
+            if len(expected_) < len(actual) and ignore_extra_lines is None:
+                for a in actual:
+                    for e in expected_:
+                        p = re.compile(e) if type(e) == P else None
+                        if (p and p.fullmatch(a)) or a == e:
+                            break
+                    else:
+                        explanation += "extra: {}\n".format(a)
+
+            if explanation:
+                explanation += "\nexpected:\n"
+                for x in expected_:
+                    explanation += "  > {}\n".format(x)
+                explanation += "\nactual:\n"
+                for x in actual:
+                    explanation += "  > {}\n".format(x)
+                if line_no:
+                    explanation += "section ends line number: {}\n".format(line_no)
+                pytest.fail(''.join(explanation))
+            else:
+                inc_bookmark(len(actual))
+        if within:
+            cur_cli.looper.run(eventually(_, timeout=within))
+        else:
+            _()
+
+    return _expect
+
+
+@pytest.fixture(scope="module")
 def steward(poolNodesCreated, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
 
@@ -1009,19 +1065,19 @@ def faberAdded(poolNodesCreated,
 
 
 @pytest.fixture(scope="module")
+def faberIsRunningWithoutNymAdded(emptyLooper, tdirWithPoolTxns, faberWallet,
+                                  faberAgent):
+    faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
+                                      faberWallet, faberAgent, None)
+    return faber, faberWallet
+
+
+@pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
                    faberAddedByPhil, faberAgent):
     faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
                                       faberWallet, faberAgent, faberAddedByPhil)
     return faber, faberWallet
-
-
-@pytest.fixture(scope="module")
-def bulldogIsRunning(emptyLooper, tdirWithPoolTxns, bulldogWallet,
-                   bulldogAddedByPhil, bulldogAgent):
-    bulldog, bulldogWallet = runningBulldog(emptyLooper, tdirWithPoolTxns,
-                                      bulldogWallet, bulldogAgent, bulldogAddedByPhil)
-    return bulldog, bulldogWallet
 
 
 @pytest.fixture(scope="module")
@@ -1061,13 +1117,14 @@ def savedKeyringRestored():
 # TODO: Need to refactor following three fixture to reuse code
 @pytest.yield_fixture(scope="module")
 def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                         tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                         cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("susan")
+                             cliTempLogger, multiPoolNodesCreated)("susan")
 
     def reset():
         tconf.ENVS = oldENVS
@@ -1079,13 +1136,14 @@ def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                        tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                        cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("alice")
+                             cliTempLogger, multiPoolNodesCreated)("alice")
 
     def reset():
         tconf.ENVS = oldENVS
@@ -1097,13 +1155,14 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf):
+                       tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                       cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
     yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                             multiPoolNodesCreated) ("earl")
+                             cliTempLogger, multiPoolNodesCreated)("earl")
 
     def reset():
         tconf.ENVS = oldENVS
@@ -1173,5 +1232,5 @@ def poolNodesStarted(be, do, poolCLI):
         ]
 
     do('new node all', within=6, expect = connectedExpect)
-    do(None, within=4, expect=primarySelectedExpect)
+    # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI

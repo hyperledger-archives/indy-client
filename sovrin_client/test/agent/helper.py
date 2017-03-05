@@ -1,6 +1,5 @@
 import argparse
 import sys
-import os
 
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.eventually import eventually
@@ -8,8 +7,6 @@ from plenum.test.test_stack import checkRemoteExists, CONNECTED
 
 from sovrin_client.agent.endpoint import Endpoint, ZEndpoint
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
 
 
 def connectAgents(agent1, agent2):
@@ -68,22 +65,3 @@ def buildAcmeWallet():
 def buildThriftWallet():
     return buildAgentWallet("ThriftBank", b'Thrift00000000000000000000000000')
 
-
-def buildBulldogWallet():
-    config = getConfig()
-    baseDir = os.path.expanduser(config.baseDir)
-    seedFileName = 'bulldog-seed'
-    seedFilePath = '{}/{}'.format(baseDir, seedFileName)
-    seed = 'Bulldog0000000000000000000000000'
-
-    # if seed file is available, read seed from it
-    if os.path.isfile(seedFilePath):
-        try:
-            with open(seedFilePath, mode='r+') as file:
-                seed = file.read().strip(' \t\n\r')
-        except OSError as e:
-            bulldogLogger.warn('Error occurred while reading seed file:'
-                               'error:{}'.format(e))
-            raise e
-
-    return buildAgentWallet('Bulldog', bytes(seed, encoding='utf-8'))

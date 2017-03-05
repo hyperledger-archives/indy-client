@@ -9,6 +9,8 @@ crate-type = ["dylib"]
 
 [dependencies]
 libc = "0.2.0"
+rust-base58 = "0.0.4"
+time = "0.1"
 
 #[dependencies.fixture]
 #git = "https://github.com/Jenselme/rust-fixture"

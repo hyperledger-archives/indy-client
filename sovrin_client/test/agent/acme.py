@@ -5,15 +5,14 @@ from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent, runAgent, isSchemaFound
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.conftest import primes
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.helper import TestClient, primes
 
 logger = getlogger()
 
@@ -34,6 +33,9 @@ class AcmeAgent(TestWalletedAgent):
                          endpointArgs=self.getEndpointArgs(wallet))
 
         self.availableClaims = []
+
+        # mapping between requester identifier and corresponding available claims
+        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -110,11 +112,16 @@ class AcmeAgent(TestWalletedAgent):
         return claimName == "Job-Certificate" and \
                "Job-Application" in link.verifiedClaimProofs
 
-    def getAvailableClaimList(self):
-        return self.availableClaims
+    def getAvailableClaimList(self, requesterId):
+        return self.availableClaims + \
+               self.requesterAvailClaims.get(requesterId, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
+        oldClaims = self.requesterAvailClaims.get(link.localIdentifier)
+        if oldClaims:
+            newClaims = oldClaims.extend(nac)
+            self.requesterAvailClaims[link.localIdentifier] = newClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):
@@ -136,15 +143,20 @@ class AcmeAgent(TestWalletedAgent):
             self._schemaJobCertKey.version,
             self._attrDefJobCert.attribNames(),
             'CL')
-        schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
-                               schemaId=schemaJobCert.seqId)
-        p_prime, q_prime = primes["prime1"]
-        await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
-                                  q_prime=q_prime)
-        await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
+        if schemaJobCert:
+            schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
+                                   schemaId=schemaJobCert.seqId)
+            p_prime, q_prime = primes["prime1"]
+            await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
+                                      q_prime=q_prime)
+            await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
+        return schemaJobCert
 
     async def bootstrap(self):
-        await self.addSchemasToWallet()
+        ranViaScript = False
+        if __name__ == "__main__":
+            ranViaScript = True
+        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):

@@ -5,22 +5,42 @@ from sovrin_client.test.cli.helper import checkConnectedToEnv, prompt_is
 
 
 @pytest.fixture(scope="module")
-def aliceCli(aliceCLI):
+def alice(aliceCLI):
     return aliceCLI
 
 
-def testDisconnect(do, be, poolNodesCreated, aliceCli):
-    be(aliceCli)
+def test_disconnect_when_not_connected(alice, be, do):
+    be(alice)
     do(None, expect=prompt_is("sovrin"))
     do('disconnect', within=1, expect=['Not connected to any environment.'])
     do(None, expect=prompt_is("sovrin"))
+
+
+@pytest.fixture(scope="module")
+def alice_connected(alice, be, do, poolNodesCreated):
+    be(alice)
+    do(None, expect=prompt_is("sovrin"))
     do('connect test', within=5, expect=["Connected to test"])
+    do(None, expect=prompt_is("sovrin@test"))
+
+
+def test_connect_to_test(alice_connected):
+    pass
+
+
+@pytest.fixture(scope="module")
+def alice_disconnected(alice, be, do, alice_connected):
+    be(alice)
     do(None, expect=prompt_is("sovrin@test"))
     do('disconnect', within=1, expect=[
         'Disconnecting from test ...',
         'Disconnected from test'
     ])
     do(None, expect=prompt_is("sovrin"))
+
+
+def test_disconnect_when_connected(do, be, alice_disconnected):
+    pass
 
 
 def testConnectEnv(poolNodesCreated, looper, notConnectedStatus):
@@ -58,7 +78,7 @@ def pool2(multiPoolNodesCreated):
     return multiPoolNodesCreated[1]
 
 
-def testSusanConnectsToDifferentPools(do, be, cliForMultiNodePools):
+def test_connect_to_different_pools(do, be, cliForMultiNodePools):
     be(cliForMultiNodePools)
     do(None, expect=prompt_is("sovrin"))
     do('connect pool1', within=5, expect=["Connected to pool1"])

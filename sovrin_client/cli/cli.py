@@ -7,13 +7,13 @@ import json
 import os
 from functools import partial
 from hashlib import sha256
-from typing import Dict, Any, Tuple, Callable
+from typing import Dict, Any, Tuple, Callable, List, NamedTuple
 
 import asyncio
 
 import base58
 from libnacl import randombytes
-from plenum.cli.cli import Cli as PlenumCli
+from plenum.cli.cli import Cli as PlenumCli, Cli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.common.port_dispenser import genHa
@@ -34,15 +34,17 @@ from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_IN
     EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
-    sendAttribCmd, sendClaimCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
+    sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
-    showClaimReqCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd
+    listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
+    sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, ClaimProofRequest
+from sovrin_client.client.wallet.link import Link
+from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.node import Node
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
@@ -77,6 +79,10 @@ cryptonym, and then an alias for bobto that cryptonym.)
 new client bob (cli uses the signer previously stored for this client)
 """
 
+Context = NamedTuple("Context", [("link", Link),
+                                 ("proofRequest", Any),
+                                 ("selfAttestedAttrs", Any)])
+
 
 class SovrinCli(PlenumCli):
     name = 'sovrin'
@@ -88,19 +94,23 @@ class SovrinCli(PlenumCli):
     ClientClass = Client
     _genesisTransactions = []
 
+    override_file_path = None
+
     def __init__(self, *args, **kwargs):
         self.aliases = {}  # type: Dict[str, Signer]
         self.sponsors = set()
         self.users = set()
+        self._agent = None
         super().__init__(*args, **kwargs)
         # Available environments
         self.envs = self.config.ENVS
         # This specifies which environment the cli is connected to test or live
         self.activeEnv = None
         _, port = genHa()
-        self.curContext = (None, None, {})  # Current Link, Current Claim Req,
-        # set attributes
-        self._agent = None
+
+        # TODO bad code smell
+        self.curContext = Context(None, None, {})  # type: Context
+
 
     @staticmethod
     def getCliVersion():
@@ -125,12 +135,16 @@ class SovrinCli(PlenumCli):
             'sync_link',
             'ping_target'
             'show_claim',
-            'show_claim_req',
+            'list_claims',
+            # 'show_claim_req',
+            'show_proof_req',
             'req_claim',
             'accept_link_invite',
             'set_attr',
-            'send_claim',
-            'new_id'
+            'send_proof_request'
+            'send_proof',
+            'new_id',
+            'req_avail_claims'
         ]
         lexers = {n: SimpleLexer(Token.Keyword) for n in lexerNames}
         # Add more lexers to base class lexers
@@ -159,15 +173,20 @@ class SovrinCli(PlenumCli):
         completers["sync_link"] = WordCompleter(["sync"])
         completers["ping_target"] = WordCompleter(["ping"])
         completers["show_claim"] = WordCompleter(["show", "claim"])
-        completers["show_claim_req"] = WordCompleter(["show",
-                                                      "claim", "request"])
+        completers["list_claims"] = WordCompleter(["list", "claims"])
+        # completers["show_claim_req"] = WordCompleter(["show",
+        #                                               "claim", "request"])
+        completers["show_proof_req"] = WordCompleter(["show",
+                                                      "proof", "request"])
         completers["req_claim"] = WordCompleter(["request", "claim"])
         completers["accept_link_invite"] = WordCompleter(["accept",
                                                           "invitation", "from"])
 
         completers["set_attr"] = WordCompleter(["set"])
-        completers["send_claim"] = WordCompleter(["send", "claim"])
+        completers["send_proof_request"] = WordCompleter(["send", "proof", "request"])
+        completers["send_proof"] = WordCompleter(["send", "proof"])
         completers["new_id"] = WordCompleter(["new", "identifier"])
+        completers["req_avail_claims"] = WordCompleter(["request", "available", "claims", "from"])
 
         return {**super().completers, **completers}
 
@@ -195,24 +214,34 @@ class SovrinCli(PlenumCli):
                         self._syncLink,
                         self._pingTarget,
                         self._showClaim,
+                        self._listClaims,
                         self._reqClaim,
-                        self._showClaimReq,
+                        self._showProofRequest,
                         self._acceptInvitationLink,
                         self._setAttr,
-                        self._sendClaim,
-                        self._newIdentifier
+                        self._sendProofRequest,
+                        self._sendProof,
+                        self._newIdentifier,
+                        self._reqAvailClaims
                         ])
         return actions
+
+    @PlenumCli.activeWallet.setter
+    def activeWallet(self, wallet):
+        PlenumCli.activeWallet.fset(self, wallet)
+        if self._agent:
+            self._agent._wallet = self._activeWallet
 
     @staticmethod
     def _getSetAttrUsage():
         return ['set <attr-name> to <attr-value>']
 
     @staticmethod
-    def _getSendClaimProofReqUsage(claimProofReqName=None, inviterName=None):
-        return ['send claim {} to {}'.format(
-            claimProofReqName or "<claim-req-name>",
-            inviterName or "<inviter-name>")]
+    def _getSendProofUsage(proofRequest: ProofRequest=None,
+                           inviter: Link=None):
+        return ['send proof "{}" to "{}"'.format(
+            proofRequest.name or "<proof-request-name>",
+            inviter.name or "<inviter-name>")]
 
     @staticmethod
     def _getShowFileUsage(filePath=None):
@@ -223,9 +252,9 @@ class SovrinCli(PlenumCli):
         return ['load {}'.format(filePath or "<file-path>")]
 
     @staticmethod
-    def _getShowClaimReqUsage(claimReqName=None):
-        return ['show claim request "{}"'.format(
-            claimReqName or '<claim-request-name>')]
+    def _getShowProofRequestUsage(proofRequest: ProofRequest=None):
+        return ['show proof request "{}"'.format(
+            (proofRequest and proofRequest.name) or '<proof-request-name>')]
 
     @staticmethod
     def _getShowClaimUsage(claimName=None):
@@ -258,28 +287,23 @@ class SovrinCli(PlenumCli):
     def _getConnectUsage(self):
         return ["connect <{}>".format(self.allEnvNames)]
 
-    def _printPostShowClaimReqSuggestion(self, claimProofReqName, inviterName):
-        msgs = self._getSetAttrUsage() + \
-               self._getSendClaimProofReqUsage(claimProofReqName, inviterName)
-        self.printSuggestion(msgs)
-
-    def _printShowClaimReqUsage(self):
-        self.printUsage(self._getShowClaimReqUsage())
-
     def _printMsg(self, notifier, msg):
         self.print(msg)
 
     def _printSuggestionPostAcceptLink(self, notifier,
-                                       availableClaimNames,
-                                       claimProofReqsCount):
-        if len(availableClaimNames) > 0:
-            claimName = "|".join([n for n in availableClaimNames])
+                                       link: Link):
+        suggestions = []
+        if len(link.availableClaims) > 0:
+            claimName = "|".join([n.name for n in link.availableClaims])
             claimName = claimName or "<claim-name>"
-            msgs = self._getShowClaimUsage(claimName) + \
-                   self._getReqClaimUsage(claimName)
-            self.printSuggestion(msgs)
-        elif claimProofReqsCount > 0:
-            self.printSuggestion(self._getShowClaimReqUsage())
+            suggestions += self._getShowClaimUsage(claimName)
+            suggestions += self._getReqClaimUsage(claimName)
+        if len(link.proofRequests) > 0:
+            for pr in link.proofRequests:
+                suggestions += self._getShowProofRequestUsage(pr)
+                suggestions += self._getSendProofUsage(pr, link)
+        if suggestions:
+            self.printSuggestion(suggestions)
         else:
             self.print("")
 
@@ -499,7 +523,10 @@ class SovrinCli(PlenumCli):
         self.print("Adding attributes {} for {}".format(data, nym))
 
         def out(reply, error, *args, **kwargs):
-            self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
+            if error:
+                self.print("{}".format(error), Token.BoldOrange)
+            else:
+                self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
                        Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
@@ -510,8 +537,9 @@ class SovrinCli(PlenumCli):
         self.activeWallet.addNode(node)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
-        self.print("Sending node request {} by {}".format(nym,
-                                                          self.activeIdentifier))
+        self.print("Sending node request for node identifier {} by {} "
+                   "(request id: {})".format(nym, self.activeIdentifier,
+                                             req.reqId))
 
         def out(reply, error, *args, **kwargs):
             if error:
@@ -713,9 +741,11 @@ class SovrinCli(PlenumCli):
                     self.print(e.args[0])
             return True
 
-    @staticmethod
-    def _getFilePath(givenPath):
-        curDirPath = os.path.dirname(os.path.abspath(__file__))
+    @classmethod
+    def _getFilePath(cls, givenPath, caller_file=None):
+        curDirPath = os.path.dirname(os.path.abspath(caller_file or
+                                                     cls.override_file_path or
+                                                     __file__))
         sampleExplicitFilePath = curDirPath + "/../../" + givenPath
         sampleImplicitFilePath = curDirPath + "/../../sample/" + givenPath
 
@@ -735,6 +765,7 @@ class SovrinCli(PlenumCli):
         # change [self.activeWallet] to self.wallets.values()
         walletsToBeSearched = [self.activeWallet]  # self.wallets.values()
         for w in walletsToBeSearched:
+            # TODO: This should be moved to wallet
             invitations = w.getMatchingLinks(linkName)
             for i in invitations:
                 if i.name == linkName:
@@ -748,6 +779,7 @@ class SovrinCli(PlenumCli):
                     else:
                         likelyMatched[w.name] = [i]
 
+        # TODO: instead of a comment, this should be implemented as a test
         # Here is how the return dictionary should look like:
         # {
         #    "exactlyMatched": {
@@ -853,7 +885,7 @@ class SovrinCli(PlenumCli):
 
     @staticmethod
     def removeSpecialChars(name):
-        return name.replace('"', '').replace("'", "")
+        return name.replace('"', '').replace("'", "") if name else None
 
     def _printSyncLinkUsage(self, linkName):
         msgs = self._getSyncLinkUsage(linkName)
@@ -881,7 +913,7 @@ class SovrinCli(PlenumCli):
         self.printSuggestion(msgs)
 
     def _printNoLinkFoundMsg(self):
-        self.print("No matching link invitation(s) found in current keyring")
+        self.print("No matching link invitations found in current keyring")
         self._printShowAndLoadFileSuggestion()
 
     def _isConnectedToAnyEnv(self):
@@ -964,9 +996,7 @@ class SovrinCli(PlenumCli):
 
                 self.print("{}".format(str(li)))
                 if li.isAccepted:
-                    acn = [n for n, _, _ in li.availableClaims]
-                    self._printSuggestionPostAcceptLink(
-                        self, acn, len(li.claimProofRequests))
+                    self._printSuggestionPostAcceptLink(self, li)
                 else:
                     self._printSyncAndAcceptUsage(li.name)
             else:
@@ -976,11 +1006,14 @@ class SovrinCli(PlenumCli):
 
             return True
 
-    def _printNoClaimReqFoundMsg(self):
-        self.print("No matching claim request(s) found in current keyring\n")
+    # def _printNoClaimReqFoundMsg(self):
+    #     self.print("No matching Claim Requests found in current keyring\n")
+    #
+    def _printNoProofReqFoundMsg(self):
+        self.print("No matching Proof Requests found in current keyring\n")
 
     def _printNoClaimFoundMsg(self):
-        self.print("No matching claim(s) found in "
+        self.print("No matching Claims found in "
                    "any links in current keyring\n")
 
     def _printMoreThanOneLinkFoundForRequest(self, requestedName, linkNames):
@@ -1003,13 +1036,13 @@ class SovrinCli(PlenumCli):
         for li, cl in linkAndClaimNames:
             self.print("{} in {}".format(li, cl))
 
-    def _getOneLinkAndClaimReq(self, claimReqName, linkName=None) -> \
-            (Link, ClaimProofRequest):
-        matchingLinksWithClaimReq = self.activeWallet. \
-            getMatchingLinksWithClaimReq(claimReqName, linkName)
+    def _findProofRequest(self, claimReqName: str, linkName: str=None) -> \
+            (Link, ProofRequest):
+        matchingLinksWithClaimReq = self.activeWallet.\
+            findAllProofRequests(claimReqName, linkName)  # TODO rename claimReqName -> proofRequestName
 
         if len(matchingLinksWithClaimReq) == 0:
-            self._printNoClaimReqFoundMsg()
+            self._printNoProofReqFoundMsg()
             return None, None
 
         if len(matchingLinksWithClaimReq) > 1:
@@ -1063,8 +1096,7 @@ class SovrinCli(PlenumCli):
                 selfAttestedAttrs[attrName] = attrValue
             else:
                 self.print("No context, use below command to set the context")
-                self._printShowClaimReqUsage()
-
+                self.printUsage(self._getShowProofRequestUsage())
             return True
 
     def _reqClaim(self, matchedVars):
@@ -1117,6 +1149,14 @@ class SovrinCli(PlenumCli):
         self.print("Key for identifier is {}".format(signer.verkey))
         self._setActiveIdentifier(id)
 
+    def _reqAvailClaims(self, matchedVars):
+        if matchedVars.get('req_avail_claims') == 'request available claims from':
+            linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
+            li = self._getOneLinkForFurtherProcessing(linkName)
+            if li:
+                self.agent.sendReqAvailClaims(li)
+            return True
+
     def _newIdentifier(self, matchedVars):
         if matchedVars.get('new_id') == 'new identifier':
             id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
@@ -1136,21 +1176,39 @@ class SovrinCli(PlenumCli):
             self._createNewIdentifier(isAbbr, isCrypto, identifier, seed, alias)
             return True
 
+    def _sendProof(self, matchedVars):
+        if matchedVars.get('send_proof') == 'send proof':
+            claimName = SovrinCli.removeSpecialChars(
+                matchedVars.get('claim_name').strip())  # TODO this should be proof_request_name, not claim_name
+            linkName = SovrinCli.removeSpecialChars(
+                matchedVars.get('link_name').strip())
 
-    def _sendClaim(self, matchedVars):
-        if matchedVars.get('send_claim') == 'send claim':
-            claimName = matchedVars.get('claim_name').strip()
-            linkName = matchedVars.get('link_name').strip()
+            li, proofReq = self._findProofRequest(claimName, linkName)
 
-            li, claimPrfReq = self._getOneLinkAndClaimReq(claimName, linkName)
-
-            if not li or not claimPrfReq:
+            if not li or not proofReq:
                 return False
 
             self.logger.debug("Building proof using {} for {}".
-                              format(claimPrfReq, li))
+                              format(proofReq, li))
 
-            self.agent.sendProof(li, claimPrfReq)
+            self.agent.sendProof(li, proofReq)
+
+            return True
+
+    def _sendProofRequest(self, matchedVars):
+        if matchedVars.get('send_proof_req') == 'send proof request':
+            proofName = SovrinCli.removeSpecialChars(matchedVars.get('proof_name').strip())
+            target = SovrinCli.removeSpecialChars(matchedVars.get('target').strip())
+
+            li, proofReq = self._getOneLinkAndClaimReq(proofName, target)
+
+            if not li or not proofReq:
+                return False
+
+            self.logger.debug("Building proof using {} for {}".
+                              format(proofReq, li))
+
+            self.agent.sendProofReq(li, proofReq)
 
             return True
 
@@ -1183,56 +1241,53 @@ class SovrinCli(PlenumCli):
                 self.print("")
             return rcvdClaim
         else:
-            self.print("No matching claim(s) found "
+            self.print("No matching Claims found "
                        "in any links in current keyring")
 
     def _printRequestClaimMsg(self, claimName):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
-    async def _showMatchingClaimProof(self, claimProofReq: ClaimProofRequest,
-                                selfAttestedAttrs, matchingLink):
-        matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(claimProofReq.attributes)
+    async def _showMatchingClaimProof(self, c: Context):
+        matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(
+            c.proofRequest.attributes)
 
-        attributesWithValue = claimProofReq.attributes
-        for k, v in claimProofReq.attributes.items():
+        attributesWithValue = c.proofRequest.attributes
+        for k, v in c.proofRequest.attributes.items():
             for li, cl, issuedAttrs in matchingLinkAndReceivedClaim:
                 if k in issuedAttrs:
                     attributesWithValue[k] = issuedAttrs[k]
                 else:
                     defaultValue = attributesWithValue[k] or v
-                    attributesWithValue[k] = selfAttestedAttrs.get(k, defaultValue)
+                    attributesWithValue[k] = c.selfAttestedAttrs.get(k, defaultValue)
 
-        claimProofReq.attributes = attributesWithValue
-        self.print(str(claimProofReq))
+        c.proofRequest.attributes = attributesWithValue
+        self.print(str(c.proofRequest))
 
+        self.print('\nThe Proof is constructed from the following claims:')
         for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
-            self.print('\n    Claim proof ({} v{} from {})'.format(
+            self.print('\n    Claim ({} v{} from {})'.format(
                 name, ver, li.name))
             for k, v in issuedAttrs.items():
                 self.print('        ' + k + ': ' + v + ' (verifiable)')
+        self.printSuggestion(
+            self._getSetAttrUsage() +
+            self._getSendProofUsage(c.proofRequest, c.link))
 
-        self._printPostShowClaimReqSuggestion(claimProofReq.name,
-                                              matchingLink.name)
-
-    def _showClaimReq(self, matchedVars):
-        if matchedVars.get('show_claim_req') == 'show claim request':
-            claimReqName = SovrinCli.removeSpecialChars(
-                matchedVars.get('claim_req_name'))
-            matchingLink, claimReq = \
-                self._getOneLinkAndClaimReq(claimReqName)
-            if matchingLink and claimReq:
-                if matchingLink == self.curContext[0] and claimReq == self.curContext[1]:
-                    matchingLink, claimReq, attributes = self.curContext
-                else:
-                    attributes = {}
-                    self.curContext = matchingLink, claimReq, attributes
-                self.print('Found claim request "{}" in link "{}"'.
-                           format(claimReq.name, matchingLink.name))
-
+    def _showProofRequest(self, matchedVars):
+        if matchedVars.get('show_proof_req') == 'show proof request':
+            proof_request_name = SovrinCli.removeSpecialChars(
+                matchedVars.get('proof_req_name'))
+            matchingLink, proofRequest = \
+                self._findProofRequest(proof_request_name)
+            if matchingLink and proofRequest:
+                if matchingLink != self.curContext.link or \
+                                proofRequest != self.curContext.proofRequest:
+                    self.curContext = Context(matchingLink, proofRequest, {})
+                self.print('Found proof request "{}" in link "{}"'.
+                           format(proofRequest.name, matchingLink.name))
                 self.agent.loop.call_soon(asyncio.ensure_future,
-                                          self._showMatchingClaimProof(claimReq,
-                                                                       attributes,
-                                                                       matchingLink))
+                                          self._showMatchingClaimProof(
+                                              self.curContext))
             return True
 
     def _showClaim(self, matchedVars):
@@ -1243,6 +1298,19 @@ class SovrinCli(PlenumCli):
                                       self._showReceivedOrAvailableClaim(claimName))
 
             return True
+
+    def _listClaims(self, matchedVars):
+        if matchedVars.get('list_claims') == 'list claims':
+            link_name = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
+
+            li = self._getOneLinkForFurtherProcessing(link_name)
+            if li:
+                # TODO sync if needed, send msg to agent
+                self._printAvailClaims(li)
+            return True
+
+    def _printAvailClaims(self, link):
+        self.print(link.avail_claims_str())
 
     def _showFile(self, matchedVars):
         if matchedVars.get('show_file') == 'show':
@@ -1304,6 +1372,53 @@ class SovrinCli(PlenumCli):
                 self.print("Any changes made to this keyring won't "
                            "be persisted.", Token.BoldOrange)
 
+    def moveActiveWalletToNewContext(self, newEnv):
+        if self._activeWallet:
+            if not self._activeWallet.env or self._activeWallet.env == NO_ENV:
+                currentWalletName = self._activeWallet.name
+                self._activeWallet.env = newEnv
+                randomSuffix = ''
+                sourceWalletFilePath = Cli.getWalletFilePath(
+                    self.getContextBasedKeyringsBaseDir(), self.walletFileName)
+                targetContextDir = os.path.join(self.getKeyringsBaseDir(),
+                                                newEnv)
+                if os.path.exists(sourceWalletFilePath):
+                    while True:
+                        targetWalletName = currentWalletName + randomSuffix
+                        toBeTargetWalletFileExists = self.checkIfPersistentWalletExists(
+                            targetWalletName, inContextDir=targetContextDir)
+                        if not toBeTargetWalletFileExists:
+                            self._activeWallet.name = targetWalletName
+                            break
+                        randomSuffix = "-{}".format(randomString(6))
+                    self._saveActiveWalletInDir(contextDir=targetContextDir,
+                                                printMsgs=False)
+                    os.remove(sourceWalletFilePath)
+                targetWalletFilePath = Cli.getWalletFilePath(
+                    targetContextDir, self.walletFileName)
+
+                self.print("Current active keyring got moved to '{}' "
+                           "environment. Here is the detail:".format(newEnv),
+                           Token.BoldBlue)
+                self.print("    keyring name: {}".format(
+                    currentWalletName), Token.BoldBlue)
+                self.print("    old location: {}".format(
+                    sourceWalletFilePath), Token.BoldBlue)
+                self.print("    new location: {}".format(
+                    targetWalletFilePath), Token.BoldBlue)
+                if randomSuffix != '':
+                    self.print("    new keyring name: {}".format(
+                        self._activeWallet.name), Token.BoldBlue)
+                    self.print("    Note:\n       Target environment "
+                               "already had a keyring with name '{}', so we "
+                               "renamed current active keyring to '{}'.\n      "
+                               " You can always rename any keyring with more "
+                               "meaningful name with 'rename keyring' command.".
+                               format(currentWalletName, self._activeWallet.name),
+                        Token.BoldBlue)
+                self._activeWallet = None
+        pass
+
     def _connectTo(self, matchedVars):
         if matchedVars.get('conn') == 'connect':
             envName = matchedVars.get('env_name')
@@ -1314,6 +1429,12 @@ class SovrinCli(PlenumCli):
             else:
                 if self.nodeReg:
                     oldEnv = self.activeEnv
+
+                    self._saveActiveWallet()
+
+                    if not oldEnv:
+                        self.moveActiveWalletToNewContext(envName)
+
                     isAnyWalletExistsForNewEnv = \
                         self.isAnyWalletFileExistsForGivenEnv(envName)
 
@@ -1330,6 +1451,7 @@ class SovrinCli(PlenumCli):
 
                     if isAnyWalletExistsForNewEnv:
                         self.restoreLastActiveWallet()
+
 
                     self.printWarningIfActiveWalletIsIncompatible()
 
@@ -1533,10 +1655,17 @@ class SovrinCli(PlenumCli):
         mappings['pingTarget'] = pingTargetCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['showClaim'] = showClaimCmd
+        mappings['listClaims'] = listClaimsCmd
         mappings['reqClaim'] = reqClaimCmd
-        mappings['showClaimReq'] = showClaimReqCmd
+        # mappings['showClaimReq'] = showClaimReqCmd
+        mappings['showProofRequest'] = showProofRequestCmd
+        mappings['acceptInvitationLink'] = acceptLinkCmd
+        mappings['addGenTxnAction'] = addGenesisTxnCmd
         mappings['setAttr'] = setAttrCmd
-        mappings['sendClaim'] = sendClaimCmd
+        mappings['sendProofRequest'] = sendProofRequestCmd
+        mappings['sendProof'] = sendProofCmd
+        mappings['newIdentifier'] = newIdentifierCmd
+        mappings['reqAvailClaims'] = reqAvailClaimsCmd
 
         # TODO: These seems to be obsolete, so either we need to remove these
         # command handlers or let it point to None

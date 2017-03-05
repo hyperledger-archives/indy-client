@@ -99,7 +99,7 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
 
 def checkIfInvalidAttribIsRejected(do, map):
     data = json.loads(map.get('invalidEndpointAttr'))
-    endpoint = data.get(ENDPOINT)
+    endpoint = data.get(ENDPOINT).get('ha')
     errorMsg = 'client request invalid: InvalidClientRequest(' \
                '"invalid endpoint: \'{}\'",)'.format(endpoint)
 

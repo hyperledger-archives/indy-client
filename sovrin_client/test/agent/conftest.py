@@ -35,8 +35,8 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.txn import SPONSOR, ENDPOINT
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
-from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
-    buildAcmeWallet, buildThriftWallet
+from sovrin_client.test.agent.helper import ensureAgentsConnected, \
+    buildFaberWallet, buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
 from sovrin_node.test.helper import addAttributeAndCheck
 from sovrin_client.test.helper import createNym, TestClient

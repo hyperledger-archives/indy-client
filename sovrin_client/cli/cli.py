@@ -106,7 +106,6 @@ class SovrinCli(PlenumCli):
         self.envs = self.config.ENVS
         # This specifies which environment the cli is connected to test or live
         self.activeEnv = None
-        _, port = genHa()
 
         # TODO bad code smell
         self.curContext = Context(None, None, {})  # type: Context

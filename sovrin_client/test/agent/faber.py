@@ -4,8 +4,7 @@ from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runAgent, \
-    isSchemaFound
+from sovrin_client.agent.agent import createAgent, runAgent, runBootstap
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -127,10 +126,7 @@ class FaberAgent(TestWalletedAgent):
         return schema
 
     async def bootstrap(self):
-        ranViaScript = False
-        if __name__ == "__main__":
-            ranViaScript = True
-        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
+        await runBootstap(isMain(), self.addSchemasToWallet)
 
 
 def createFaber(name=None, wallet=None, basedirpath=None, port=None):
@@ -138,6 +134,11 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
                        wallet or buildFaberWallet(),
                        basedirpath, port, clientClass=TestClient)
 
-if __name__ == "__main__":
+
+def isMain():
+    return __name__ == "__main__"
+
+
+if isMain():
     faber = createFaber(port=5555)
     runAgent(faber)

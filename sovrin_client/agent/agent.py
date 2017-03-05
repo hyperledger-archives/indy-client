@@ -3,7 +3,7 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound
+from plenum.common.exceptions import RemoteNotFound, OpError
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
@@ -15,6 +15,7 @@ from plenum.common.util import randomString
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
+from sovrin_client.agent.exception import AgentBootstrapFailed
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -232,7 +233,10 @@ def runAgent(agent, looper=None, bootstrap=True):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
         if bootstrap:
-            looper.run(agent.bootstrap())
+            try:
+                looper.run(agent.bootstrap())
+            except Exception as e:
+                raise e
 
     if looper:
         doRun(looper)
@@ -251,17 +255,23 @@ def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
     return agent
 
 
-def isSchemaFound(schema, ranViaScript):
-    if not schema:
+async def runBootstap(isMain, bootstrapFunc):
+    def printErrorMsg():
         msg = "Schema not found, check if Sovrin is running and " \
               "agent's identifier is added"
-        msgHalfLength = int(len(msg)/2)
+        msgHalfLength = int(len(msg) / 2)
         errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
-        print("\n" + errorLine)
-        print("Schema not found, check if Sovrin is running and "
-              "agent's identifier is added")
-        print(errorLine + "\n")
-        if ranViaScript:
+        print("\n" + errorLine + "\n" + msg + "\n" + errorLine + "\n")
+
+    try:
+        await bootstrapFunc()
+    except(TimeoutError, OpError):
+        printErrorMsg()
+        if isMain:
             exit(1)
         else:
-            raise Exception
+            raise AgentBootstrapFailed
+
+
+
+

@@ -3,7 +3,7 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound, OpError
+from plenum.common.exceptions import RemoteNotFound
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
@@ -233,10 +233,7 @@ def runAgent(agent, looper=None, bootstrap=True):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
         if bootstrap:
-            try:
-                looper.run(agent.bootstrap())
-            except Exception as e:
-                raise e
+            looper.run(agent.bootstrap())
 
     if looper:
         doRun(looper)
@@ -263,15 +260,11 @@ async def runBootstap(isMain, bootstrapFunc):
         errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
         print("\n" + errorLine + "\n" + msg + "\n" + errorLine + "\n")
 
-    try:
-        await bootstrapFunc()
-    except(TimeoutError, OpError):
+    result = await bootstrapFunc()
+    if not result:
         printErrorMsg()
         if isMain:
             exit(1)
         else:
             raise AgentBootstrapFailed
-
-
-
 

@@ -2,7 +2,7 @@ import json
 
 from ledger.util import F
 from plenum.common.eventually import eventually
-from plenum.common.exceptions import NoConsensusYet, OpError
+from plenum.common.exceptions import NoConsensusYet
 from plenum.common.log import getlogger
 from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
     ORIGIN
@@ -131,7 +131,7 @@ class SovrinPublicRepo(PublicRepo):
         try:
             data, seqNo = await self._sendSubmitReq(op)
         except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
+            logger.warning('Operation timed out {}'.format(op))
             return None
 
         if not seqNo:

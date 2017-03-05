@@ -154,7 +154,7 @@ class AcmeAgent(TestWalletedAgent):
         return schemaJobCert
 
     async def bootstrap(self):
-        runBootstap(isMain(), self.addSchemasToWallet)
+        await runBootstap(isMain(), self.addSchemasToWallet)
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):

@@ -3,19 +3,18 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound
+from plenum.common.exceptions import RemoteNotFound, AddressAlreadyInUse
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.port_dispenser import genHa
 from plenum.common.startable import Status
 from plenum.common.types import Identifier
-from plenum.common.util import randomString
+from plenum.common.util import randomString, getFormattedErrorMsg
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
-from sovrin_client.agent.exception import AgentBootstrapFailed
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -221,14 +220,21 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
                          ha=("0.0.0.0", clientPort),
                          basedirpath=basedirpath)
 
-    return agentClass(basedirpath=basedirpath,
-                      client=client,
-                      wallet=wallet,
-                      port=port,
-                      loop=loop)
+    try:
+        return agentClass(basedirpath=basedirpath,
+                          client=client,
+                          wallet=wallet,
+                          port=port,
+                          loop=loop)
+    except AddressAlreadyInUse as e:
+        msg = getFormattedErrorMsg(str(e))
+        logger.error(msg)
 
 
 def runAgent(agent, looper=None, bootstrap=True):
+    if not agent:
+        return
+
     def doRun(looper):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
@@ -247,24 +253,21 @@ def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                       port=None, looper=None, clientClass=Client, bootstrap=True):
     loop = looper.loop if looper else None
     agent = createAgent(agentClass, name, wallet, basedirpath, port, loop,
-                        clientClass)
+                    clientClass)
     runAgent(agent, looper, bootstrap)
     return agent
 
 
 async def runBootstap(isMain, bootstrapFunc):
-    def printErrorMsg():
-        msg = "Schema not found, check if Sovrin is running and " \
-              "agent's identifier is added"
-        msgHalfLength = int(len(msg) / 2)
-        errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
-        print("\n" + errorLine + "\n" + msg + "\n" + errorLine + "\n")
+    isSuccessful = None
+    error = "Agent bootstrap failed: check if Sovrin is running and " \
+            "agent's identifier is added"
+    try:
+        isSuccessful = await bootstrapFunc()
+    except TimeoutError as e:
+        error += " [cause : {}]".format(str(e))
 
-    result = await bootstrapFunc()
-    if not result:
-        printErrorMsg()
+    if not isSuccessful:
+        logger.error(getFormattedErrorMsg(error))
         if isMain:
             exit(1)
-        else:
-            raise AgentBootstrapFailed
-

@@ -53,11 +53,7 @@ class SovrinPublicRepo(PublicRepo):
                 VERSION: id.schemaKey.version,
             }
         }
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendGetReq(op)
         return Schema(name=data[NAME],
                                version=data[VERSION],
                                schemaType=data[TYPE],
@@ -72,14 +68,7 @@ class SovrinPublicRepo(PublicRepo):
             ORIGIN: id.schemaKey.issuerId
         }
 
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
-
-        if not data:
-            return None
+        data, seqNo = await self._sendGetReq(op)
 
         data = data[DATA][PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
@@ -92,11 +81,7 @@ class SovrinPublicRepo(PublicRepo):
             ORIGIN: id.schemaKey.issuerId
         }
 
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendGetReq(op)
 
         if not data:
             return None
@@ -128,11 +113,7 @@ class SovrinPublicRepo(PublicRepo):
             }
         }
 
-        try:
-            data, seqNo = await self._sendSubmitReq(op)
-        except TimeoutError:
-            logger.warning('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendSubmitReq(op)
 
         if not seqNo:
             return None
@@ -151,11 +132,7 @@ class SovrinPublicRepo(PublicRepo):
             DATA: {PRIMARY: pkData, REVOCATION: pkRData}
         }
 
-        try:
-            data, seqNo = await self._sendSubmitReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendSubmitReq(op)
 
         if not seqNo:
             return None

@@ -5,7 +5,3 @@ class NonceNotFound(RuntimeError):
 
 class SignatureRejected(RuntimeError):
     pass
-
-
-class AgentBootstrapFailed(RuntimeError):
-    pass

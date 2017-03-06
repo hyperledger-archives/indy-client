@@ -97,23 +97,32 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
     return philCli
 
 
-def checkIfInvalidAttribIsRejected(do, map):
-    data = json.loads(map.get('invalidEndpointAttr'))
-    endpoint = data.get(ENDPOINT)
-    errorMsg = 'client request invalid: InvalidClientRequest(' \
-               '"invalid endpoint: \'{}\'",)'.format(endpoint)
+def checkIfInvalidEndpointIsRejected(do, map):
+    invalidEndpoints = []
+    invalidIps = [" 127.0.0.1", "127.0.0.1 ", " 127.0.0.1 ", "127.0.0",
+                  "127.A.0.1"]
+    invalidPorts = [" 3456", "3457 ", "63AB", "0", "65536"]
+    for invalidIp in invalidIps:
+        invalidEndpoints.append("{}:1234".format(invalidIp))
+    for invalidPort in invalidPorts:
+        invalidEndpoints.append("127.0.0.1:{}".format(invalidPort))
 
-    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
-       within=5,
-       expect=[errorMsg],
-       mapper=map)
+    for invalidEndpoint in invalidEndpoints:
+        errorMsg = 'client request invalid: InvalidClientRequest(' \
+                   '"invalid endpoint: \'{}\'",)'.format(invalidEndpoint)
+        endpoint = json.dumps({ENDPOINT: invalidEndpoint})
+        map["invalidEndpointAttr"] = endpoint
+        do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+           within=5,
+           expect=[errorMsg],
+           mapper=map)
 
 
 @pytest.fixture(scope="module")
 def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, faberMap)
+    checkIfInvalidEndpointIsRejected(do, faberMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
@@ -125,7 +134,7 @@ def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, acmeMap)
+    checkIfInvalidEndpointIsRejected(do, acmeMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -137,7 +146,7 @@ def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, thriftMap)
+    checkIfInvalidEndpointIsRejected(do, thriftMap)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,

@@ -113,7 +113,6 @@ def faberMap(agentIpAddress, faberAgentPort):
             "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: endpoint,
-            "invalidEndpointAttr": json.dumps({ENDPOINT: " 127.0.0.1:4578"}),
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
@@ -131,7 +130,6 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: endpoint,
-            "invalidEndpointAttr": json.dumps({ENDPOINT: "127.0.0.1 :4578"}),
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Job-Application",
             "proof-request-to-show": "Job-Application",
@@ -154,7 +152,6 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: endpoint,
-            "invalidEndpointAttr": json.dumps({ENDPOINT: "127.0.0.1:4A78"}),
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "claim-ver-req-to-show": "0.1"

@@ -97,6 +97,21 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
     return philCli
 
 
+def checkIfValidEndpointIsAccepted(do, map, attribAdded):
+    validEndpoints = []
+    validPorts = ["1", "3457", "65535"]
+    for validPort in validPorts:
+        validEndpoints.append("127.0.0.1:{}".format(validPort))
+
+    for validEndpoint in validEndpoints:
+        endpoint = json.dumps({ENDPOINT: validEndpoint})
+        map["validEndpointAttr"] = endpoint
+        do("send ATTRIB dest={target} raw={validEndpointAttr}",
+           within=5,
+           expect=attribAdded,
+           mapper=map)
+
+
 def checkIfInvalidEndpointIsRejected(do, map):
     invalidEndpoints = []
     invalidIps = [" 127.0.0.1", "127.0.0.1 ", " 127.0.0.1 ", "127.0.0",
@@ -123,6 +138,7 @@ def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
     be(philCli)
     checkIfInvalidEndpointIsRejected(do, faberMap)
+    checkIfValidEndpointIsAccepted(do, faberMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
@@ -135,6 +151,7 @@ def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
     be(philCli)
     checkIfInvalidEndpointIsRejected(do, acmeMap)
+    checkIfValidEndpointIsAccepted(do, acmeMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -147,6 +164,7 @@ def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
     be(philCli)
     checkIfInvalidEndpointIsRejected(do, thriftMap)
+    checkIfValidEndpointIsAccepted(do, thriftMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,

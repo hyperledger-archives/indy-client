@@ -29,6 +29,7 @@ from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FI
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
+from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
@@ -769,18 +770,22 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return _
 
     def _updateLinkWithLatestInfo(self, link: Link, reply):
-
+        link.targetVerkey = DidVerifier(reply[VERKEY],
+                                        identifier=link.remoteIdentifier).verkey
         if DATA in reply and reply[DATA]:
             data = json.loads(reply[DATA])
             ep = data.get(ENDPOINT)
             if ep:
-                # TODO: Handle this gracefully later, for now, crash/
-                assert 'ha' in ep and PUBKEY in ep
                 # TODO: Validate its an IP port pair or a malicious entity
                 # can crash the code
-                ip, port = ep['ha'].split(":")
-                link.remoteEndPoint = (ip, int(port))
-                link.remotePubKey = ep[PUBKEY]
+                if 'ha' in ep:
+                    ip, port = ep['ha'].split(":")
+                    link.remoteEndPoint = (ip, int(port))
+                if PUBKEY in ep:
+                    link.remotePubKey = ep[PUBKEY]
+                else:
+                    link.remotePubKey = friendlyVerkeyToPubkey(
+                        link.targetVerkey) if link.targetVerkey else None
 
         link.linkLastSynced = datetime.now()
         self.notifyMsgListener("    Link {} synced".format(link.name))

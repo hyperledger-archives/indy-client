@@ -108,7 +108,6 @@ def susanMap():
 @pytest.fixture(scope="module")
 def faberMap(agentIpAddress, faberAgentPort):
     ha = "{}:{}".format(agentIpAddress, faberAgentPort)
-    pubkey = '5hmMA64DDQz5NzGJNVtRzNwpkZxktNQds21q3Wxxa62z'
     return {'inviter': 'Faber College',
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
@@ -116,9 +115,8 @@ def faberMap(agentIpAddress, faberAgentPort):
             "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: ha,
-            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11',
-                                                          PUBKEY: pubkey}}),
-            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11'}}),
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
             "proof-req-to-match": "Transcript",
@@ -128,7 +126,6 @@ def faberMap(agentIpAddress, faberAgentPort):
 @pytest.fixture(scope="module")
 def acmeMap(agentIpAddress, acmeAgentPort):
     ha = "{}:{}".format(agentIpAddress, acmeAgentPort)
-    pubkey = 'C5eqjU7NMVMGGfGfx2ubvX5H9X346bQt5qeziVAo3naQ'
     return {'inviter': 'Acme Corp',
             'invite': "sample/acme-job-application.sovrin",
             'invite-not-exists': "sample/acme-job-application.sovrin.not.exists",
@@ -136,9 +133,8 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
-            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
-            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1: 11',
-                                                          PUBKEY: pubkey}}),
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1: 11'}}),
             "proof-requests": "Job-Application",
             "proof-request-to-show": "Job-Application",
             "claim-ver-req-to-show": "0.2",
@@ -153,7 +149,6 @@ def acmeMap(agentIpAddress, acmeAgentPort):
 @pytest.fixture(scope="module")
 def thriftMap(agentIpAddress, thriftAgentPort):
     ha = "{}:{}".format(agentIpAddress, thriftAgentPort)
-    pubkey = 'AGBjYvyM3SFnoiDGAEzkSLHvqyzVkXeMZfKDvdpEsC2x'
     return {'inviter': 'Thrift Bank',
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
@@ -161,9 +156,8 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
-            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha, PUBKEY: pubkey}}),
-            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1:4A78',
-                                                          PUBKEY: pubkey}}),
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1:4A78'}}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "claim-ver-req-to-show": "0.1"
             }

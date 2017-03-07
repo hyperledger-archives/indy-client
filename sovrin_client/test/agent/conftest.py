@@ -390,8 +390,7 @@ def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
               verkey=agentVerkey)
     ep = '127.0.0.1:{}'.format(agentPort)
     attributeData = json.dumps({ENDPOINT: {
-        'ha': ep,
-        PUBKEY: friendlyVerkeyToPubkey(agentVerkey)
+        'ha': ep
     }})
 
     attrib = Attribute(name='{}_endpoint'.format(agentNym),

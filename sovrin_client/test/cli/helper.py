@@ -3,7 +3,9 @@ import os
 import re
 from _sha256 import sha256
 
+import logging
 import pytest
+import sys
 
 from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
@@ -14,6 +16,7 @@ from plenum.common.txn import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
     VALIDATOR
 from plenum.common.types import f
+from plenum.common.log import Logger
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     checkAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
@@ -29,6 +32,11 @@ from sovrin_client.test.helper import TestClient
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     # new = logging.StreamHandler(sys.stdout)
+    #     # Logger()._setHandler('std', new)
+    #     Logger().enableStdLogging()
 
 
 def sendNym(cli, nym, role):

@@ -118,11 +118,14 @@ class AgentProver:
             self.loop.run_until_complete(self.sendProofAsync(link, proofReq))
 
     async def sendProofAsync(self, link: Link, proofRequest: ProofRequest):
-        nonce = getNonceForProof(link.invitationNonce)  # TODO _F_ this nonce should be from the Proof Request, not from an invitation
+        # TODO _F_ this nonce should be from the Proof Request, not from an
+        # invitation
+        nonce = getNonceForProof(link.invitationNonce)
 
         revealedAttrNames = proofRequest.verifiableAttributes
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
-        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)  # TODO rename presentProof to buildProof or generateProof
+        # TODO rename presentProof to buildProof or generateProof
+        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)
 
         op = OrderedDict([
             (TYPE, PROOF),

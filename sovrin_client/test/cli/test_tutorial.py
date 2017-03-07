@@ -118,13 +118,14 @@ def checkIfInvalidEndpointIsRejected(do, map):
                   "127.A.0.1"]
     invalidPorts = [" 3456", "3457 ", "63AB", "0", "65536"]
     for invalidIp in invalidIps:
-        invalidEndpoints.append("{}:1234".format(invalidIp))
+        invalidEndpoints.append(("{}:1234".format(invalidIp), 'address'))
     for invalidPort in invalidPorts:
-        invalidEndpoints.append("127.0.0.1:{}".format(invalidPort))
+        invalidEndpoints.append(("127.0.0.1:{}".format(invalidPort), 'port'))
 
-    for invalidEndpoint in invalidEndpoints:
+    for invalidEndpoint, invalid_part in invalidEndpoints:
         errorMsg = 'client request invalid: InvalidClientRequest(' \
-                   '"invalid endpoint: \'{}\'",)'.format(invalidEndpoint)
+                   '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
+                                                            invalidEndpoint)
         endpoint = json.dumps({ENDPOINT: invalidEndpoint})
         map["invalidEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={invalidEndpointAttr}",

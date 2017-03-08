@@ -3,14 +3,14 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound, AddressAlreadyInUse
+from plenum.common.exceptions import RemoteNotFound, PortNotAvailable
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.port_dispenser import genHa
 from plenum.common.startable import Status
 from plenum.common.types import Identifier
-from plenum.common.util import randomString, getFormattedErrorMsg
+from plenum.common.util import randomString
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
@@ -29,6 +29,7 @@ from sovrin_common.config import agentLoggingLevel
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
+
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,
@@ -45,7 +46,7 @@ class Agent(Motor, AgentNet):
 
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
-                          port=port,
+                          port=self._port,
                           basedirpath=basedirpath,
                           msgHandler=self.handleEndpointMessage)
 
@@ -83,6 +84,8 @@ class Agent(Motor, AgentNet):
         return c
 
     def start(self, loop):
+        if self.endpoint:
+            self.endpoint.startStack()
         super().start(loop)
         if self.client:
             self.client.start(loop)
@@ -220,20 +223,15 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
                          ha=("0.0.0.0", clientPort),
                          basedirpath=basedirpath)
 
-    try:
-        return agentClass(basedirpath=basedirpath,
-                          client=client,
-                          wallet=wallet,
-                          port=port,
-                          loop=loop)
-    except AddressAlreadyInUse as e:
-        msg = getFormattedErrorMsg(str(e))
-        logger.error(msg)
+    return agentClass(basedirpath=basedirpath,
+                      client=client,
+                      wallet=wallet,
+                      port=port,
+                      loop=loop)
 
 
 def runAgent(agent, looper=None, bootstrap=True):
-    if not agent:
-        return
+    assert agent
 
     def doRun(looper):
         looper.add(agent)
@@ -241,12 +239,19 @@ def runAgent(agent, looper=None, bootstrap=True):
         if bootstrap:
             looper.run(agent.bootstrap())
 
-    if looper:
-        doRun(looper)
-    else:
-        with Looper(debug=True, loop=agent.loop) as looper:
+    try:
+        if looper:
+            doRun(looper)
+        else:
+            looper = Looper(debug=True, loop=agent.loop)
             doRun(looper)
             looper.run()
+    except Exception as e:
+        try:
+            looper.removeProdable(agent)
+        except:
+            pass
+        raise e
 
 
 def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
@@ -256,6 +261,9 @@ def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                     clientClass)
     runAgent(agent, looper, bootstrap)
     return agent
+
+
+
 
 
 async def runBootstap(isMain, bootstrapFunc):
@@ -268,6 +276,6 @@ async def runBootstap(isMain, bootstrapFunc):
         error += " [cause : {}]".format(str(e))
 
     if not isSuccessful:
-        logger.error(getFormattedErrorMsg(error))
+        logger.error(error)
         if isMain:
             exit(1)

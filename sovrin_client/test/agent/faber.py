@@ -4,7 +4,7 @@ from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runAgent, runBootstap
+from sovrin_client.agent.agent import createAgent, runBootstap
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -140,5 +140,6 @@ def isMain():
 
 
 if isMain():
-    faber = createFaber(port=5555)
-    runAgent(faber)
+    TestWalletedAgent.createAndRunAgent(
+        FaberAgent, "Faber College", wallet=buildFaberWallet(),
+        basedirpath=None, port=5555, looper=None, clientClass=TestClient)

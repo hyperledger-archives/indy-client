@@ -19,7 +19,7 @@ class Endpoint(SimpleStack):
             if ha and ha[1] != port:
                 port = ha[1]
 
-        stackParams = {
+        self.stackParams = {
             "name": name or randomString(8),
             "ha": HA("0.0.0.0", port),
             "main": True,
@@ -27,11 +27,13 @@ class Endpoint(SimpleStack):
             "mutable": "mutable"
         }
         if basedirpath:
-            stackParams["basedirpath"] = basedirpath
+            self.stackParams["basedirpath"] = basedirpath
 
-        super().__init__(stackParams, self.baseMsgHandler)
+        self._msgHandler = msgHandler
 
-        self.msgHandler = msgHandler
+    def startStack(self):
+        super().__init__(self.stackParams, self.baseMsgHandler)
+        self.msgHandler = self._msgHandler
 
     def transmitToClient(self, msg: Any, remoteName: str):
         """

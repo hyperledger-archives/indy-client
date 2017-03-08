@@ -2,7 +2,8 @@ from plenum.common.log import getlogger
 from plenum.common.types import f
 from plenum.test.testable import Spyable
 
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.agent import WalletedAgent, createAndRunAgent
+from sovrin_client.client.client import Client
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.txn import NONCE
 from sovrin_client.test.agent.helper import getAgentCmdLineParams
@@ -29,3 +30,14 @@ class TestWalletedAgent(WalletedAgent):
     @staticmethod
     def getPassedArgs():
         return getAgentCmdLineParams()
+
+
+    def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
+                      port=None, looper=None, clientClass=Client, bootstrap=True):
+        try:
+            return createAndRunAgent(agentClass=agentClass, name=name,
+                                      wallet=wallet, basedirpath=basedirpath,
+                                      port=port, looper=looper,
+                                      clientClass=clientClass, bootstrap=bootstrap)
+        except Exception as exc:
+            logger.error(str(exc))

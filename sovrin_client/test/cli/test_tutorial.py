@@ -36,67 +36,6 @@ def getSampleLinkInvitation():
     }
 
 
-@pytest.fixture(scope="module")
-def philCli(be, do, philCLI):
-    be(philCLI)
-    do('prompt Phil', expect=prompt_is('Phil'))
-
-    do('new keyring Phil', expect=['New keyring Phil created',
-                                   'Active keyring set to "Phil"'])
-
-    mapper = {
-        'seed': '11111111111111111111111111111111',
-        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
-    do('new key with seed {seed}', expect=['Key created in keyring Phil',
-                                           'Identifier for key is {idr}',
-                                           'Current identifier set to {idr}'],
-       mapper=mapper)
-
-    return philCLI
-
-
-@pytest.fixture(scope="module")
-def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                     nymAddedOut, faberMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=faberMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                    nymAddedOut, acmeMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=acmeMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                      nymAddedOut, thriftMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=thriftMap)
-    return philCli
-
-
 def checkIfValidEndpointIsAccepted(do, map, attribAdded):
     validEndpoints = []
     validPorts = ["1", "3457", "65535"]

@@ -168,5 +168,6 @@ def isMain():
 
 
 if isMain():
-    acme = createAcme(port=6666)
-    runAgent(acme)
+    TestWalletedAgent.createAndRunAgent(
+        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
+        port=6666, looper=None, clientClass=TestClient)

@@ -10,14 +10,20 @@ from typing import List
 
 import plenum
 import pytest
+
+from plenum.common.exceptions import BlowUp, ProdableAlreadyAdded, \
+    PortNotAvailable
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
     dirName, tdirWithDomainTxns, poolTxnNodeNames
-from plenum.test.helper import createTempDir
+from plenum.test.helper import createTempDir, waitUntillPortIsAvailable
+from sovrin_client.agent import agent
+from sovrin_client.agent.agent import runAgent
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
+from sovrin_client.test.agent.acme import createAcme
 from sovrin_common.txn import SPONSOR, ENDPOINT
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
@@ -30,7 +36,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
@@ -1213,3 +1219,97 @@ def poolNodesStarted(be, do, poolCLI):
     do('new node all', within=6, expect = connectedExpect)
     # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI
+
+
+
+@pytest.fixture(scope="module")
+def philCli(be, do, philCLI):
+    be(philCLI)
+    do('prompt Phil', expect=prompt_is('Phil'))
+
+    do('new keyring Phil', expect=['New keyring Phil created',
+                                   'Active keyring set to "Phil"'])
+
+    mapper = {
+        'seed': '11111111111111111111111111111111',
+        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+    do('new key with seed {seed}', expect=['Key created in keyring Phil',
+                                           'Identifier for key is {idr}',
+                                           'Current identifier set to {idr}'],
+       mapper=mapper)
+
+    return philCLI
+
+
+@pytest.fixture(scope="module")
+def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                     nymAddedOut, faberMap):
+    be(philCli)
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    do('send NYM dest={target} role=SPONSOR',
+       within=3,
+       expect=nymAddedOut, mapper=faberMap)
+    return philCli
+
+
+@pytest.fixture(scope="module")
+def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                    nymAddedOut, acmeMap):
+    be(philCli)
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    do('send NYM dest={target} role=SPONSOR',
+       within=3,
+       expect=nymAddedOut, mapper=acmeMap)
+    return philCli
+
+
+@pytest.fixture(scope="module")
+def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                      nymAddedOut, thriftMap):
+    be(philCli)
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    do('send NYM dest={target} role=SPONSOR',
+       within=3,
+       expect=nymAddedOut, mapper=thriftMap)
+    return philCli
+
+
+# @pytest.fixture(scope="module")
+# def faberRestartedOnSamePort(poolNodesStarted, emptyLooper,
+#                                    tdirWithPoolTxns, faberWallet,
+#                                    faberAddedByPhil, faberAgent):
+#     freeupPorts(emptyLooper, [faberAgent.port])
+#     with pytest.raises(ProdableAlreadyAdded):
+#         runningFaber(emptyLooper, tdirWithPoolTxns,
+#                                           faberWallet, faberAgent, faberAddedByPhil)
+#         runningFaber(emptyLooper, tdirWithPoolTxns,
+#                      faberWallet, faberAgent, faberAddedByPhil)
+#
+#     freeupPorts(emptyLooper, [faberAgent.port])
+#
+#
+# @pytest.fixture(scope="module")
+# def acmeRestartedWithUsedPort(looper, poolNodesStarted, emptyLooper,
+#                                  tdirWithPoolTxns, faberWallet, faberAgentPort,
+#                                  faberAddedByPhil, acmeAddedByPhil,
+#                                  faberAgent, acmeWallet):
+#     freeupPorts(emptyLooper, [faberAgent.port])
+#     runningFaber(emptyLooper, tdirWithPoolTxns, faberWallet, faberAgent,
+#                  faberAddedByPhil)
+#
+#     acmeAgent = createAcme(acmeWallet.name, acmeWallet,
+#                       basedirpath=tdirWithPoolTxns,
+#                       port=faberAgentPort)
+#
+#     with pytest.raises(PortNotAvailable):
+#         runningAcme(emptyLooper, tdirWithPoolTxns, acmeWallet,
+#                     acmeAgent, acmeAddedByPhil)

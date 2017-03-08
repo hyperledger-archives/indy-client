@@ -3,69 +3,61 @@ import pytest
 from plenum.common.exceptions import BlowUp, ProdableAlreadyAdded, \
     PortNotAvailable
 from plenum.common.looper import Looper
-from plenum.common.util import checkPortAvailable
 from plenum.test.conftest import tdirWithPoolTxns
-from plenum.test.helper import waitUntillPortIsAvailable
-from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, acmeWallet, acmeIsRunning as runningAcme, \
-    faberAgent, acmeAgent
+    emptyLooper, faberWallet, faberAgent
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import buildFaberWallet
 
 
-def startFaberAgent(looper, tdirWithPoolTxns, faberWallet, faberAgent):
+def getNewAgent(name, basedir, port, wallet):
+    return createFaber(name, wallet,
+                basedirpath=basedir,
+                port=port)
+
+
+def runAgent(looper, name, basedir, port):
+    wallet = buildFaberWallet()
+    agent = getNewAgent(name, basedir, port, wallet)
     return runningFaber(looper, tdirWithPoolTxns,
-                                      faberWallet, faberAgent, None)
+                                      wallet, agent, None)
 
 
 @pytest.fixture(scope="module")
-def faberStarted(emptyLooper, tdirWithPoolTxns, faberWallet, faberAgent):
-    startFaberAgent(emptyLooper, tdirWithPoolTxns, faberWallet, faberAgent)
+def faberStarted(emptyLooper, tdirWithPoolTxns, faberAgentPort):
+    runAgent(emptyLooper, "Agent", tdirWithPoolTxns, faberAgentPort)
 
 
-def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
-                                       faberWallet, faberAgent):
+@pytest.mark.asyncio
+async def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
+                                       faberAgentPort):
     with pytest.raises(BlowUp):
-        startFaberAgent(Looper(), tdirWithPoolTxns,
-                                             faberWallet, faberAgent)
-    faberAgent.stop()
+        runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
+    await emptyLooper.shutdown()
 
 
-def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
-                                 tdirWithPoolTxns, faberWallet, faberAgent):
-    pass
+@pytest.mark.asyncio
+async def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
+                                 tdirWithPoolTxns, faberWallet, faberAgentPort):
     with pytest.raises(BlowUp):
-        newWallet = buildFaberWallet()
-        newFaberAgent = createFaber(faberWallet.name, newWallet,
-                    basedirpath=tdirWithPoolTxns,
-                    port=faberAgent.port)
-        startFaberAgent(Looper(), tdirWithPoolTxns, newWallet, newFaberAgent)
-    faberAgent.stop()
+        runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
+    await emptyLooper.shutdown()
 
 
-def testFaberRestartOnSamePort(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
-                               faberAddedByPhil, faberWallet,
-                               faberAgent, faberStarted):
+@pytest.mark.asyncio
+async def testStartSameAgentAgain(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
+                               faberAddedByPhil, faberAgentPort, faberStarted):
     with pytest.raises(ProdableAlreadyAdded):
-        newWallet = buildFaberWallet()
-        newFaberAgent = createFaber(faberWallet.name, newWallet,
-                    basedirpath=tdirWithPoolTxns,
-                    port=faberAgent.port)
-        startFaberAgent(Looper(), tdirWithPoolTxns, newWallet, newFaberAgent)
-    faberAgent.stop()
+        runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
+    await emptyLooper.shutdown()
 
 
-def testAcmeStartingOnFabersPort(poolNodesStarted, tdirWithPoolTxns,
+@pytest.mark.asyncio
+async def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
                                  emptyLooper, faberAddedByPhil, faberAgent,
-                                 acmeAddedByPhil, acmeWallet,
                                  faberStarted):
-    acmeAgent = createAcme(acmeWallet.name, acmeWallet,
-                            basedirpath=tdirWithPoolTxns,
-                            port=faberAgent.port)
 
     with pytest.raises(PortNotAvailable):
-        runningAcme(Looper(), tdirWithPoolTxns, acmeWallet,
-                    acmeAgent, acmeAddedByPhil)
+        runAgent(Looper(), "AgentNew", tdirWithPoolTxns, faberAgent.port)
+    await emptyLooper.shutdown()
 
-    waitUntillPortIsAvailable(emptyLooper, [faberAgent.port])

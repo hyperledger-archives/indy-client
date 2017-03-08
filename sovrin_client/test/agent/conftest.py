@@ -168,6 +168,14 @@ def faberAdded(nodeSet,
     return attrib
 
 
+# def startAgent(looper, agent, wallet):
+#     wallet.pendSyncRequests()
+#     prepared = faberWallet.preparePending()
+#     agent.client.submitReqs(*prepared)
+#     runAgent(agent, looper)
+#     return agent, wallet
+
+
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
                    faberAgent, faberAdded):
@@ -177,8 +185,7 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
     faber.client.submitReqs(*prepared)
 
     runAgent(faber, emptyLooper)
-
-    return faber, faberWallet
+    return faberAgent, faberWallet
 
 
 @pytest.fixture(scope="module")

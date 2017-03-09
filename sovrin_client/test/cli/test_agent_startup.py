@@ -20,6 +20,7 @@ def runAgent(looper, name, basedir, port):
     agent = getNewAgent(name, basedir, port, wallet)
     return startAgent(looper, agent, wallet)
 
+
 @pytest.fixture(scope="module")
 def faberStarted(emptyLooper, tdirWithPoolTxns, faberAgentPort):
     runAgent(emptyLooper, "Agent", tdirWithPoolTxns, faberAgentPort)
@@ -28,7 +29,7 @@ def faberStarted(emptyLooper, tdirWithPoolTxns, faberAgentPort):
 @pytest.mark.asyncio
 async def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
                                        faberAgentPort):
-    with pytest.raises(BlowUp):
+    with pytest.raises(TimeoutError):
         runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
     await emptyLooper.shutdown()
 
@@ -36,7 +37,7 @@ async def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
 @pytest.mark.asyncio
 async def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
                                  tdirWithPoolTxns, faberAgentPort):
-    with pytest.raises(BlowUp):
+    with pytest.raises(TimeoutError):
         runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
     await emptyLooper.shutdown()
 

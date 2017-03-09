@@ -3,7 +3,6 @@ import logging
 import re
 import warnings
 from itertools import groupby
-from pprint import pformat
 
 import pytest
 from _pytest.recwarn import WarningsRecorder
@@ -54,26 +53,8 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
     # TODO finish the entire set of steps
 
 
-@pytest.yield_fixture(scope="session")
-def warncheck():
-    with WarningsRecorder() as record:
-        yield
-
-    runtime_warnings = {r for r in record if r.category == RuntimeWarning}
-    keyfunc = lambda r: pformat(r.__dict__)
-    rws = [(x, sum(1 for _ in y)) for x, y in groupby(sorted(record, key=keyfunc), keyfunc)]
-    for rw, count in rws:
-        print()
-    if runtime_warnings:
-        to_prints = ['runtime warnings found:']
-        for rw in runtime_warnings:
-            to_prints.append(pformat(rw.__dict__))
-        lines = '\n'.join(to_prints)
-        pytest.fail(lines)
-
-
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
-def testManual(warncheck, do, be, poolNodesStarted, poolTxnStewardData, philCLI,
+def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
                schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
                tdir, syncLinkOutWithEndpoint, jobCertificateClaimMap,
@@ -101,9 +82,10 @@ def testManual(warncheck, do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     acmeEndpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
     thriftEndpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
 
-    for nym, ep in [('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
-                    ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
-                    ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
+    for nym, ep in [
+        ('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
+        ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
+        ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
         do('send NYM dest={target} role=SPONSOR',
            within=5, expect=nymAddedOut, mapper=m)
@@ -147,7 +129,7 @@ def testManual(warncheck, do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema.seqId
 
         issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey #TODO isinstance(issuerKey, PublicKey)
+        assert issuerKey  # TODO isinstance(issuerKey, PublicKey)
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId

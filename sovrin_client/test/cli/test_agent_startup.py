@@ -37,6 +37,9 @@ async def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
 @pytest.mark.asyncio
 async def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
                                  tdirWithPoolTxns, faberAgentPort):
+    # TODO: we should expect specific exception, that will require we need to
+    # change in sovrin_public_repo.py to send specific exception in case
+    # there is an error
     with pytest.raises(TimeoutError):
         runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
     await emptyLooper.shutdown()

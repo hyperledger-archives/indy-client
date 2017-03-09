@@ -3,7 +3,7 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound, PortNotAvailable
+from plenum.common.exceptions import RemoteNotFound
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
@@ -22,6 +22,7 @@ from sovrin_client.anon_creds.sovrin_verifier import SovrinVerifier
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
+from sovrin_common.exceptions import SovrinNotAvailable
 from sovrin_common.identity import Identity
 from sovrin_common.strict_types import strict_types, decClassMethods
 from sovrin_common.config import agentLoggingLevel
@@ -258,24 +259,13 @@ def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                       port=None, looper=None, clientClass=Client, bootstrap=True):
     loop = looper.loop if looper else None
     agent = createAgent(agentClass, name, wallet, basedirpath, port, loop,
-                    clientClass)
+                        clientClass)
     runAgent(agent, looper, bootstrap)
     return agent
 
 
-
-
-
-async def runBootstap(isMain, bootstrapFunc):
-    isSuccessful = None
-    error = "Agent bootstrap failed: check if Sovrin is running and " \
-            "agent's identifier is added"
+async def runBootstrap(bootstrapFunc):
     try:
-        isSuccessful = await bootstrapFunc()
-    except TimeoutError as e:
-        error += " [cause : {}]".format(str(e))
-
-    if not isSuccessful:
-        logger.error(error)
-        if isMain:
-            exit(1)
+        await bootstrapFunc()
+    except TimeoutError as exc:
+        raise SovrinNotAvailable from exc

@@ -180,6 +180,7 @@ def startAgent(looper, agent, wallet):
     runAgent(agent, looper)
     return agent, wallet
 
+
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
                    faberAgent, faberAdded):

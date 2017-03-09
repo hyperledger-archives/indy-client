@@ -1,5 +1,6 @@
 from plenum.common.log import getlogger
 from plenum.common.types import f
+from plenum.common.util import getFormattedErrorMsg
 from plenum.test.testable import Spyable
 
 from sovrin_client.agent.agent import WalletedAgent, createAndRunAgent
@@ -31,7 +32,6 @@ class TestWalletedAgent(WalletedAgent):
     def getPassedArgs():
         return getAgentCmdLineParams()
 
-
     def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                       port=None, looper=None, clientClass=Client, bootstrap=True):
         try:
@@ -40,4 +40,5 @@ class TestWalletedAgent(WalletedAgent):
                                       port=port, looper=looper,
                                       clientClass=clientClass, bootstrap=bootstrap)
         except Exception as exc:
-            logger.error(str(exc))
+            error = "Agent startup failed: [cause : {}]".format(str(exc))
+            logger.error(getFormattedErrorMsg(error))

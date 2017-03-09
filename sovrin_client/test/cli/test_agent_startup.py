@@ -4,8 +4,7 @@ from plenum.common.exceptions import BlowUp, ProdableAlreadyAdded, \
     PortNotAvailable
 from plenum.common.looper import Looper
 from plenum.test.conftest import tdirWithPoolTxns
-from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, faberAgent
+from sovrin_client.test.agent.conftest import emptyLooper, faberAgent, startAgent
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import buildFaberWallet
 
@@ -19,9 +18,7 @@ def getNewAgent(name, basedir, port, wallet):
 def runAgent(looper, name, basedir, port):
     wallet = buildFaberWallet()
     agent = getNewAgent(name, basedir, port, wallet)
-    return runningFaber(looper, tdirWithPoolTxns,
-                                      wallet, agent, None)
-
+    return startAgent(looper, agent, wallet)
 
 @pytest.fixture(scope="module")
 def faberStarted(emptyLooper, tdirWithPoolTxns, faberAgentPort):
@@ -38,7 +35,7 @@ async def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
 
 @pytest.mark.asyncio
 async def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
-                                 tdirWithPoolTxns, faberWallet, faberAgentPort):
+                                 tdirWithPoolTxns, faberAgentPort):
     with pytest.raises(BlowUp):
         runAgent(Looper(), "Agent", tdirWithPoolTxns, faberAgentPort)
     await emptyLooper.shutdown()
@@ -54,10 +51,10 @@ async def testStartSameAgentAgain(poolNodesStarted, tdirWithPoolTxns, emptyLoope
 
 @pytest.mark.asyncio
 async def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
-                                 emptyLooper, faberAddedByPhil, faberAgent,
+                                 emptyLooper, faberAddedByPhil, faberAgentPort,
                                  faberStarted):
 
     with pytest.raises(PortNotAvailable):
-        runAgent(Looper(), "AgentNew", tdirWithPoolTxns, faberAgent.port)
+        runAgent(Looper(), "AgentNew", tdirWithPoolTxns, faberAgentPort)
     await emptyLooper.shutdown()
 

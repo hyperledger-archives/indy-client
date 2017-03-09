@@ -73,43 +73,33 @@ def checkIfInvalidEndpointIsRejected(do, map):
            mapper=map)
 
 
-@pytest.fixture(scope="module")
-def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
-                           faberMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, faberMap)
-    checkIfValidEndpointIsAccepted(do, faberMap, attrAddedOut)
+def agentWithEndpointAdded(be, do, stewardCli, agentMap, attrAddedOut):
+    be(stewardCli)
+    checkIfInvalidEndpointIsRejected(do, agentMap)
+    checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
-       mapper=faberMap)
-    return philCli
+       mapper=agentMap)
+    return stewardCli
+
+
+@pytest.fixture(scope="module")
+def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
+                           faberMap, attrAddedOut):
+    agentWithEndpointAdded(be, do, philCli, faberMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, acmeMap)
-    checkIfValidEndpointIsAccepted(do, acmeMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=acmeMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, acmeMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, thriftMap)
-    checkIfValidEndpointIsAccepted(do, thriftMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=thriftMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, thriftMap, attrAddedOut)
 
 
 def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):

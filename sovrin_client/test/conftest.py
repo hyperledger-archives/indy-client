@@ -49,7 +49,7 @@ from plenum.test.conftest import tdir, counter, nodeReg, up, ready, \
     warncheck, warnfilters as plenum_warnfilters
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def warnfilters(plenum_warnfilters):
     def _():
         plenum_warnfilters()

@@ -2,7 +2,7 @@ import json
 
 from ledger.util import F
 from plenum.common.eventually import eventually
-from plenum.common.exceptions import NoConsensusYet
+from plenum.common.exceptions import NoConsensusYet, OperationError
 from plenum.common.log import getlogger
 from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
     ORIGIN
@@ -18,6 +18,9 @@ from sovrin_common.types import Request
 
 def _ensureReqCompleted(reqKey, client, clbk):
     reply, err = client.replyIfConsensus(*reqKey)
+    if err:
+        raise OperationError(err)
+
     if reply is None:
         raise NoConsensusYet('not completed')
     return clbk(reply, err)

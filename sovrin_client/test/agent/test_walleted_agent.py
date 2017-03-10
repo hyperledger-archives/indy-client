@@ -3,7 +3,7 @@ from plenum.common.types import f
 from plenum.common.util import getFormattedErrorMsg
 from plenum.test.testable import Spyable
 
-from sovrin_client.agent.agent import WalletedAgent, createAndRunAgent
+from sovrin_client.agent.agent import WalletedAgent, createAgent, runAgent
 from sovrin_client.client.client import Client
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.txn import NONCE
@@ -35,10 +35,12 @@ class TestWalletedAgent(WalletedAgent):
     def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
                       port=None, looper=None, clientClass=Client, bootstrap=True):
         try:
-            return createAndRunAgent(agentClass=agentClass, name=name,
-                                      wallet=wallet, basedirpath=basedirpath,
-                                      port=port, looper=looper,
-                                      clientClass=clientClass, bootstrap=bootstrap)
+            loop = looper.loop if looper else None
+            agent = createAgent(agentClass, name, wallet, basedirpath, port,
+                                loop,
+                                clientClass)
+            runAgent(agent, looper, bootstrap)
+            return agent
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))
             logger.error(getFormattedErrorMsg(error))

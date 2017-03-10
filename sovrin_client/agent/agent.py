@@ -47,7 +47,7 @@ class Agent(Motor, AgentNet):
 
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
-                          port=self._port,
+                          port=port,
                           basedirpath=basedirpath,
                           msgHandler=self.handleEndpointMessage)
 
@@ -253,15 +253,6 @@ def runAgent(agent, looper=None, bootstrap=True):
         except:
             pass
         raise e
-
-
-def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
-                      port=None, looper=None, clientClass=Client, bootstrap=True):
-    loop = looper.loop if looper else None
-    agent = createAgent(agentClass, name, wallet, basedirpath, port, loop,
-                        clientClass)
-    runAgent(agent, looper, bootstrap)
-    return agent
 
 
 async def runBootstrap(bootstrapFunc):

@@ -1,7 +1,7 @@
 import pytest
 
 from plenum.common.exceptions import ProdableAlreadyAdded, \
-    PortNotAvailable
+    PortNotAvailable, OperationError
 from plenum.common.util import randomString
 from plenum.test.conftest import tdirWithPoolTxns
 from sovrin_client.test.agent.conftest import emptyLooper, startAgent
@@ -20,8 +20,6 @@ def runAgent(looper, basedir, port, name=None):
     wallet = buildFaberWallet()
     name = name or "Agent"+ randomString(5)
     agent = getNewAgent(name, basedir, port, wallet)
-    # TODO: Somehow need to make sure we get agent with given name,
-    # not default name
     agent._name = name
     return startAgent(looper, agent, wallet)
 
@@ -39,13 +37,12 @@ def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns,
 
 def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
                                  tdirWithPoolTxns, faberAgentPort):
-    # TODO: instead of SovrinNotAvailable, it should be something like
-    # AgentNotAdded exception we should expect here. For that we'll have to
-    # do changes in sovrin_public_repo.py (in _ensureReqCompleted,
-    # to check for err and throw appropriate exception)
-    with pytest.raises(SovrinNotAvailable):
+    with pytest.raises(OperationError) as oeinfo:
         runAgent(emptyLooper, tdirWithPoolTxns, faberAgentPort, "Agent2")
-
+    faberWallet = buildFaberWallet()
+    assert "error occurred during operation: client request invalid: " \
+           "UnknownIdentifier('{}',)".format(faberWallet.defaultId) \
+           in str(oeinfo)
 
 def testStartSameAgentAgain(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
                             faberAddedByPhil, faberAgentPort, agentStarted):

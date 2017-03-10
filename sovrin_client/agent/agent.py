@@ -29,25 +29,26 @@ from sovrin_common.config import agentLoggingLevel
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
+
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,
-                 name: str,
-                 basedirpath: str,
-                 client: Client = None,
-                 port: int = None,
+                 name: str=None,
+                 basedirpath: str=None,
+                 client: Client=None,
+                 port: int=None,
                  loop=None):
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
-        self._name = name
+        self._name = name or 'Agent'
         self._port = port
 
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
                           port=port,
-                          basedirpath=basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+                          msgHandler=self.handleEndpointMessage,
+                          basedirpath=basedirpath)
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client

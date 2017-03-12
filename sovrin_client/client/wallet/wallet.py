@@ -34,7 +34,7 @@ class Wallet(PWallet, Sponsoring):
     clientNotPresentMsg = "The wallet does not have a client associated with it"
 
     def __init__(self,
-                 name: str,
+                 name: str=None,
                  supportedDidMethods: DidMethods=None):
         PWallet.__init__(self,
                          name,

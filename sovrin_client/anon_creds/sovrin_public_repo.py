@@ -128,12 +128,9 @@ class SovrinPublicRepo(PublicRepo):
             }
         }
 
-        try:
-            data, seqNo = await self._sendSubmitReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendSubmitReq(op)
 
+        # TODO if the operation isn't successful, then raise an exception
         if not seqNo:
             return None
         schema = schema._replace(issuerId=self.wallet.defaultId,

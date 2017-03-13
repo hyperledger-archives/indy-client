@@ -1,11 +1,8 @@
 import json
 import os
 import re
-from _sha256 import sha256
+from hashlib import sha256
 
-import pytest
-
-from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
 from plenum.common.port_dispenser import genHa

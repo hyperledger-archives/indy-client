@@ -151,9 +151,9 @@ SET_ATTRIBUTE_REG_EX = '(\s*(?P<set_attr>set) ' \
 
 SEND_PROOF_REG_EX = '(\s*(?P<send_proof>send \s+ proof) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
-                    '\s+ to (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+                    '\s+ to \s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
-SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proofreq) ' \
+SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proof-request) ' \
                     '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
                     '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
 

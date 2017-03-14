@@ -1,5 +1,6 @@
 from plenum.cli.constants import CLIENT_GRAMS_CLIENT_COMMAND_REG_EX, relist, \
     CLI_CMDS, getPipedRegEx, CLIENT_GRAMS_USE_KEYPAIR_REG_EX
+from plenum.common.roles import Roles
 
 CLIENT_GRAMS_CLIENT_WITH_IDENTIFIER_FORMATTED_REG_EX = getPipedRegEx(
     CLIENT_GRAMS_CLIENT_COMMAND_REG_EX +
@@ -9,29 +10,30 @@ CLIENT_GRAMS_CLIENT_WITH_IDENTIFIER_FORMATTED_REG_EX = getPipedRegEx(
 
 CLIENT_GRAMS_CLIENT_ADD_FORMATTED_REG_EX = getPipedRegEx(
     "(\s* (?P<client>client) \s+ (?P<client_name>[a-zA-Z0-9]+) "
-    "\s+ (?P<cli_action>add) \s+ (?P<role>sponsor|user) "
-    "\s+ (?P<other_client_name>[a-zA-Z0-9]+) \s*)")
+    "\s+ (?P<cli_action>add) \s+ (?P<role>{trustAnchor}|user) "
+    "\s+ (?P<other_client_name>[a-zA-Z0-9]+) \s*)".format(trustAnchor=Roles.TRUST_ANCHOR.name))
 
 CLIENT_GRAMS_USE_KEYPAIR_FORMATTED_REG_EX = getPipedRegEx(
     CLIENT_GRAMS_USE_KEYPAIR_REG_EX)
 
 # TODO we can genericize the other TXN types in the same way
-TXN_NYM = "(\s* (?P<{cmdName}>{cmd}\s+NYM) " \
+TXN_NYM = "(\s* (?P<{{cmdName}}>{{cmd}}\s+NYM) " \
           "\s+ (?P<dest>dest=) \s* (?P<dest_id>[A-Za-z0-9+=/]*)" \
-          "(\s+ (?P<role_key>role=) \s* (?P<role>TRUSTEE|TGB|SPONSOR|STEWARD|))?" \
-          "(\s+ (?P<ver_key>verkey=) \s* (?P<new_ver_key>[~A-Za-z0-9+=/]*))?)"
+          "(\s+ (?P<role_key>role=) \s* (?P<role>{trustee}|{tgb}|{trustAnchor}|{steward}|))?" \
+          "(\s+ (?P<ver_key>verkey=) \s* (?P<new_ver_key>[~A-Za-z0-9+=/]*))?)".format(trustee=Roles.TRUSTEE.name,
+                                                                                      tgb=Roles.TGB.name,
+                                                                                      trustAnchor=Roles.TRUST_ANCHOR.name,
+                                                                                      steward=Roles.STEWARD.name)
 
 SEND_NYM_REG_EX = TXN_NYM.format(cmdName='send_nym', cmd='send')
 
 ADD_GENESIS_NYM_REG_EX = TXN_NYM.format(cmdName='add_genesis',
                                         cmd='add \s+ genesis \s+ transaction')
 
-
 NEW_ID_REG_EX = "(\s* (?P<new_id>new\s+identifier)" \
                 "\s? (?P<id_or_abbr_or_crypto>([A-Za-z0-9+=/]+|abbr|crypto))? " \
                 "\s? (with\s+seed\s+(?P<seed>[a-zA-Z0-9]+))? " \
                 "\s? (as\s+(?P<alias>[a-zA-Z0-9-]+))?)"
-
 
 GET_NYM_REG_EX = "(\s* (?P<send_get_nym>send\s+GET_NYM) " \
                  "\s+ (?P<dest>dest=)\s*(?P<dest_id>[A-Za-z0-9+=/]*) \s*) "
@@ -42,13 +44,13 @@ ADD_ATTRIB_REG_EX = \
     "\s+ raw=(?P<raw>\{\s*.*\}) \s*) "
 
 SEND_SCHEMA_REG_EX = "(\s*(?P<send_cred_def>send\s+SCHEMA)" \
-                       "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
-                       "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
-                       "\s*(?P<type_key>type=)\s*(?P<type>[A-Z0-9]+)" \
-                       "\s+(?P<keys_key>keys=)\s*(?P<keys>[a-zA-Z-_,\s]+)\s*)"
+                     "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
+                     "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
+                     "\s*(?P<type_key>type=)\s*(?P<type>[A-Z0-9]+)" \
+                     "\s+(?P<keys_key>keys=)\s*(?P<keys>[a-zA-Z-_,\s]+)\s*)"
 
 SEND_ISSUER_KEY_REG_EX = "(\s*(?P<send_isr_key>send\s+ISSUER_KEY)" \
-                       "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)"
+                         "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)"
 
 REQ_CRED_REG_EX = \
     "(\s*(?P<req_cred>request\s+credential) " \
@@ -119,7 +121,7 @@ SYNC_LINK_REG_EX = '(\s*(?P<sync_link>sync) ' \
                    '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
 PING_TARGET_REG_EX = '(\s*(?P<ping>ping) ' \
-                   '\s+ (?P<target_name>[A-Za-z0-9-." ]+) \s*)'
+                     '\s+ (?P<target_name>[A-Za-z0-9-." ]+) \s*)'
 
 ACCEPT_LINK_REG_EX = \
     '(\s*(?P<accept_link_invite>accept \s+ invitation \s+ from) ' \
@@ -130,37 +132,36 @@ SHOW_CLAIM_REG_EX = '(\s*(?P<show_claim>show \s+ claim) ' \
                     '\s*)'
 
 LIST_CLAIMS_REG_EX = '(\s*(?P<list_claims>list \s+ claims) ' \
-                   '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+                     '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
 REQUEST_CLAIM_REG_EX = '(\s*(?P<req_claim>request \s+ claim) ' \
-                    '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
-                    '\s*)'
+                       '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
+                       '\s*)'
 
 # SHOW_CLAIM_REQ_REG_EX = '(\s*(?P<show_claim_req>show \s+ claim \s+ request) ' \
 #                     '\s+ (?P<claim_req_name>[A-Za-z0-9-." ]+) ' \
 #                     '\s*)'
 #
 SHOW_PROOF_REQ_REG_EX = '(\s*(?P<show_proof_req>show \s+ proof \s+ request) ' \
-                    '\s+ (?P<proof_req_name>[A-Za-z0-9-." ]+) ' \
-                    '\s*)'
+                        '\s+ (?P<proof_req_name>[A-Za-z0-9-." ]+) ' \
+                        '\s*)'
 
 SET_ATTRIBUTE_REG_EX = '(\s*(?P<set_attr>set) ' \
-                    '\s+ (?P<attr_name>[A-Za-z-_0-9]+) '\
-                    '\s+ to \s+ (?P<attr_value>[A-Za-z0-9+-_,." /]+)' \
-                    '\s*)'
+                       '\s+ (?P<attr_name>[A-Za-z-_0-9]+) ' \
+                       '\s+ to \s+ (?P<attr_value>[A-Za-z0-9+-_,." /]+)' \
+                       '\s*)'
 
 SEND_PROOF_REG_EX = '(\s*(?P<send_proof>send \s+ proof) ' \
                     '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                     '\s+ to (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
 SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proofreq) ' \
-                    '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
-                    '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
+                        '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
+                        '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
 
 SEND_NODE_REG_EX = "(\s* (?P<send_node>send\s+NODE) " \
-    "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+/]+) " \
-    "\s+ data=(?P<data>\{\s*.*\}) \s*) "
-
+                   "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+/]+) " \
+                   "\s+ data=(?P<data>\{\s*.*\}) \s*) "
 
 SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
                        "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
@@ -171,10 +172,8 @@ SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+POOL_UPGRADE)" \
                        "(\s+ (?P<schedule_key>schedule=)\s*(?P<schedule>\{\s*.*\}) \s*)? " \
                        "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)"
 
-
 REQ_AVAIL_CLAIMS_REG_EX = '(\s*(?P<req_avail_claims>request \s+ available \s+ claims \s+ from) ' \
-                   '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
-
+                          '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
 GET_NYM_FORMATTED_REG_EX = getPipedRegEx(GET_NYM_REG_EX)

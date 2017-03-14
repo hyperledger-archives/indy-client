@@ -1,5 +1,6 @@
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
+from plenum.common.txn import TRUST_ANCHOR
 
 from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
@@ -28,7 +29,7 @@ from sovrin_client.agent.agent import runAgent
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import SPONSOR, ENDPOINT
+from sovrin_common.txn import ENDPOINT
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
@@ -373,7 +374,7 @@ def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
               agentNym,
               steward,
               stewardWallet,
-              role=SPONSOR,
+              role=TRUST_ANCHOR,
               verkey=agentVerkey)
     ep = '127.0.0.1:{}'.format(agentPort)
     attributeData = json.dumps({ENDPOINT: ep})

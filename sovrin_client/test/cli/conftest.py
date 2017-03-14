@@ -24,7 +24,7 @@ from sovrin_client.agent.agent import runAgent
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.agent.acme import createAcme
-from sovrin_common.txn import SPONSOR, ENDPOINT
+from sovrin_common.txn import SPONSOR, ENDPOINT, TRUST_ANCHOR
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -1054,7 +1054,15 @@ def faberAdded(poolNodesCreated,
             steward, stewardWallet):
     li = getLinkInvitation("Faber", aliceCLI.activeWallet)
     createNym(looper, li.remoteIdentifier, steward, stewardWallet,
-              role=SPONSOR)
+              role=TRUST_ANCHOR)
+
+
+@pytest.fixture(scope="module")
+def faberIsRunningWithoutNymAdded(emptyLooper, tdirWithPoolTxns, faberWallet,
+                                  faberAgent):
+    faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
+                                      faberWallet, faberAgent, None)
+    return faber, faberWallet
 
 
 @pytest.fixture(scope="module")

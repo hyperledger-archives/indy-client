@@ -8,6 +8,6 @@ def testAddSteward(nodeSet, stewardWallet, steward):
         assert node.graphStore.hasSteward(stewardWallet.defaultId)
 
 
-def testAddSponsor(nodeSet, addedSponsor):
+def testAddTrustAnchor(nodeSet, addedTrustAnchor):
     for node in nodeSet:
-        assert node.graphStore.hasSponsor(addedSponsor.defaultId)
+        assert node.graphStore.hasTrustAnchor(addedTrustAnchor.defaultId)

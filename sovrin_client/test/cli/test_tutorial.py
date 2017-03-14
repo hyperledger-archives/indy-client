@@ -2,6 +2,7 @@ import json
 
 import pytest
 from plenum.common.eventually import eventually
+from plenum.common.roles import Roles
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException

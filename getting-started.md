@@ -438,7 +438,7 @@ Try Next:
     load sample/acme-job-application.sovrin
 ```
 
-Notice that this link invitation contains a **_claim request_**. ACME Corp is requesting that Alice provide a Job Application. The Job Application is a rich document type that has a schema defined on the Sovrin ledger; its particulars are outside the scope of this guide, but it will require a name, SSN, and degree, so it overlaps with the transcript we’ve already looked at. This becomes important below.
+Notice that this link invitation contains a **_proof request_**. ACME Corp is requesting that Alice provide a Job Application. The Job Application is a rich document type that has a schema defined on the Sovrin ledger; its particulars are outside the scope of this guide, but it will require a name, SSN, and degree, so it overlaps with the transcript we’ve already looked at. This becomes important below.
 
 Notice that the invitation also identifies an endpoint. This is different from our previous case, where an identity owner’s endpoint was discovered through lookup on the Sovrin ledger. Here, Acme Corp.has decided to short - circuit Sovrin and just directly publish its job application acceptor endpoint with each request. Sovrin supports this.  Alice quickly works through the sequence of commands that establishes a new pairwise connection with Acme:
 ```
@@ -464,7 +464,7 @@ Link (not yet accepted)
     Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: not verified, target verkey unknown
-    Claim Requests: Job-Application
+    Proof Request(s): Job-Application
     Last synced: <this link has not yet been synchronized>
 
 Try Next:
@@ -499,11 +499,11 @@ Try Next:
     send proof "Job-Application" to "Acme Corp"
 ```
 
-Notice what the claim request looks like now. Although the application is not submitted, it has various claims filled in:
+Notice what the proof request looks like now. Although the application is not submitted, it has various claims filled in:
 
 ```
 ALICE> show proof request Job-Application
-Found claim request "Job-Application" in link "Acme Corp"
+Found proof request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
 Version: 0.2
@@ -539,7 +539,7 @@ Alice only has one claim that meets proof requirements for this Job Application,
 
 The pre - population doesn’t create data leakage, though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
 
-Notice that some attributes are verifiable, and some are not. The claim request schema says that ssn and degree( and others) in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
+Notice that some attributes are verifiable, and some are not. The proof request schema says that ssn and degree( and others) in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
 
 ```
 ALICE> set first_name to Alice
@@ -547,11 +547,11 @@ ALICE> set last_name to Garcia
 ALICE> set phone_number to 123-45-6789
 ```
 
-Alice checks to see what the claim request looks like now.
+Alice checks to see what the proof request looks like now.
 
 ```
 ALICE> show proof request Job-Application
-Found claim request "Job-Application" in link "Acme Corp"
+Found proof request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
 Version: 0.2
@@ -728,10 +728,10 @@ Try Next:
     send proof "Loan-Application-KYC" to "Thrift Bank"
 ```
 
-Alice checks to see what the claim "Loan-Application-Basic" request looks like:
+Alice checks to see what the proof request "Loan-Application-Basic" looks like:
 ```
 ALICE@test> show proof request Loan-Application-Basic
-Found claim request "Loan-Application-Basic" in link "Thrift Bank"
+Found proof request "Loan-Application-Basic" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-Basic
 Version: 0.1
@@ -758,7 +758,7 @@ Try Next:
 ```
 
 Alice sends just the "Loan-Application-Basic"
-claim to the bank. This allows her to minimize the PII that she has to share
+proof to the bank. This allows her to minimize the PII that she has to share
 when all she's trying to do right now is prove basic eligibility.
 
 ```
@@ -769,15 +769,15 @@ Signature accepted.
 Response from Thrift Bank (479.17 ms):
     Your Proof Loan-Application-Basic 0.1 has been received and verified
 
-    Loan eligibility criteria satisfied, please send another claim 'Loan-Application-KYC'
+    Loan eligibility criteria satisfied, please send another proof 'Loan-Application-KYC'
 ```
 
-Alice now checks the second claim request where she needs to share her 
+Alice now checks the second proof request where she needs to share her 
 personal information with bank.
 
 ```
 ALICE@test> show proof request Loan-Application-KYC
-Found claim request "Loan-Application-KYC" in link "Thrift Bank"
+Found proof request "Loan-Application-KYC" in link "Thrift Bank"
 Status: Requested
 Name: Loan-Application-KYC
 Version: 0.1
@@ -800,7 +800,7 @@ The Proof is constructed from the following claims:
         ssn: 123-45-6789 (verifiable)
         status: graduated (verifiable)
 
-    Proof (Job-Certificate v0.2 from Acme Corp)
+    Claim (Job-Certificate v0.2 from Acme Corp)
         last_name: Garcia (verifiable)
         salary_bracket: between $50,000 to $100,000 (verifiable)
         employee_status: Permanent (verifiable)
@@ -812,7 +812,7 @@ Try Next:
     send proof Loan-Application-KYC to Thrift Bank
 ```
 
-Alice now sends "Loan-Application-KYC" claim to the bank: 
+Alice now sends "Loan-Application-KYC" proof to the bank: 
 ```
 ALICE@test> send proof Loan-Application-KYC to Thrift Bank
 
@@ -873,7 +873,7 @@ attributes = {
     "last_name": "string",
     "phone_number": "int",
     "proofs": [{
-        "claim_name": "Transcript",
+        "name": "Transcript",
         "version": 1.2,
         "attributes": {
             "first_name": "string",

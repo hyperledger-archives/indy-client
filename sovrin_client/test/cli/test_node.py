@@ -1,15 +1,15 @@
-import pytest
 from copy import copy
 
+import pytest
 from plenum.common.eventually import eventually
 from plenum.common.port_dispenser import genHa
+from plenum.common.roles import Roles
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
 from plenum.common.types import CLIENT_STACK_SUFFIX
 from plenum.common.util import randomSeed, randomString
 from plenum.test.cli.helper import exitFromCli
 from sovrin_client.test.cli.conftest import philCli
-
 
 def getNewNodeData():
     newStewardSeed = randomSeed()
@@ -33,6 +33,7 @@ def getNewNodeData():
         'newNodeData': newNodeData
     }
 
+
 vals = getNewNodeData()
 
 
@@ -43,7 +44,7 @@ def newStewardCLI(CliBuilder):
 
 @pytest.fixture(scope="module")
 def newStewardCli(be, do, poolNodesStarted, philCli,
-                     connectedToTest, nymAddedOut, newStewardCLI):
+                  connectedToTest, nymAddedOut, newStewardCLI):
     be(philCli)
     if not philCli._isConnectedToAnyEnv():
         do('connect test', within=3,
@@ -54,7 +55,7 @@ def newStewardCli(be, do, poolNodesStarted, philCli,
     vals['target'] = vals['newStewardIdr']
     vals['newStewardSeed'] = vals['newStewardSeed'].decode()
 
-    do('send NYM dest={newStewardIdr} role=STEWARD',
+    do('send NYM dest={{newStewardIdr}} role={role}'.format(role=Roles.STEWARD.name),
        within=3,
        expect=nymAddedOut, mapper=vals)
 
@@ -73,7 +74,7 @@ def newStewardCli(be, do, poolNodesStarted, philCli,
 
 
 def sendNodeCmd(do, newNodeData=None, expMsgs=None):
-    mapper= newNodeData or vals
+    mapper = newNodeData or vals
     expect = expMsgs or ['Node request completed']
     do('send NODE dest={newNodeIdr} data={newNodeData}',
        within=8, expect=expect, mapper=mapper)
@@ -96,8 +97,9 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
     be(newStewardCli)
     sendNodeCmd(do)
     newNodeData = vals["newNodeData"]
+
     def checkClientConnected(client):
-        name = newNodeData[ALIAS]+CLIENT_STACK_SUFFIX
+        name = newNodeData[ALIAS] + CLIENT_STACK_SUFFIX
         assert name in client.nodeReg
 
     def checkNodeConnected(nodes):
@@ -129,7 +131,7 @@ def testConsecutiveAddSameNodeWithoutAnyChange(be, do, newStewardCli,
 
 
 def testConsecutiveAddSameNodeWithNodeAndClientPortSame(be, do, newStewardCli,
-                                               newNodeAdded):
+                                                        newNodeAdded):
     be(newStewardCli)
     nodeIp, nodePort = genHa()
     vals['newNodeData'][NODE_IP] = nodeIp

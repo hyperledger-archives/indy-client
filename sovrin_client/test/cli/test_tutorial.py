@@ -109,11 +109,49 @@ def checkIfInvalidAttribIsRejected(do, map):
        mapper=map)
 
 
+def checkIfValidEndpointIsAccepted(do, map, attribAdded):
+    validEndpoints = []
+    validPorts = ["1", "3457", "65535"]
+    for validPort in validPorts:
+        validEndpoints.append("127.0.0.1:{}".format(validPort))
+
+    for validEndpoint in validEndpoints:
+        endpoint = json.dumps({ENDPOINT: validEndpoint})
+        map["validEndpointAttr"] = endpoint
+        do("send ATTRIB dest={target} raw={validEndpointAttr}",
+           within=5,
+           expect=attribAdded,
+           mapper=map)
+
+
+def checkIfInvalidEndpointIsRejected(do, map):
+    invalidEndpoints = []
+    invalidIps = [" 127.0.0.1", "127.0.0.1 ", " 127.0.0.1 ", "127.0.0",
+                  "127.A.0.1"]
+    invalidPorts = [" 3456", "3457 ", "63AB", "0", "65536"]
+    for invalidIp in invalidIps:
+        invalidEndpoints.append(("{}:1234".format(invalidIp), 'address'))
+    for invalidPort in invalidPorts:
+        invalidEndpoints.append(("127.0.0.1:{}".format(invalidPort), 'port'))
+
+    for invalidEndpoint, invalid_part in invalidEndpoints:
+        errorMsg = 'client request invalid: InvalidClientRequest(' \
+                   '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
+                                                            invalidEndpoint)
+        endpoint = json.dumps({ENDPOINT: invalidEndpoint})
+        map["invalidEndpointAttr"] = endpoint
+        do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+           within=5,
+           expect=[errorMsg],
+           mapper=map)
+
+
 @pytest.fixture(scope="module")
 def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, faberMap)
+    checkIfInvalidEndpointIsRejected(do, faberMap)
+    checkIfValidEndpointIsAccepted(do, faberMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
@@ -125,7 +163,8 @@ def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, acmeMap)
+    checkIfInvalidEndpointIsRejected(do, acmeMap)
+    checkIfValidEndpointIsAccepted(do, acmeMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,
@@ -137,7 +176,8 @@ def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
     be(philCli)
-    checkIfInvalidAttribIsRejected(do, thriftMap)
+    checkIfInvalidEndpointIsRejected(do, thriftMap)
+    checkIfValidEndpointIsAccepted(do, thriftMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=3,
        expect=attrAddedOut,

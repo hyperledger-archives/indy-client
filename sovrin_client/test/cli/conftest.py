@@ -18,7 +18,7 @@ from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
 from plenum.test.helper import createTempDir
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_common.txn import SPONSOR, ENDPOINT
+from sovrin_common.txn import TRUST_ANCHOR, ENDPOINT
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -1048,7 +1048,7 @@ def faberAdded(poolNodesCreated,
             steward, stewardWallet):
     li = getLinkInvitation("Faber", aliceCLI.activeWallet)
     createNym(looper, li.remoteIdentifier, steward, stewardWallet,
-              role=SPONSOR)
+              role=TRUST_ANCHOR)
 
 
 @pytest.fixture(scope="module")

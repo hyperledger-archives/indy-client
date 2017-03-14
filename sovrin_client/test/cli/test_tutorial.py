@@ -2,6 +2,7 @@ import json
 
 import pytest
 from plenum.common.eventually import eventually
+from plenum.common.roles import Roles
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
@@ -63,7 +64,7 @@ def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
         do('connect test', within=3,
            expect=connectedToTest)
 
-    do('send NYM dest={target} role=SPONSOR',
+    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
        within=3,
        expect=nymAddedOut, mapper=faberMap)
     return philCli
@@ -77,7 +78,7 @@ def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
         do('connect test', within=3,
            expect=connectedToTest)
 
-    do('send NYM dest={target} role=SPONSOR',
+    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
        within=3,
        expect=nymAddedOut, mapper=acmeMap)
     return philCli
@@ -91,7 +92,7 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
         do('connect test', within=3,
            expect=connectedToTest)
 
-    do('send NYM dest={target} role=SPONSOR',
+    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
        within=3,
        expect=nymAddedOut, mapper=thriftMap)
     return philCli

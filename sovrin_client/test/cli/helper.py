@@ -9,7 +9,7 @@ from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
-    VALIDATOR
+    VALIDATOR, STEWARD
 from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     checkAllNodesStarted, newCLI as newPlenumCLI
@@ -19,7 +19,6 @@ from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.txn import NYM
-from sovrin_common.txn import STEWARD
 from sovrin_client.test.helper import TestClient
 
 

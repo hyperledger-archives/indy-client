@@ -539,7 +539,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         idy = Identity(identifier, verkey=verkey)
         link.targetVerkey = verkey
         try:
-            pendingCount = self.wallet.addSponsoredIdentity(idy)
+            pendingCount = self.wallet.addTrustAnchoredIdentity(idy)
             logger.debug("pending request count {}".format(pendingCount))
             alreadyAdded = False
         except Exception as e:

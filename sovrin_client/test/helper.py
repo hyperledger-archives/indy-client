@@ -83,12 +83,12 @@ def createNym(looper, nym, creatorClient, creatorWallet: Wallet, role=None,
     idy = Identity(identifier=nym,
                    verkey=verkey,
                    role=role)
-    creatorWallet.addSponsoredIdentity(idy)
+    creatorWallet.addTrustAnchoredIdentity(idy)
     reqs = creatorWallet.preparePending()
     creatorClient.submitReqs(*reqs)
 
     def check():
-        assert creatorWallet._sponsored[nym].seqNo
+        assert creatorWallet._trustAnchored[nym].seqNo
 
     looper.run(eventually(check, retryWait=1, timeout=10))
 
@@ -223,15 +223,15 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
 
 def makeIdentityRequest(looper, actingClient, actingWallet, idy):
     idr = idy.identifier
-    if actingWallet.getSponsoredIdentity(idr):
-        actingWallet.updateSponsoredIdentity(idy)
+    if actingWallet.getTrustAnchoredIdentity(idr):
+        actingWallet.updateTrustAnchoredIdentity(idy)
     else:
-        actingWallet.addSponsoredIdentity(idy)
+        actingWallet.addTrustAnchoredIdentity(idy)
     reqs = actingWallet.preparePending()
     actingClient.submitReqs(*reqs)
 
     def chk():
-        assert actingWallet.getSponsoredIdentity(idr).seqNo is not None
+        assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
 
     looper.run(eventually(chk, retryWait=1, timeout=5))
     return reqs

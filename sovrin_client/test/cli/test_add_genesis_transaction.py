@@ -1,9 +1,10 @@
 import json
 
+from plenum.common.roles import Roles
 from plenum.common.txn import VERKEY, DATA, NODE, TYPE
 from plenum.test.cli.helper import checkCmdValid
 
-from sovrin_common.txn import STEWARD, NYM
+from sovrin_common.txn import NYM
 from sovrin_common.txn import TARGET_NYM, ROLE
 
 
@@ -14,6 +15,7 @@ def executeAndCheckGenTxn(cli, cmd, typ, nym, role=None, data=None):
     dataCorrect = False if data else True
     typeCorrect = False if typ else True
 
+    role = Roles[role].value if role else role
     for txn in cli.genesisTransactions:
         if txn.get(TARGET_NYM) == nym:
             nymCorrect = True
@@ -46,7 +48,7 @@ def testAddGenTxnBasic(cli):
 
 def testAddGenTxnWithRole(cli):
     nym = "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML"
-    role = STEWARD
+    role = Roles.STEWARD.name
     typ = NYM
     prepareCmdAndCheckGenTxn(cli, typ, nym, role)
 

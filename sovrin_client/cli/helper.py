@@ -29,7 +29,7 @@ def getNewClientGrams():
         ADD_GENESIS_FORMATTED_REG_EX,
         # Regex for `new client steward with identifier <nym>`
         CLIENT_GRAMS_CLIENT_WITH_IDENTIFIER_FORMATTED_REG_EX,
-        # Regex for `client steward add sponsor bob` or `client steward
+        # Regex for `client steward add TRUST ANCHOR bob` or `client steward
         # add user bob`
         CLIENT_GRAMS_CLIENT_ADD_FORMATTED_REG_EX,
         SEND_NYM_FORMATTED_REG_EX,

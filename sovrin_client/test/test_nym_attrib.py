@@ -8,7 +8,7 @@ import pytest
 from plenum.common.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import ENC, DATA, REPLY, TXN_TIME
+from plenum.common.txn import ENC, DATA, REPLY, TXN_TIME, TRUST_ANCHOR
 from plenum.common.types import f, OP_FIELD_NAME
 from plenum.common.util import adict
 from sovrin_client.client.client import Client
@@ -16,7 +16,7 @@ from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.identity import Identity
 from sovrin_common.txn import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
-    SPONSOR, TXN_ID, NONCE, SKEY
+    TXN_ID, NONCE, SKEY
 from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
@@ -48,14 +48,14 @@ def attributeData(attributeName, attributeValue):
 
 
 @pytest.fixture(scope="module")
-def addedRawAttribute(userWalletA: Wallet, sponsor: Client,
-                      sponsorWallet: Wallet, attributeData, looper):
+def addedRawAttribute(userWalletA: Wallet, trustAnchor: Client,
+                      trustAnchorWallet: Wallet, attributeData, looper):
     attrib = Attribute(name='test attribute',
-                       origin=sponsorWallet.defaultId,
+                       origin=trustAnchorWallet.defaultId,
                        value=attributeData,
                        dest=userWalletA.defaultId,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, sponsor, sponsorWallet, attrib)
+    addAttributeAndCheck(looper, trustAnchor, trustAnchorWallet, attrib)
     return attrib
 
 
@@ -66,7 +66,7 @@ def symEncData(attributeData):
 
 
 @pytest.fixture(scope="module")
-def addedEncryptedAttribute(userIdA, sponsor, sponsorWallet, looper,
+def addedEncryptedAttribute(userIdA, trustAnchor, trustAnchorWallet, looper,
                             symEncData):
     op = {
         TARGET_NYM: userIdA,
@@ -74,12 +74,12 @@ def addedEncryptedAttribute(userIdA, sponsor, sponsorWallet, looper,
         ENC: symEncData.encData
     }
 
-    return submitAndCheck(looper, sponsor, sponsorWallet, op)[0]
+    return submitAndCheck(looper, trustAnchor, trustAnchorWallet, op)[0]
 
 
 @pytest.fixture(scope="module")
-def nonSponsor(looper, nodeSet, tdir):
-    sseed = b'this is a secret sponsor seed...'
+def nonTrustAnchor(looper, nodeSet, tdir):
+    sseed = b'a secret trust anchor seed......'
     signer = SimpleSigner(seed=sseed)
     c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     w = Wallet(c.name)
@@ -91,8 +91,8 @@ def nonSponsor(looper, nodeSet, tdir):
 
 
 @pytest.fixture(scope="module")
-def anotherSponsor(nodeSet, steward, stewardWallet, tdir, looper):
-    sseed = b'this is 1 secret sponsor seed...'
+def anotherTrustAnchor(nodeSet, steward, stewardWallet, tdir, looper):
+    sseed = b'1 secret trust anchor seed......'
     signer = SimpleSigner(seed=sseed)
     c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     w = Wallet(c.name)
@@ -101,7 +101,7 @@ def anotherSponsor(nodeSet, steward, stewardWallet, tdir, looper):
     looper.add(c)
     looper.run(c.ensureConnectedToNodes())
     createNym(looper, signer.identifier, steward, stewardWallet,
-              role=SPONSOR, verkey=signer.verkey)
+              role=TRUST_ANCHOR, verkey=signer.verkey)
     return c, w
 
 
@@ -118,18 +118,18 @@ def whitelistextras(*msg):
     [whitelistArray.remove(m) for m, _in in ins.items() if not _in]
 
 
-def testNonStewardCannotCreateASponsor(nodeSet, client1, wallet1, looper):
+def testNonStewardCannotCreateATrustAnchor(nodeSet, client1, wallet1, looper):
 
     with whitelistextras("UnknownIdentifier"):
-        seed = b'this is a secret sponsor seed...'
-        sponsorSigner = SimpleSigner(seed=seed)
+        seed = b'a secret trust anchor seed......'
+        trustAnchorSigner = SimpleSigner(seed=seed)
 
-        sponsorNym = sponsorSigner.identifier
+        trustAnchorNym = trustAnchorSigner.identifier
 
         op = {
-            TARGET_NYM: sponsorNym,
+            TARGET_NYM: trustAnchorNym,
             TXN_TYPE: NYM,
-            ROLE: SPONSOR
+            ROLE: TRUST_ANCHOR
         }
 
         submitAndCheckNacks(looper=looper, client=client1, wallet=wallet1, op=op,
@@ -137,20 +137,20 @@ def testNonStewardCannotCreateASponsor(nodeSet, client1, wallet1, looper):
                             contains="UnknownIdentifier")
 
 
-def testStewardCreatesASponsor(steward, addedSponsor):
+def testStewardCreatesATrustAnchor(steward, addedTrustAnchor):
     pass
 
 
 @pytest.mark.skip(reason="SOV-560. Cannot create another sponsor with same nym")
-def testStewardCreatesAnotherSponsor(nodeSet, steward, stewardWallet, looper,
-                                     sponsorWallet):
-    createNym(looper, sponsorWallet.defaultId, steward, stewardWallet, SPONSOR)
-    return sponsorWallet
+def testStewardCreatesAnotherTrustAnchor(nodeSet, steward, stewardWallet, looper,
+                                     trustAnchorWallet):
+    createNym(looper, trustAnchorWallet.defaultId, steward, stewardWallet, TRUST_ANCHOR)
+    return trustAnchorWallet
 
 
-def testNonSponsorCannotCreateAUser(nodeSet, looper, nonSponsor):
+def testNonTrustAnchorCannotCreateAUser(nodeSet, looper, nonTrustAnchor):
     with whitelistextras("UnknownIdentifier"):
-        client, wallet = nonSponsor
+        client, wallet = nonTrustAnchor
         useed = b'this is a secret apricot seed...'
         userSigner = SimpleSigner(seed=useed)
 
@@ -166,30 +166,30 @@ def testNonSponsorCannotCreateAUser(nodeSet, looper, nonSponsor):
                             contains="UnknownIdentifier")
 
 
-def testSponsorCreatesAUser(steward, userWalletA):
+def testTrustAnchorCreatesAUser(steward, userWalletA):
     pass
 
 
 @pytest.fixture(scope="module")
-def nymsAddedInQuickSuccession(nodeSet, addedSponsor, looper,
-                               sponsor, sponsorWallet):
+def nymsAddedInQuickSuccession(nodeSet, addedTrustAnchor, looper,
+                               trustAnchor, trustAnchorWallet):
     usigner = SimpleSigner()
     nym = usigner.verkey
     idy = Identity(identifier=nym)
-    sponsorWallet.addSponsoredIdentity(idy)
+    trustAnchorWallet.addTrustAnchoredIdentity(idy)
     # Creating a NYM request with same nym again
     req = idy.ledgerRequest()
-    sponsorWallet._pending.appendleft((req, idy.identifier))
-    reqs = sponsorWallet.preparePending()
-    sponsor.submitReqs(*reqs)
+    trustAnchorWallet._pending.appendleft((req, idy.identifier))
+    reqs = trustAnchorWallet.preparePending()
+    trustAnchor.submitReqs(*reqs)
 
     def check():
-        assert sponsorWallet._sponsored[nym].seqNo
+        assert trustAnchorWallet._trustAnchored[nym].seqNo
 
     looper.run(eventually(check, timeout=2))
 
     looper.run(eventually(checkNacks,
-                          sponsor,
+                          trustAnchor,
                           req.reqId,
                           "is already added",
                           retryWait=1, timeout=15))
@@ -208,19 +208,19 @@ def testAddNymsInQuickSuccession(nymsAddedInQuickSuccession):
     pass
 
 
-def testSponsorAddsAttributeForUser(addedRawAttribute):
+def testTrustAnchorAddsAttributeForUser(addedRawAttribute):
     pass
 
 
 def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
-                                                       addedSponsor, sponsor,
+                                                       addedTrustAnchor, trustAnchor,
                                                        userWalletA,
                                                        attributeName,
                                                        attributeData,
                                                        addedRawAttribute):
     lastReqId = None
     replies = {}
-    for msg, sender in reversed(sponsor.inBox):
+    for msg, sender in reversed(trustAnchor.inBox):
         if msg[OP_FIELD_NAME] == REPLY:
             if not lastReqId:
                 lastReqId = msg[f.RESULT.nm][f.REQ_ID.nm]
@@ -229,23 +229,23 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
             if len(replies) == len(nodeSet):
                 break
 
-    sponsorWallet = addedSponsor
+    trustAnchorWallet = addedTrustAnchor
     attrib = Attribute(name=attributeName,
-                       origin=sponsorWallet.defaultId,
+                       origin=trustAnchorWallet.defaultId,
                        value=attributeData,
                        dest=userWalletA.defaultId,
                        ledgerStore=LedgerStore.RAW)
-    sponsorWallet.addAttribute(attrib)
-    req = sponsorWallet.preparePending()[0]
-    _, key = sponsorWallet._prepared.pop((req.identifier, req.reqId))
+    trustAnchorWallet.addAttribute(attrib)
+    req = trustAnchorWallet.preparePending()[0]
+    _, key = trustAnchorWallet._prepared.pop((req.identifier, req.reqId))
     req.reqId = lastReqId
-    req.signature = sponsorWallet.signMsg(msg=req.getSigningState(),
+    req.signature = trustAnchorWallet.signMsg(msg=req.getSigningState(),
                                           identifier=req.identifier)
-    sponsorWallet._prepared[req.identifier, req.reqId] = req, key
-    sponsor.submitReqs(req)
+    trustAnchorWallet._prepared[req.identifier, req.reqId] = req, key
+    trustAnchor.submitReqs(req)
 
     def chk():
-        nonlocal sponsor, lastReqId, replies
+        nonlocal trustAnchor, lastReqId, replies
         for node in nodeSet:
             last = node.spylog.getLast(TestNode.getReplyFor.__name__)
             assert last
@@ -263,47 +263,47 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     looper.run(eventually(chk, retryWait=1, timeout=5))
 
 
-def checkGetAttr(reqKey, sponsor, attrName, attrValue):
-    reply, status = sponsor.getReply(*reqKey)
+def checkGetAttr(reqKey, trustAnchor, attrName, attrValue):
+    reply, status = trustAnchor.getReply(*reqKey)
     assert reply
     data = json.loads(reply.get(DATA))
     assert status == "CONFIRMED" and \
            (data is not None and data.get(attrName) == attrValue)
 
 
-def getAttribute(looper, sponsor, sponsorWallet, userIdA, attributeName,
+def getAttribute(looper, trustAnchor, trustAnchorWallet, userIdA, attributeName,
                  attributeValue):
     attrib = Attribute(name=attributeName,
                        value=None,
                        dest=userIdA,
                        ledgerStore=LedgerStore.RAW)
-    req = sponsorWallet.requestAttribute(attrib,
-                                         sender=sponsorWallet.defaultId)
-    sponsor.submitReqs(req)
-    looper.run(eventually(checkGetAttr, req.key, sponsor,
+    req = trustAnchorWallet.requestAttribute(attrib,
+                                         sender=trustAnchorWallet.defaultId)
+    trustAnchor.submitReqs(req)
+    looper.run(eventually(checkGetAttr, req.key, trustAnchor,
                           attributeName, attributeValue, retryWait=1,
                           timeout=20))
 
 
 @pytest.fixture(scope="module")
-def checkAddAttribute(userWalletA, sponsor, sponsorWallet, attributeName,
+def checkAddAttribute(userWalletA, trustAnchor, trustAnchorWallet, attributeName,
                       attributeValue, addedRawAttribute, looper):
     getAttribute(looper=looper,
-                 sponsor=sponsor,
-                 sponsorWallet=sponsorWallet,
+                 trustAnchor=trustAnchor,
+                 trustAnchorWallet=trustAnchorWallet,
                  userIdA=userWalletA.defaultId,
                  attributeName=attributeName,
                  attributeValue=attributeValue)
 
 
-def testSponsorGetAttrsForUser(checkAddAttribute):
+def testTrustAnchorGetAttrsForUser(checkAddAttribute):
     pass
 
 
-def testNonSponsorCannotAddAttributeForUser(nodeSet, nonSponsor, userIdA,
+def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA,
                                             looper, attributeData):
     with whitelistextras("UnknownIdentifier"):
-        client, wallet = nonSponsor
+        client, wallet = nonTrustAnchor
         attrib = Attribute(name='test1 attribute',
                            origin=wallet.defaultId,
                            value=attributeData,
@@ -316,11 +316,11 @@ def testNonSponsorCannotAddAttributeForUser(nodeSet, nonSponsor, userIdA,
                               "UnknownIdentifier", retryWait=1, timeout=15))
 
 
-def testOnlyUsersSponsorCanAddAttribute(nodeSet, looper,
+def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
                                         steward, stewardWallet,
-                                        attributeData, anotherSponsor, userIdA):
+                                        attributeData, anotherTrustAnchor, userIdA):
     with whitelistextras("UnauthorizedClientRequest"):
-        client, wallet = anotherSponsor
+        client, wallet = anotherTrustAnchor
         attrib = Attribute(name='test2 attribute',
                            origin=wallet.defaultId,
                            value=attributeData,
@@ -349,15 +349,15 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
 
 
 @pytest.mark.skip(reason="SOV-560. Attribute encryption is done in client")
-def testSponsorAddedAttributeIsEncrypted(addedEncryptedAttribute):
+def testTrustAnchorAddedAttributeIsEncrypted(addedEncryptedAttribute):
     pass
 
 
 @pytest.mark.skip(reason="SOV-560. Attribute Disclosure is not done for now")
-def testSponsorDisclosesEncryptedAttribute(addedEncryptedAttribute, symEncData,
-                                           looper, userSignerA, sponsorSigner,
-                                           sponsor):
-    box = libnacl.public.Box(sponsorSigner.naclSigner.keyraw,
+def testTrustAnchorDisclosesEncryptedAttribute(addedEncryptedAttribute, symEncData,
+                                           looper, userSignerA, trustAnchorSigner,
+                                           trustAnchor):
+    box = libnacl.public.Box(trustAnchorSigner.naclSigner.keyraw,
                              userSignerA.naclSigner.verraw)
 
     data = json.dumps({SKEY: symEncData.secretKey,
@@ -370,46 +370,46 @@ def testSponsorDisclosesEncryptedAttribute(addedEncryptedAttribute, symEncData,
         NONCE: base58.b58encode(nonce),
         ENC: base58.b58encode(boxedMsg)
     }
-    submitAndCheck(looper, sponsor, op,
-                   identifier=sponsorSigner.verstr)
+    submitAndCheck(looper, trustAnchor, op,
+                   identifier=trustAnchorSigner.verstr)
 
 
 @pytest.mark.skip(reason="SOV-561. Pending implementation")
-def testSponsorAddedAttributeCanBeChanged(addedRawAttribute):
+def testTrustAnchorAddedAttributeCanBeChanged(addedRawAttribute):
     # TODO but only by user(if user has taken control of his identity) and
-    # sponsor
+    # trustAnchor
     raise NotImplementedError
 
 
-def testGetAttribute(nodeSet, addedSponsor, sponsorWallet: Wallet, sponsor,
+def testGetAttribute(nodeSet, addedTrustAnchor, trustAnchorWallet: Wallet, trustAnchor,
                      userIdA, addedRawAttribute, attributeData):
-    assert attributeData in [a.value for a in sponsorWallet.getAttributesForNym(userIdA)]
+    assert attributeData in [a.value for a in trustAnchorWallet.getAttributesForNym(userIdA)]
 
 
 # TODO: Ask Jason, if getting the latest attribute makes sense since in case
 # of encrypted and hashed attributes, there is no name.
-def testLatestAttrIsReceived(nodeSet, addedSponsor, sponsorWallet, looper,
-                             sponsor, userIdA):
+def testLatestAttrIsReceived(nodeSet, addedTrustAnchor, trustAnchorWallet, looper,
+                             trustAnchor, userIdA):
 
     attr1 = json.dumps({'name': 'Mario'})
     attrib = Attribute(name='name',
-                       origin=sponsorWallet.defaultId,
+                       origin=trustAnchorWallet.defaultId,
                        value=attr1,
                        dest=userIdA,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, sponsor, sponsorWallet, attrib)
-    assert attr1 in [a.value for a in sponsorWallet.getAttributesForNym(userIdA)]
+    addAttributeAndCheck(looper, trustAnchor, trustAnchorWallet, attrib)
+    assert attr1 in [a.value for a in trustAnchorWallet.getAttributesForNym(userIdA)]
 
     attr2 = json.dumps({'name': 'Luigi'})
     attrib = Attribute(name='name',
-                       origin=sponsorWallet.defaultId,
+                       origin=trustAnchorWallet.defaultId,
                        value=attr2,
                        dest=userIdA,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, sponsor, sponsorWallet, attrib)
-    logger.debug([a.value for a in sponsorWallet.getAttributesForNym(userIdA)])
+    addAttributeAndCheck(looper, trustAnchor, trustAnchorWallet, attrib)
+    logger.debug([a.value for a in trustAnchorWallet.getAttributesForNym(userIdA)])
     assert attr2 in [a.value for a in
-                     sponsorWallet.getAttributesForNym(userIdA)]
+                     trustAnchorWallet.getAttributesForNym(userIdA)]
 
 
 @pytest.mark.skip(reason="SOV-561. Test not implemented")
@@ -422,23 +422,23 @@ def testGetTxnsNoSeqNo():
 
 @pytest.mark.skip(reason="SOV-560. Come back to it later since "
                          "requestPendingTxns move to wallet")
-def testGetTxnsSeqNo(nodeSet, addedSponsor, tdir, sponsorWallet, looper):
+def testGetTxnsSeqNo(nodeSet, addedTrustAnchor, tdir, trustAnchorWallet, looper):
     """
     Test GET_TXNS from client and provide seqNo to fetch from
     """
-    sponsor = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
+    trustAnchor = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
 
-    looper.add(sponsor)
-    looper.run(sponsor.ensureConnectedToNodes())
+    looper.add(trustAnchor)
+    looper.run(trustAnchor.ensureConnectedToNodes())
 
     def chk():
-        assert sponsor.spylog.count(sponsor.requestPendingTxns.__name__) > 0
+        assert trustAnchor.spylog.count(trustAnchor.requestPendingTxns.__name__) > 0
 
     looper.run(eventually(chk, retryWait=1, timeout=3))
 
 
-def testNonSponsoredNymCanDoGetNym(nodeSet, addedSponsor,
-                                   sponsorWallet, tdir, looper):
+def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
+                                   trustAnchorWallet, tdir, looper):
     signer = SimpleSigner()
     someClient, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     wallet = Wallet(someClient.name)
@@ -446,7 +446,7 @@ def testNonSponsoredNymCanDoGetNym(nodeSet, addedSponsor,
     someClient.registerObserver(wallet.handleIncomingReply)
     looper.add(someClient)
     looper.run(someClient.ensureConnectedToNodes())
-    needle = sponsorWallet.defaultId
+    needle = trustAnchorWallet.defaultId
     makeGetNymRequest(someClient, wallet, needle)
     looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=5))
 

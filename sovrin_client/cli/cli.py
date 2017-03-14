@@ -18,6 +18,7 @@ from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.cli.phrase_word_completer import PhraseWordCompleter
 from plenum.common.port_dispenser import genHa
+from plenum.common.roles import Roles
 from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
@@ -99,7 +100,7 @@ class SovrinCli(PlenumCli):
 
     def __init__(self, *args, **kwargs):
         self.aliases = {}  # type: Dict[str, Signer]
-        self.sponsors = set()
+        self.trustAnchors = set()
         self.users = set()
         self._agent = None
         super().__init__(*args, **kwargs)
@@ -154,7 +155,7 @@ class SovrinCli(PlenumCli):
     def completers(self):
         completers = {}
         completers["nym"] = WordCompleter([])
-        completers["role"] = WordCompleter(["SPONSOR", "STEWARD"])
+        completers["role"] = WordCompleter([Roles.TRUST_ANCHOR.name, Roles.STEWARD.name])
         completers["send_nym"] = PhraseWordCompleter("send NYM")
         completers["send_get_nym"] = PhraseWordCompleter("send GET_NYM")
         completers["send_attrib"] = PhraseWordCompleter("send ATTRIB")
@@ -417,12 +418,19 @@ class SovrinCli(PlenumCli):
     def _getRole(self, matchedVars):
         role = matchedVars.get(ROLE)
         if role is not None and role.strip() == '':
-            role = NULL
-        if not Authoriser.isValidRole(Identity.correctRole(role)):
+            role = None
+
+        valid = Authoriser.isValidRoleName(role)
+        if valid:
+            role = Authoriser.getRoleFromName(role)
+            valid = Authoriser.isValidRole(role)
+
+        if not valid:
             self.print("Invalid role. Valid roles are: {}".
-                       format(", ".join(map(lambda r: r if r else '',
-                                            Authoriser.ValidRoles))), Token.Error)
+                       format(", ".join(map(lambda r: r.name, Roles))),
+                       Token.Error)
             return False
+
         return role
 
     def _getNym(self, nym):
@@ -468,7 +476,7 @@ class SovrinCli(PlenumCli):
     def _addNym(self, nym, role, newVerKey=None, otherClientName=None):
         idy = Identity(nym, verkey=newVerKey, role=role)
         try:
-            self.activeWallet.addSponsoredIdentity(idy)
+            self.activeWallet.addTrustAnchoredIdentity(idy)
         except Exception as e:
             if e.args[0] == 'identifier already added':
                 pass

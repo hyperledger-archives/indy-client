@@ -17,7 +17,7 @@ from plenum.common.types import Identifier, f
 from sovrin_client.client.wallet.attribute import Attribute, AttributeKey
 from sovrin_client.client.wallet.link import Link
 from sovrin_client.client.wallet.node import Node
-from sovrin_client.client.wallet.sponsoring import Sponsoring
+from sovrin_client.client.wallet.trustAnchoring import TrustAnchoring
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
@@ -30,7 +30,7 @@ logger = getlogger()
 
 
 # TODO: Maybe we should have a thinner wallet which should not have ProverWallet
-class Wallet(PWallet, Sponsoring):
+class Wallet(PWallet, TrustAnchoring):
     clientNotPresentMsg = "The wallet does not have a client associated with it"
 
     def __init__(self,
@@ -39,7 +39,7 @@ class Wallet(PWallet, Sponsoring):
         PWallet.__init__(self,
                          name,
                          supportedDidMethods or DefaultDidMethods)
-        Sponsoring.__init__(self)
+        TrustAnchoring.__init__(self)
         self._attributes = {}  # type: Dict[(str, Identifier,
         # Optional[Identifier]), Attribute]
 
@@ -255,11 +255,11 @@ class Wallet(PWallet, Sponsoring):
 
     def _nymReply(self, result, preparedReq):
         target = result[TARGET_NYM]
-        idy = self._sponsored.get(target)
+        idy = self._trustAnchored.get(target)
         if idy:
             idy.seqNo = result[F.seqNo.name]
         else:
-            logger.warn("Target {} not found in sponsored".format(target))
+            logger.warn("Target {} not found in trust anchored".format(target))
 
     def _nodeReply(self, result, preparedReq):
         _, nodeKey = preparedReq
@@ -279,7 +279,7 @@ class Wallet(PWallet, Sponsoring):
             idy = self.knownIds.get(nym)
             if idy:
                 idy.role = data.get(ROLE)
-                idy.sponsor = data.get(f.IDENTIFIER.nm)
+                idy.trustAnchor = data.get(f.IDENTIFIER.nm)
                 idy.last_synced = datetime.datetime.utcnow()
                 idy.verkey = data.get(VERKEY)
                 # TODO: THE GET_NYM reply should contain the sequence number of

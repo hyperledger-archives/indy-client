@@ -619,9 +619,34 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         ha = link.getRemoteEndpoint(required=True)
         self.connectToHa(ha)
 
+    def loadInvitationFile(self, filePath):
+        with open(filePath) as data_file:
+            invitation = json.load(
+                data_file, object_pairs_hook=collections.OrderedDict)
+            return self.loadInvitationDict(invitation)
+
+    def loadInvitationStr(self, json_str):
+        invitation = json.loads(
+            json_str, object_pairs_hook=collections.OrderedDict)
+        return self.loadInvitationDict(invitation)
+
+    def loadInvitationDict(self, invitation_dict):
+        linkInvitation = invitation_dict.get("link-invitation")
+        if not linkInvitation:
+            raise LinkNotFound
+        linkName = linkInvitation["name"]
+        existingLinkInvites = self.wallet. \
+            getMatchingLinks(linkName)
+        if len(existingLinkInvites) >= 1:
+            return self._mergeInvitation(invitation_dict)
+        Link.validate(invitation_dict)
+        link = self.loadInvitation(invitation_dict)
+        return link
+
     def loadInvitation(self, invitationData):
         linkInvitation = invitationData["link-invitation"]
         remoteIdentifier = linkInvitation[f.IDENTIFIER.nm]
+        # TODO signature should be validated!
         signature = invitationData["sig"]
         linkInvitationName = linkInvitation[NAME]
         remoteEndPoint = linkInvitation.get("endpoint", None)
@@ -652,23 +677,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self.wallet.addLink(li)
         return li
 
-    def loadInvitationFile(self, filePath):
-        with open(filePath) as data_file:
-            invitationData = json.load(
-                data_file, object_pairs_hook=collections.OrderedDict)
-            linkInvitation = invitationData.get("link-invitation")
-            if not linkInvitation:
-                raise LinkNotFound
-            linkName = linkInvitation["name"]
-            existingLinkInvites = self.wallet. \
-                getMatchingLinks(linkName)
-            if len(existingLinkInvites) >= 1:
-                return self._mergeInvitaion(invitationData)
-            Link.validate(invitationData)
-            link = self.loadInvitation(invitationData)
-            return link
-
-    def _mergeInvitaion(self, invitationData):
+    def _mergeInvitation(self, invitationData):
         linkInvitation = invitationData.get('link-invitation')
         linkName = linkInvitation['name']
         link = self.wallet.getLink(linkName)
@@ -822,3 +831,4 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 loop.call_later(.2, self.executeWhenResponseRcvd,
                                 startTime, maxCheckForMillis, loop,
                                 reqId, respType, checkIfLinkExists, clbk, *args)
+

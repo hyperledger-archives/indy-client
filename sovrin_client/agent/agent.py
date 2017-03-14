@@ -3,14 +3,14 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound
+from plenum.common.exceptions import RemoteNotFound, NoConsensusYet
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.port_dispenser import genHa
 from plenum.common.startable import Status
-from plenum.common.types import Identifier
-from plenum.common.util import randomString
+from plenum.common.types import Identifier, HA
+from plenum.common.util import randomString, checkPortAvailable
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
@@ -22,7 +22,6 @@ from sovrin_client.anon_creds.sovrin_verifier import SovrinVerifier
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
-from sovrin_common.exceptions import SovrinNotAvailable
 from sovrin_common.identity import Identity
 from sovrin_common.strict_types import strict_types, decClassMethods
 from sovrin_common.config import agentLoggingLevel
@@ -39,17 +38,16 @@ class Agent(Motor, AgentNet):
                  client: Client = None,
                  port: int = None,
                  loop=None):
+
+        self.endpoint = None
+        if port:
+            checkPortAvailable(HA("0.0.0.0", port))
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
         self._name = name
         self._port = port
-
-        AgentNet.__init__(self,
-                          name=self._name.replace(" ", ""),
-                          port=port,
-                          basedirpath=basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+        self._basedirpath = basedirpath
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -85,8 +83,11 @@ class Agent(Motor, AgentNet):
         return c
 
     def start(self, loop):
-        if self.endpoint:
-            self.endpoint.startStack()
+        AgentNet.__init__(self,
+                          name=self._name.replace(" ", ""),
+                          port=self._port,
+                          basedirpath=self._basedirpath,
+                          msgHandler=self.handleEndpointMessage)
         super().start(loop)
         if self.client:
             self.client.start(loop)
@@ -240,23 +241,18 @@ def runAgent(agent, looper=None, bootstrap=True):
         if bootstrap:
             looper.run(agent.bootstrap())
 
-    try:
-        if looper:
-            doRun(looper)
-        else:
-            looper = Looper(debug=True, loop=agent.loop)
+    if looper:
+        doRun(looper)
+    else:
+        with Looper(debug=True, loop=agent.loop) as looper:
             doRun(looper)
             looper.run()
-    except Exception as e:
-        try:
-            looper.removeProdable(agent)
-        except:
-            pass
-        raise e
 
 
 async def runBootstrap(bootstrapFunc):
     try:
         await bootstrapFunc()
     except TimeoutError as exc:
-        raise SovrinNotAvailable from exc
+        raise NoConsensusYet("consensus is not yet achieved, "
+                             "check if sovrin is running and "
+                             "client is able to connect to it") from exc

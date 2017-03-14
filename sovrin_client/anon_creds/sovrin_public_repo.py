@@ -18,11 +18,13 @@ from sovrin_common.types import Request
 
 def _ensureReqCompleted(reqKey, client, clbk):
     reply, err = client.replyIfConsensus(*reqKey)
+
     if err:
         raise OperationError(err)
 
     if reply is None:
         raise NoConsensusYet('not completed')
+
     return clbk(reply, err)
 
 

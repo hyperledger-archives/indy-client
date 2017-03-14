@@ -1,30 +1,22 @@
 import json
 import os
 import tempfile
-import traceback
-
-import itertools
-from time import sleep
 import re
 from typing import List
 
 import plenum
 import pytest
 
-from plenum.common.exceptions import BlowUp, ProdableAlreadyAdded, \
-    PortNotAvailable
+from plenum.common.exceptions import BlowUp
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
+from plenum.common.roles import Roles
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
-    dirName, tdirWithDomainTxns, poolTxnNodeNames
-from plenum.test.helper import createTempDir, waitUntillPortIsAvailable
-from sovrin_client.agent import agent
-from sovrin_client.agent.agent import runAgent
+    tdirWithDomainTxns, poolTxnNodeNames
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_client.test.agent.acme import createAcme
-from sovrin_common.txn import SPONSOR, ENDPOINT, TRUST_ANCHOR
+from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -1249,75 +1241,32 @@ def philCli(be, do, philCLI):
     return philCLI
 
 
+def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
+    be(userCli)
+    if not userCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectExpMsgs)
+
+    do('send NYM dest={{target}} role={role}'.format(
+        role=Roles.TRUST_ANCHOR.name),
+       within=3,
+       expect=nymAddExpMsgs, mapper=mapper)
+    return philCli
+
+
 @pytest.fixture(scope="module")
 def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                      nymAddedOut, faberMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=faberMap)
-    return philCli
+    return addAgent(be, do, philCli, faberMap, connectedToTest, nymAddedOut)
 
 
 @pytest.fixture(scope="module")
 def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                     nymAddedOut, acmeMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=acmeMap)
-    return philCli
+    return addAgent(be, do, philCli, acmeMap, connectedToTest, nymAddedOut)
 
 
 @pytest.fixture(scope="module")
 def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                       nymAddedOut, thriftMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=thriftMap)
-    return philCli
-
-
-# @pytest.fixture(scope="module")
-# def faberRestartedOnSamePort(poolNodesStarted, emptyLooper,
-#                                    tdirWithPoolTxns, faberWallet,
-#                                    faberAddedByPhil, faberAgent):
-#     freeupPorts(emptyLooper, [faberAgent.port])
-#     with pytest.raises(ProdableAlreadyAdded):
-#         runningFaber(emptyLooper, tdirWithPoolTxns,
-#                                           faberWallet, faberAgent, faberAddedByPhil)
-#         runningFaber(emptyLooper, tdirWithPoolTxns,
-#                      faberWallet, faberAgent, faberAddedByPhil)
-#
-#     freeupPorts(emptyLooper, [faberAgent.port])
-#
-#
-# @pytest.fixture(scope="module")
-# def acmeRestartedWithUsedPort(looper, poolNodesStarted, emptyLooper,
-#                                  tdirWithPoolTxns, faberWallet, faberAgentPort,
-#                                  faberAddedByPhil, acmeAddedByPhil,
-#                                  faberAgent, acmeWallet):
-#     freeupPorts(emptyLooper, [faberAgent.port])
-#     runningFaber(emptyLooper, tdirWithPoolTxns, faberWallet, faberAgent,
-#                  faberAddedByPhil)
-#
-#     acmeAgent = createAcme(acmeWallet.name, acmeWallet,
-#                       basedirpath=tdirWithPoolTxns,
-#                       port=faberAgentPort)
-#
-#     with pytest.raises(PortNotAvailable):
-#         runningAcme(emptyLooper, tdirWithPoolTxns, acmeWallet,
-#                     acmeAgent, acmeAddedByPhil)
+    return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)

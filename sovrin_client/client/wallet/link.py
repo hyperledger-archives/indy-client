@@ -6,7 +6,7 @@ from plenum.common.util import prettyDateDifference
 from sovrin_client.client.wallet.types import AvailableClaim
 
 from sovrin_common.exceptions import InvalidLinkException, \
-    RemoteEndpointNotFound
+    RemoteEndpointNotFound, NotFound
 
 
 class constant:
@@ -188,3 +188,18 @@ class Link:
         else:
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
+
+    def find_available_claims(self, name=None, version=None, origin=None):
+        return [ac for ac in self.availableClaims
+                if (not name or name == ac.name) and
+                (not version or version == ac.version) and
+                (not origin or origin == ac.origin)]
+
+    def find_available_claim(self, name=None, version=None, origin=None,
+                             max_one=True, required=True):
+        _ = self.find_available_claims(name, version, origin)
+        assert not max_one or len(_) <= 1, \
+            'more than one matching available claim found'
+        if required and len(_) == 0:
+            raise NotFound
+        return _[0] if _ else None

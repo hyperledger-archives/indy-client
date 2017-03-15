@@ -363,7 +363,7 @@ def checkAcceptInvitation(emptyLooper,
     internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
 
     def chk():
-        link = inviterWallet.getLinkByInternalId(internalId)
+        link = inviterWallet.getLinkBy(internalId=internalId)
         assert link
         # if not link:
         #     raise RuntimeError("Link not found for internal ID {}".

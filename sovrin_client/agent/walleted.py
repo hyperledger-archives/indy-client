@@ -5,6 +5,7 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
+from functools import partial
 from typing import Dict, Union, NamedTuple, List
 
 from base58 import b58decode
@@ -160,7 +161,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def linkFromNonce(self, nonce, remoteIdr, remoteHa):
         internalId = self.getInternalIdByInvitedNonce(nonce)
-        link = self.wallet.getLinkByInternalId(internalId)
+        link = self.wallet.getLinkBy(internalId=internalId)
         if not link:
             # QUESTION: We use wallet.defaultId as the local identifier,
             # this looks ok for test code, but not production code
@@ -279,7 +280,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 return
 
         typ = body.get(TYPE)
-        link = self.wallet.getLinkInvitationByTarget(body.get(f.IDENTIFIER.nm))
+        link = self.wallet.getLinkBy(remote=body.get(f.IDENTIFIER.nm))
 
         # If accept invite is coming the first time, then use the default
         # identifier of the wallet since link wont be created
@@ -337,7 +338,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def _handlePing(self, msg):
         body, (frm, ha) = msg
-        link = self.wallet.getLinkByNonce(body.get(NONCE))
+        link = self.wallet.getLinkBy(nonce=body.get(NONCE))
         if link:
             self.signAndSend({TYPE: 'pong'}, self.wallet.defaultId, frm,
                              origReqId=body.get(f.REQ_ID.nm))
@@ -442,7 +443,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def getLinkForMsg(self, msg):
         nonce = msg.get(NONCE)
-        link = self.wallet.getLinkByNonce(nonce)
+        link = self.wallet.getLinkBy(nonce=nonce)
         if link:
             return link
         else:
@@ -467,7 +468,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 verkey = self.getVerkeyForLink(link)
             except LinkNotFound:
                 # This is for verification of `NOTIFY` events
-                link = self.wallet.getLinkInvitationByTarget(identifier)
+                link = self.wallet.getLinkBy(remote=identifier)
                 # TODO: If verkey is None, it should be fetched from Sovrin.
                 # Assuming CID for now.
                 verkey = link.targetVerkey
@@ -481,7 +482,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             return True
 
     def _getLinkByTarget(self, target) -> Link:
-        return self.wallet.getLinkInvitationByTarget(target)
+        return self.wallet.getLinkBy(remote=target)
 
     def _checkIfLinkIdentifierWrittenToSovrin(self, li: Link, availableClaims):
         req = self.getIdentity(li.localIdentifier)
@@ -550,16 +551,16 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                "error was: {}".format(e.args[0]))
                 raise e
 
-        def sendClaimList(reply=None, error=None):
-            logger.debug("sending available claims to {}".format(identifier))
-            resp = self.createInviteAcceptedMsg(
-                self.getAvailableClaimList(link.localIdentifier),
-                alreadyAccepted=alreadyAdded)
-            self.signAndSend(resp, link.localIdentifier, frm,
-                             origReqId=body.get(f.REQ_ID.nm))
+        def send_claims(reply=None, error=None):
+            return self.sendClaimList(link=link,
+                                      alreadyAdded=alreadyAdded,
+                                      sender=frm,
+                                      reqId=body.get(f.REQ_ID.nm),
+                                      reply=reply,
+                                      error=error)
 
         if alreadyAdded:
-            sendClaimList()
+            send_claims()
             logger.debug("already accepted, "
                          "so directly sending available claims")
             self.agentLogger.info('Already added identifier [{}] in sovrin'
@@ -580,7 +581,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # so we might not even need to add it as a separate logic
             self.agentLogger.info('Creating identifier [{}] in sovrin'
                                   .format(identifier))
-            self._sendToSovrinAndDo(reqs[0], clbk=sendClaimList)
+            self._sendToSovrinAndDo(reqs[0], clbk=send_claims)
 
             # TODO: If I have the below exception thrown, somehow the
             # error msg which is sent in verifyAndGetLink is not being received
@@ -588,9 +589,17 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # else:
             #     raise NotImplementedError
 
-    def _sendToSovrinAndDo(self, req, clbk=None, *args):
+    def sendClaimList(self, link, alreadyAdded, sender, reqId, reply=None, error=None):
+        logger.debug("sending available claims to {}".format(link.remoteIdentifier))
+        resp = self.createInviteAcceptedMsg(
+            self.getAvailableClaimList(link.remoteIdentifier),
+            alreadyAccepted=alreadyAdded)
+        self.signAndSend(resp, link.localIdentifier, sender,
+                         origReqId=reqId)
+
+    def _sendToSovrinAndDo(self, req, clbk=None, *args, **kwargs):
         self.client.submitReqs(req)
-        ensureReqCompleted(self.loop, req.key, self.client, clbk, *args)
+        ensureReqCompleted(self.loop, req.key, self.client, clbk, *args, **kwargs)
 
     def newAvailableClaimsPostClaimVerif(self, claimName):
         raise NotImplementedError

@@ -482,7 +482,7 @@ def testPingFaber(be, do, aliceCli, faberMap,
 def testAliceAcceptFaberInvitationAgain(be, do, aliceCli, faberMap,
                                         unsycedAlreadyAcceptedInviteAcceptedOut,
                                         aliceAcceptedFaberInvitation):
-    li = aliceCli.activeWallet.getLinkInvitationByTarget(faberMap['target'])
+    li = aliceCli.activeWallet.getLinkBy(remote=faberMap['target'])
     li.linkStatus = None
     be(aliceCli)
     acceptInvitation(be, do, aliceCli, faberMap,

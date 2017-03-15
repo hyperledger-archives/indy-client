@@ -49,7 +49,8 @@ class Link:
                  remoteEndPoint=None,
                  invitationNonce=None,
                  proofRequests=None,
-                 internalId=None):
+                 internalId=None,
+                 remote_verkey=None):
         self.name = name
         self.localIdentifier = localIdentifier
         self.trustAnchor = trustAnchor
@@ -66,7 +67,7 @@ class Link:
         self.verifiedClaimProofs = []
         self.availableClaims = []  # type: List[AvailableClaim]
 
-        self.targetVerkey = None
+        self.targetVerkey = remote_verkey
         self.linkStatus = None
         self.linkLastSynced = None
         self.linkLastSyncNo = None
@@ -92,7 +93,8 @@ class Link:
             else constant.NOT_ASSIGNED
         trustAnchor = self.trustAnchor or ""
         trustAnchorStatus = '(not yet written to Sovrin)'
-        targetVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
+        targetVerKey = self.targetVerkey or \
+                       constant.UNKNOWN_WAITING_FOR_SYNC
         targetEndPoint = self.remoteEndPoint or \
                          constant.UNKNOWN_WAITING_FOR_SYNC
         if isinstance(targetEndPoint, tuple):
@@ -107,7 +109,6 @@ class Link:
 
         if self.isAccepted:
             trustAnchorStatus = '(confirmed)'
-            targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
             linkStatus = self.linkStatus
 
         # TODO: The verkey would be same as the local identifier until we

@@ -652,6 +652,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         signature = invitationData["sig"]
         linkInvitationName = linkInvitation[NAME]
         remoteEndPoint = linkInvitation.get("endpoint", None)
+        remote_verkey = linkInvitation.get("verkey", None)
         linkNonce = linkInvitation[NONCE]
         proofRequestsJson = invitationData.get("proof-requests", None)
 
@@ -674,7 +675,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                   remoteIdentifier=remoteIdentifier,
                   remoteEndPoint=remoteEndPoint,
                   invitationNonce=linkNonce,
-                  proofRequests=proofRequests)
+                  proofRequests=proofRequests,
+                  remote_verkey=remote_verkey)
 
         self.wallet.addLink(li)
         return li

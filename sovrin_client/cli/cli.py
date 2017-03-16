@@ -7,6 +7,7 @@ import json
 import os
 from functools import partial
 from hashlib import sha256
+from operator import itemgetter
 from typing import Dict, Any, Tuple, Callable, List, NamedTuple
 
 import asyncio
@@ -18,6 +19,7 @@ from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.cli.phrase_word_completer import PhraseWordCompleter
 from plenum.common.port_dispenser import genHa
+from plenum.common.roles import Roles
 from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
@@ -58,7 +60,7 @@ from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, ROLE, TXN_TYPE, NYM, TXN_ID, REF, \
     getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
     START, JUSTIFICATION, NULL
-from sovrin_common.util import ensureReqCompleted
+from sovrin_common.util import ensureReqCompleted, getIndex
 from sovrin_client.__metadata__ import __version__
 
 try:
@@ -99,7 +101,7 @@ class SovrinCli(PlenumCli):
 
     def __init__(self, *args, **kwargs):
         self.aliases = {}  # type: Dict[str, Signer]
-        self.sponsors = set()
+        self.trustAnchors = set()
         self.users = set()
         self._agent = None
         super().__init__(*args, **kwargs)
@@ -154,7 +156,7 @@ class SovrinCli(PlenumCli):
     def completers(self):
         completers = {}
         completers["nym"] = WordCompleter([])
-        completers["role"] = WordCompleter(["SPONSOR", "STEWARD"])
+        completers["role"] = WordCompleter([Roles.TRUST_ANCHOR.name, Roles.STEWARD.name])
         completers["send_nym"] = PhraseWordCompleter("send NYM")
         completers["send_get_nym"] = PhraseWordCompleter("send GET_NYM")
         completers["send_attrib"] = PhraseWordCompleter("send ATTRIB")
@@ -417,12 +419,19 @@ class SovrinCli(PlenumCli):
     def _getRole(self, matchedVars):
         role = matchedVars.get(ROLE)
         if role is not None and role.strip() == '':
-            role = NULL
-        if not Authoriser.isValidRole(Identity.correctRole(role)):
+            role = None
+
+        valid = Authoriser.isValidRoleName(role)
+        if valid:
+            role = Authoriser.getRoleFromName(role)
+            valid = Authoriser.isValidRole(role)
+
+        if not valid:
             self.print("Invalid role. Valid roles are: {}".
-                       format(", ".join(map(lambda r: r if r else '',
-                                            Authoriser.ValidRoles))), Token.Error)
+                       format(", ".join(map(lambda r: r.name, Roles))),
+                       Token.Error)
             return False
+
         return role
 
     def _getNym(self, nym):
@@ -468,7 +477,7 @@ class SovrinCli(PlenumCli):
     def _addNym(self, nym, role, newVerKey=None, otherClientName=None):
         idy = Identity(nym, verkey=newVerKey, role=role)
         try:
-            self.activeWallet.addSponsoredIdentity(idy)
+            self.activeWallet.addTrustAnchoredIdentity(idy)
         except Exception as e:
             if e.args[0] == 'identifier already added':
                 pass
@@ -1244,6 +1253,29 @@ class SovrinCli(PlenumCli):
     def _printRequestClaimMsg(self, claimName):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
+    @staticmethod
+    def formatProofRequestAttribute(attributes, verifiableAttributes,
+                                    matchingLinkAndReceivedClaim):
+        getClaim = itemgetter(2)
+        containsAttr = lambda key: lambda t: key in getClaim(t)
+        formatted = 'Attributes:\n'
+
+        for k, v in attributes.items():
+            # determine if we need to show number for claims which were participated
+            # in proof generation
+            attrClaimIndex = getIndex(containsAttr(k), matchingLinkAndReceivedClaim)
+            showClaimNumber = attrClaimIndex > -1 and \
+                                len(matchingLinkAndReceivedClaim) > 1
+
+            formatted += ('    '
+                          + ('[{}] '.format(attrClaimIndex + 1)
+                             if showClaimNumber else '')
+                          + str(k)
+                          + (' (V)' if k in verifiableAttributes else '')
+                          + ': ' + str(v) + '\n')
+
+        return formatted
+
     async def _showMatchingClaimProof(self, c: Context):
         matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(
             c.proofRequest.attributes)
@@ -1258,14 +1290,25 @@ class SovrinCli(PlenumCli):
                     attributesWithValue[k] = c.selfAttestedAttrs.get(k, defaultValue)
 
         c.proofRequest.attributes = attributesWithValue
-        self.print(str(c.proofRequest))
-
+        self.print(c.proofRequest.fixedInfo + self.formatProofRequestAttribute(
+            c.proofRequest.attributes,
+            c.proofRequest.verifiableAttributes,
+            matchingLinkAndReceivedClaim
+        ))
         self.print('\nThe Proof is constructed from the following claims:')
+        showClaimNumber = len(matchingLinkAndReceivedClaim) > 1
+        claimNumber = 1
+
         for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
-            self.print('\n    Claim ({} v{} from {})'.format(
-                name, ver, li.name))
+            self.print('\n    Claim {}({} v{} from {})'.format(
+                '[{}] '.format(claimNumber) if showClaimNumber else '',
+                name, ver, li.name
+            ))
             for k, v in issuedAttrs.items():
-                self.print('        ' + k + ': ' + v + ' (verifiable)')
+                self.print('        {}'.format(
+                    '* ' if k in c.proofRequest.attributes else '  ') + k + ': ' + v)
+            claimNumber += 1
+
         self.printSuggestion(
             self._getSetAttrUsage() +
             self._getSendProofUsage(c.proofRequest, c.link))
@@ -1654,7 +1697,6 @@ class SovrinCli(PlenumCli):
         mappings['showClaim'] = showClaimCmd
         mappings['listClaims'] = listClaimsCmd
         mappings['reqClaim'] = reqClaimCmd
-        # mappings['showClaimReq'] = showClaimReqCmd
         mappings['showProofRequest'] = showProofRequestCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['addGenTxnAction'] = addGenesisTxnCmd

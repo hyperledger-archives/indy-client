@@ -9,6 +9,7 @@ from _pytest.recwarn import WarningsRecorder
 
 from anoncreds.protocol.types import SchemaKey, ID, PublicKey
 from plenum.common.eventually import eventually
+from plenum.common.roles import Roles
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
 
@@ -87,7 +88,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
         ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
-        do('send NYM dest={target} role=SPONSOR',
+        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
            within=5, expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)

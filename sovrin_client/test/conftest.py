@@ -24,11 +24,11 @@ from ledger.serializers.compact_serializer import CompactSerializer
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR, TYPE
+    ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUST_ANCHOR, TRUSTEE
 from plenum.test.plugin.helper import getPluginPath
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import STEWARD, NYM, SPONSOR, TRUSTEE
+from sovrin_common.txn import NYM
 from sovrin_common.txn import TXN_TYPE, TARGET_NYM, TXN_ID, ROLE, \
     getTxnOrderedFields
 from sovrin_common.config_util import getConfig
@@ -203,7 +203,7 @@ def client1Signer():
 
 
 @pytest.fixture("module")
-def sponsorCli(looper, tdir):
+def trustAnchorCli(looper, tdir):
     return newCLI(looper, tdir)
 
 
@@ -229,44 +229,44 @@ def wallet1(clientAndWallet1):
 
 
 @pytest.fixture(scope="module")
-def sponsorWallet():
-    wallet = Wallet('sponsor')
-    seed = b'sponsors are people too.........'
+def trustAnchorWallet():
+    wallet = Wallet('trustAnchor')
+    seed = b'trust anchors are people too....'
     wallet.addIdentifier(seed=seed)
     return wallet
 
 
 @pytest.fixture(scope="module")
-def sponsor(nodeSet, addedSponsor, sponsorWallet, looper, tdir):
+def trustAnchor(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, tdir):
     s, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
-    s.registerObserver(sponsorWallet.handleIncomingReply)
+    s.registerObserver(trustAnchorWallet.handleIncomingReply)
     looper.add(s)
     looper.run(s.ensureConnectedToNodes())
-    makePendingTxnsRequest(s, sponsorWallet)
+    makePendingTxnsRequest(s, trustAnchorWallet)
     return s
 
 
 @pytest.fixture(scope="module")
-def addedSponsor(nodeSet, steward, stewardWallet, looper,
-                 sponsorWallet):
+def addedTrustAnchor(nodeSet, steward, stewardWallet, looper,
+                 trustAnchorWallet):
     createNym(looper,
-              sponsorWallet.defaultId,
+              trustAnchorWallet.defaultId,
               steward,
               stewardWallet,
-              role=SPONSOR,
-              verkey=sponsorWallet.getVerkey())
-    return sponsorWallet
+              role=TRUST_ANCHOR,
+              verkey=trustAnchorWallet.getVerkey())
+    return trustAnchorWallet
 
 
 @pytest.fixture(scope="module")
-def userWalletA(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userA', useDid=False,
+def userWalletA(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userA', useDid=False,
                    addVerkey=False)
 
 
 @pytest.fixture(scope="module")
-def userWalletB(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userB', useDid=False,
+def userWalletB(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userB', useDid=False,
                    addVerkey=False)
 
 

@@ -1,6 +1,6 @@
 import pytest
 from plenum.cli.helper import getClientGrams
-from plenum.common.txn import TARGET_NYM
+from plenum.common.roles import Roles
 from plenum.test.cli.helper import assertCliTokens
 from plenum.test.cli.test_command_reg_ex import getMatchedVariables
 from prompt_toolkit.contrib.regular_languages.compiler import compile
@@ -15,8 +15,8 @@ def grammar():
 
 
 def testSendNymWithRole(grammar):
-    dest="LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
-    role="SPONSOR"
+    dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+    role = Roles.TRUST_ANCHOR.name
     matchedVars = getMatchedVariables(
         grammar, "send NYM dest={} role={}".format(dest, role))
     assertCliTokens(matchedVars, {
@@ -24,16 +24,16 @@ def testSendNymWithRole(grammar):
 
 
 def testSendNymWithoutRole(grammar):
-    dest="LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+    dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
     matchedVars = getMatchedVariables(grammar, 'send NYM dest={}'.format(dest))
     assertCliTokens(matchedVars, {
         "send_nym": "send NYM", "dest_id": dest})
 
 
 def testSendNymWithVerkey(grammar):
-    dest="LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
-    role="SPONSOR"
-    verkey="LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+    dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+    role = Roles.TRUST_ANCHOR.name
+    verkey = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
     matchedVars = getMatchedVariables(
         grammar, "send NYM dest={} role={} verkey={}".
             format(dest, role, verkey))
@@ -48,7 +48,7 @@ def testSendAttribRegEx(grammar):
     raw = '{"legal org": "BRIGHAM YOUNG UNIVERSITY, PROVO, UT", ' \
           '"email": "mail@byu.edu"}'
     matchedVars = getMatchedVariables(grammar,
-                        'send ATTRIB dest={} raw={}'.format(dest, raw))
+                                      'send ATTRIB dest={} raw={}'.format(dest, raw))
     assertCliTokens(matchedVars, {
         "send_attrib": "send ATTRIB", "dest_id": dest, "raw": raw})
 
@@ -180,6 +180,7 @@ def testSendProofReqRegEx(grammar):
                                   "proof_name": "Over-21",
                                   "target": " JaneDoe"})
 
+
 def testProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
                                       "show proof request Transcript")
@@ -190,6 +191,7 @@ def testProofReqRegEx(grammar):
                                       "show proof request Transcript ")
     assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
                                   "proof_req_name": "Transcript "})
+
 
 def testSendProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
@@ -198,6 +200,7 @@ def testSendProofReqRegEx(grammar):
                                   "proof_name": "Over-21",
                                   "target": " JaneDoe"})
 
+
 def testProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
                                       "show proof request Transcript")
@@ -208,6 +211,7 @@ def testProofReqRegEx(grammar):
                                       "show proof request Transcript ")
     assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
                                   "proof_req_name": "Transcript "})
+
 
 def testSendProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
@@ -267,7 +271,6 @@ def testNewIdentifier(grammar):
                     {"new_id": "new identifier", "id_or_abbr_or_crypto": None,
                      "seed": None, "alias": "myalis"})
 
-
     matchedVars = getMatchedVariables(
         grammar, "new identifier abbr")
     assertCliTokens(matchedVars, {"new_id": "new identifier", "id_or_abbr_or_crypto": "abbr",
@@ -313,22 +316,27 @@ def testNewIdentifier(grammar):
 
 
 def testAddGenTxnRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar, "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML")
+    matchedVars = getMatchedVariables(grammar,
+                                      "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML")
     assertCliTokens(matchedVars, {"add_genesis": "add genesis transaction NYM", "dest": "dest=",
-                                  "dest_id":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role":None, "ver_key": None})
+                                  "dest_id": "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role": None,
+                                  "ver_key": None})
 
-    matchedVars = getMatchedVariables(grammar, "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role=STEWARD")
+    matchedVars = getMatchedVariables(grammar,
+                                      "add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role={role}".format(
+                                          role=Roles.STEWARD.name))
     assertCliTokens(matchedVars, {"add_genesis": "add genesis transaction NYM", "dest": "dest=",
-                                  "dest_id":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role":"STEWARD", "ver_key": None})
+                                  "dest_id": "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML", "role": Roles.STEWARD.name,
+                                  "ver_key": None})
 
     matchedVars = getMatchedVariables(grammar,
                                       'add genesis transaction NODE for 2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML '
                                       'by FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW with data '
                                       '{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}')
     assertCliTokens(matchedVars, {"add_gen_txn": "add genesis transaction", "type": "NODE",
-                                  "dest":"2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML",
-                                  "identifier":"FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW", "role":None,
-                                  "data":'{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'})
+                                  "dest": "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML",
+                                  "identifier": "FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW", "role": None,
+                                  "data": '{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'})
 
 
 def testReqAvailClaims(grammar):
@@ -336,5 +344,5 @@ def testReqAvailClaims(grammar):
                                       "request available claims from Faber")
 
     assertCliTokens(matchedVars, {
-        "req_avail_claims":"request available claims from",
-        "link_name":"Faber"})
+        "req_avail_claims": "request available claims from",
+        "link_name": "Faber"})

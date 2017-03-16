@@ -1,11 +1,13 @@
 from plenum.cli.command import Command
+from plenum.common.roles import Roles
+from sovrin_common.txn import TRUST_ANCHOR
 
 sendNymCmd = Command(
     id="send NYM",
     title="Adds given identifier to sovrin",
     usage="send NYM dest=<target identifier> role=<role> [verkey=<ver-key>]",
     examples=[
-        "send NYM dest=BiCMHDqC5EjheFHumZX9nuAoVEp8xyuBgiRi5JcY5whi role=SPONSOR",
+        "send NYM dest=BiCMHDqC5EjheFHumZX9nuAoVEp8xyuBgiRi5JcY5whi role={role}".format(role=Roles.TRUST_ANCHOR.name),
         "send NYM dest=33A18XMqWqTzDpLHXLR5nT verkey=~Fem61Q5SnYhGVVHByQNxHj"])
 
 sendGetNymCmd = Command(
@@ -123,25 +125,7 @@ reqClaimCmd = Command(
     usage="request claim <claim-name>",
     examples="request claim Transcript")
 
-# showClaimReqCmd = Command(
-#     id="show claim request",
-#     title="Shows given claim request",
-#     usage="show claim request <claim-req-name>",
-#     examples="show claim request Job-Application")
-#
 showProofRequestCmd = Command(
-    id="show proof request",
-    title="Shows given proof request",
-    usage="show proof request <proof-req-name>",
-    examples="show proof request Transcription")
-
-showProofReqCmd = Command(
-    id="show proof request",
-    title="Shows given proof request",
-    usage="show proof request <proof-req-name>",
-    examples="show proof request Transcription")
-
-showProofReqCmd = Command(
     id="show proof request",
     title="Shows given proof request",
     usage="show proof request <proof-req-name>",
@@ -171,7 +155,7 @@ addGenesisTxnCmd = Command(
     usage="add genesis transaction NYM dest=<dest-identifier> [role=<role>]",
     examples=[
         'add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML',
-        'add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role=STEWARD',
+        'add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role={role}'.format(role=Roles.STEWARD.name),
         'add genesis transaction NODE for 2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML by FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW with data '
         '{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'])
 

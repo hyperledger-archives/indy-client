@@ -178,3 +178,20 @@ class AgentProver:
             if attributes.intersection(issuedAttrs.keys()):
                 matchingLinkAndRcvdClaim.append((li, cl, issuedAttrs))
         return matchingLinkAndRcvdClaim
+
+    async def getClaimsUsedForAttrs(self, attributes):
+        allMatchingClaims = await self.getMatchingLinksWithReceivedClaimAsync()
+        alreadySatisfiedKeys = {}
+        claimsToUse = []
+        alreadyAddedClaims = []
+
+        for li, cl, issuedAttrs in allMatchingClaims:
+            issuedClaimKeys = issuedAttrs.keys()
+            for key in attributes.keys():
+                if key not in alreadySatisfiedKeys and key in issuedClaimKeys:
+                    if li not in alreadyAddedClaims:
+                        claimsToUse.append((li, cl, issuedAttrs))
+                    alreadySatisfiedKeys[key] = True
+                    alreadyAddedClaims.append(li)
+
+        return claimsToUse

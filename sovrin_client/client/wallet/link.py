@@ -117,9 +117,9 @@ class Link:
         # TODO: This should be set as verkey in case of DID but need it from
         # wallet
         verKey = self.localVerkey if self.localVerkey else constant.SIGNER_VER_KEY_EMPTY
-        fixedLinkHeading = "Link "
+        fixedLinkHeading = "Link"
         if not self.isAccepted:
-            fixedLinkHeading += "(not yet accepted)"
+            fixedLinkHeading += " (not yet accepted)"
 
         # TODO: Refactor to use string interpolation
         # try:

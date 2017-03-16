@@ -163,6 +163,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # this looks ok for test code, but not production code
             link = Link(str(internalId),
                         self.wallet.defaultId,
+                        self.wallet.getVerkey(),
                         invitationNonce=nonce,
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
@@ -719,6 +720,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             signer = DidSigner()
             self.wallet.addIdentifier(signer=signer)
             link.localIdentifier = signer.identifier
+            link.localVerkey = signer.verkey
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender

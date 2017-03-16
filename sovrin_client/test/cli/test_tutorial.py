@@ -452,6 +452,10 @@ def acceptInvitation(be, do, userCli, agentMap, expect):
            "Observer threw an exception",
            "Identifier is not yet written to Sovrin"]
        )
+    li = userCli.agent.wallet.getLinkByNonce(agentMap['nonce'])
+    assert li
+    agentMap['identifier'] = li.localIdentifier
+    agentMap['verkey'] = li.localVerkey
 
 
 @pytest.fixture(scope="module")

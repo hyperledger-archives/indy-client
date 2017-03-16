@@ -738,6 +738,8 @@ def showAcceptedLinkOut():
     return [
             "Link",
             "Name: {inviter}",
+            "Identifier: {identifier}",
+            "Verification key: {verkey}",
             "Target: {target}",
             "Target Verification key: <same as target>",
             "Trust anchor: {inviter} (confirmed)",
@@ -751,7 +753,7 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Name: {inviter}",
             "    Identifier: not yet assigned",
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
-            "    Verification key: <same as local identifier>",
+            "    Verification key: <empty>",
             "    Signing key: <hidden>",
             "    Target: {target}",
             "    Target Verification key: <unknown, waiting for sync>",

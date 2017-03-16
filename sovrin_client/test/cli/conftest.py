@@ -154,6 +154,9 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "rcvd-claim-job-certificate-name": "Job-Certificate",
+            "rcvd-claim-job-certificate-version": "0.2",
+            "rcvd-claim-job-certificate-provider": "Acme Corp",
             "claim-ver-req-to-show": "0.1"
             }
 
@@ -336,6 +339,21 @@ def showTranscriptProofOut():
 
 
 @pytest.fixture(scope="module")
+def showJobCertificateClaimInProofOut():
+    return [
+        "The Proof is constructed from the following claims:",
+        "Claim ({rcvd-claim-job-certificate-name} "
+        "v{rcvd-claim-job-certificate-version} "
+        "from {rcvd-claim-job-certificate-provider})",
+        "* first_name: {attr-first_name}",
+        "* last_name: {attr-last_name}",
+        "  employee_status: {attr-employee_status}",
+        "  experience: {attr-experience}",
+        "  salary_bracket: {attr-salary_bracket}"
+    ]
+
+
+@pytest.fixture(scope="module")
 def showJobAppProofRequestOut(showTranscriptProofOut):
     return [
         'Found proof request "{proof-req-to-match}" in link "{inviter}"',
@@ -350,6 +368,23 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-status} (V): {attr-status}",
         "{proof-request-attr-ssn} (V): {attr-ssn}"
     ] + showTranscriptProofOut
+
+
+@pytest.fixture(scope="module")
+def showNameProofRequestOut(showJobCertificateClaimInProofOut):
+    return [
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-req-to-match}",
+        "Version: {proof-request-version}",
+        "Status: Requested",
+        "Attributes:",
+        "{proof-request-attr-first_name} (V): {set-attr-first_name}",
+        "{proof-request-attr-last_name} (V): {set-attr-last_name}",
+    ] + showJobCertificateClaimInProofOut + [
+        "Try Next:",
+        "set <attr-name> to <attr-value>",
+        'send proof "{proof-req-to-match}" to "{inviter}"'
+    ]
 
 
 @pytest.fixture(scope="module")

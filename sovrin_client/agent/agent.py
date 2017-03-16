@@ -29,6 +29,7 @@ from sovrin_common.config import agentLoggingLevel
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
+
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,

@@ -15,7 +15,6 @@ from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD,
     REQ_AVAIL_CLAIMS
 from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.link import Link
-from sovrin_common.exceptions import LinkNotReady
 from sovrin_common.util import getNonceForProof
 from sovrin_common.exceptions import LinkNotReady
 
@@ -41,6 +40,7 @@ class AgentProver:
             self.signAndSend(msg=op, linkName=link.name)
         except LinkNotReady as ex:
             self.notifyMsgListener(str(ex))
+
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,

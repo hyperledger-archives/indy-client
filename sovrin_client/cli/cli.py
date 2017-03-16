@@ -7,6 +7,7 @@ import json
 import os
 from functools import partial
 from hashlib import sha256
+from operator import itemgetter
 from typing import Dict, Any, Tuple, Callable, List, NamedTuple
 
 import asyncio
@@ -59,7 +60,7 @@ from sovrin_common.identity import Identity
 from sovrin_common.txn import TARGET_NYM, ROLE, TXN_TYPE, NYM, TXN_ID, REF, \
     getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
     START, JUSTIFICATION, NULL
-from sovrin_common.util import ensureReqCompleted
+from sovrin_common.util import ensureReqCompleted, getIndex
 from sovrin_client.__metadata__ import __version__
 
 try:
@@ -1252,6 +1253,29 @@ class SovrinCli(PlenumCli):
     def _printRequestClaimMsg(self, claimName):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
+    @staticmethod
+    def formatProofRequestAttribute(attributes, verifiableAttributes,
+                                    matchingLinkAndReceivedClaim):
+        getClaim = itemgetter(2)
+        containsAttr = lambda key: lambda t: key in getClaim(t)
+        formatted = 'Attributes:\n'
+
+        for k, v in attributes.items():
+            # determine if we need to show number for claims which were participated
+            # in proof generation
+            attrClaimIndex = getIndex(containsAttr(k), matchingLinkAndReceivedClaim)
+            showClaimNumber = attrClaimIndex > -1 and \
+                                len(matchingLinkAndReceivedClaim) > 1
+
+            formatted += ('    '
+                          + ('[{}] '.format(attrClaimIndex + 1)
+                             if showClaimNumber else '')
+                          + str(k)
+                          + (' (V)' if k in verifiableAttributes else '')
+                          + ': ' + str(v) + '\n')
+
+        return formatted
+
     async def _showMatchingClaimProof(self, c: Context):
         matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(
             c.proofRequest.attributes)
@@ -1266,14 +1290,25 @@ class SovrinCli(PlenumCli):
                     attributesWithValue[k] = c.selfAttestedAttrs.get(k, defaultValue)
 
         c.proofRequest.attributes = attributesWithValue
-        self.print(str(c.proofRequest))
-
+        self.print(c.proofRequest.fixedInfo + self.formatProofRequestAttribute(
+            c.proofRequest.attributes,
+            c.proofRequest.verifiableAttributes,
+            matchingLinkAndReceivedClaim
+        ))
         self.print('\nThe Proof is constructed from the following claims:')
+        showClaimNumber = len(matchingLinkAndReceivedClaim) > 1
+        claimNumber = 1
+
         for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
-            self.print('\n    Claim ({} v{} from {})'.format(
-                name, ver, li.name))
+            self.print('\n    Claim {}({} v{} from {})'.format(
+                '[{}] '.format(claimNumber) if showClaimNumber else '',
+                name, ver, li.name
+            ))
             for k, v in issuedAttrs.items():
-                self.print('        ' + k + ': ' + v + ' (verifiable)')
+                self.print('        {}'.format(
+                    '* ' if k in c.proofRequest.attributes else '  ') + k + ': ' + v)
+            claimNumber += 1
+
         self.printSuggestion(
             self._getSetAttrUsage() +
             self._getSendProofUsage(c.proofRequest, c.link))

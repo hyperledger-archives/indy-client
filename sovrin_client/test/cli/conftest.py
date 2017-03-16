@@ -327,11 +327,11 @@ def showTranscriptProofOut():
         "Claim ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
-        "student_name: {attr-student_name}",
-        "ssn: {attr-ssn}",
-        "degree: {attr-degree}",
-        "year: {attr-year}",
-        "status: {attr-status}",
+        "  student_name: {attr-student_name}",
+        "* ssn: {attr-ssn}",
+        "* degree: {attr-degree}",
+        "  year: {attr-year}",
+        "* status: {attr-status}",
     ]
 
 
@@ -346,9 +346,9 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-first_name}: {set-attr-first_name}",
         "{proof-request-attr-last_name}: {set-attr-last_name}",
         "{proof-request-attr-phone_number}: {set-attr-phone_number}",
-        "{proof-request-attr-degree}: {attr-degree}",
-        "{proof-request-attr-status}: {attr-status}",
-        "{proof-request-attr-ssn}: {attr-ssn}"
+        "{proof-request-attr-degree} (V): {attr-degree}",
+        "{proof-request-attr-status} (V): {attr-status}",
+        "{proof-request-attr-ssn} (V): {attr-ssn}"
     ] + showTranscriptProofOut
 
 

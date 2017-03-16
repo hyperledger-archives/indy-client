@@ -60,8 +60,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def __init__(self,
                  issuer: Issuer = None,
                  prover: Prover = None,
-                 verifier: Verifier = None,
-                 agentLogger=None):
+                 verifier: Verifier = None):
 
         AgentIssuer.__init__(self, issuer)
         AgentProver.__init__(self, prover)
@@ -91,7 +90,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             NEW_AVAILABLE_CLAIMS: self._handleNewAvailableClaimsDataResponse
         }
-        self.agentLogger = agentLogger or logger
+        self.agentLogger = logger
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply

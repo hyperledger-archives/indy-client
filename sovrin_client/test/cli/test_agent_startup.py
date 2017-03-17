@@ -61,6 +61,7 @@ def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
     emptyLooper.removeProdable(name=newAgentName)
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-768')
 def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
                                 emptyLooper, agentAddedBySponsor,
                                 agentStarted):
@@ -69,6 +70,7 @@ def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
         runAgent(emptyLooper, tdirWithPoolTxns, agentPort, name="Agent4")
 
 
+@pytest.mark.skipif('sys.platform == "win32"', reason='SOV-768')
 def testStartAgentChecksForPortAvailability(poolNodesStarted, tdirWithPoolTxns,
                                             emptyLooper, agentAddedBySponsor):
     newAgentName1 = "Agent11"

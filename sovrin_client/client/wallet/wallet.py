@@ -34,7 +34,7 @@ class Wallet(PWallet, TrustAnchoring):
     clientNotPresentMsg = "The wallet does not have a client associated with it"
 
     def __init__(self,
-                 name: str,
+                 name: str=None,
                  supportedDidMethods: DidMethods=None):
         PWallet.__init__(self,
                          name,
@@ -172,13 +172,6 @@ class Wallet(PWallet, TrustAnchoring):
     def addLink(self, link: Link):
         self._links[link.key] = link
 
-    def getLink(self, name, required=False) -> Link:
-        l = self._links.get(name)
-        if not l and required:
-            logger.debug("Wallet has links {}".format(self._links))
-            raise LinkNotFound(l.name)
-        return l
-
     def addLastKnownSeqs(self, identifier, seqNo):
         self.lastKnownSeqs[identifier] = seqNo
 
@@ -292,11 +285,6 @@ class Wallet(PWallet, TrustAnchoring):
     def pendRequest(self, req, key=None):
         self._pending.appendleft((req, key))
 
-    def getLinkInvitationByTarget(self, target: str) -> Link:
-        for k, li in self._links.items():
-            if li.remoteIdentifier == target:
-                return li
-
     def getLinkInvitation(self, name: str):
         return self._links.get(name)
 
@@ -331,17 +319,25 @@ class Wallet(PWallet, TrustAnchoring):
         self.pendRequest(req, key=key)
         return self.preparePending()[0]
 
-    # DEPR
-    # Why shouldn't we fetch link by nonce
-    def getLinkByNonce(self, nonce) -> Optional[Link]:
-        for _, li in self._links.items():
-            if li.invitationNonce == nonce:
-                return li
+    def getLink(self, name, required=False) -> Link:
+        l = self._links.get(name)
+        if not l and required:
+            logger.debug("Wallet has links {}".format(self._links))
+            raise LinkNotFound(l.name)
+        return l
 
-    def getLinkByInternalId(self, internalId) -> Optional[Link]:
+    def getLinkBy(self,
+                  remote: Identifier=None,
+                  nonce=None,
+                  internalId=None,
+                  required=False) -> Optional[Link]:
         for _, li in self._links.items():
-            if li.internalId == internalId:
+            if (not remote or li.remoteIdentifier == remote) and \
+               (not nonce or li.invitationNonce == nonce) and \
+               (not internalId or li.internalId == internalId):
                 return li
+        if required:
+            raise LinkNotFound
 
     def getIdentity(self, idr):
         # TODO, Question: Should it consider self owned identities too or

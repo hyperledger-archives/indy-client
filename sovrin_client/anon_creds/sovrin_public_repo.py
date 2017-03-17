@@ -120,6 +120,7 @@ class SovrinPublicRepo(PublicRepo):
 
         data, seqNo = await self._sendSubmitReq(op)
 
+        # TODO if the operation isn't successful, then raise an exception
         if not seqNo:
             return None
         schema = schema._replace(issuerId=self.wallet.defaultId,

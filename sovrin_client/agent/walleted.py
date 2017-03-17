@@ -5,7 +5,8 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
-from typing import Dict, Union, List
+from functools import partial
+from typing import Dict, Union, NamedTuple, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
@@ -32,13 +33,13 @@ from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
-    NotConnectedToNetwork, LinkNotReady
+    NotConnectedToNetwork, LinkNotReady, VerkeyNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.txn import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
@@ -81,6 +82,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             CLAIM_REQUEST: self.processReqClaim,
             CLAIM: self.handleReqClaimResponse,
 
+            # TODO
+            # PROOF_REQUEST: some handler here
             PROOF: self.verifyProof,
             PROOF_STATUS: self.handleProofStatusResponse,
 
@@ -157,7 +160,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def linkFromNonce(self, nonce, remoteIdr, remoteHa):
         internalId = self.getInternalIdByInvitedNonce(nonce)
-        link = self.wallet.getLinkByInternalId(internalId)
+        link = self.wallet.getLinkBy(internalId=internalId)
         if not link:
             # QUESTION: We use wallet.defaultId as the local identifier,
             # this looks ok for test code, but not production code
@@ -277,7 +280,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 return
 
         typ = body.get(TYPE)
-        link = self.wallet.getLinkInvitationByTarget(body.get(f.IDENTIFIER.nm))
+        link = self.wallet.getLinkBy(remote=body.get(f.IDENTIFIER.nm))
 
         # If accept invite is coming the first time, then use the default
         # identifier of the wallet since link wont be created
@@ -335,7 +338,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def _handlePing(self, msg):
         body, (frm, ha) = msg
-        link = self.wallet.getLinkByNonce(body.get(NONCE))
+        link = self.wallet.getLinkBy(nonce=body.get(NONCE))
         if link:
             self.signAndSend({TYPE: 'pong'}, self.wallet.defaultId, frm,
                              origReqId=body.get(f.REQ_ID.nm))
@@ -436,11 +439,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link.targetVerkey:
             return link.targetVerkey
         else:
-            raise Exception("verkey not set in link")
+            raise VerkeyNotFound("verkey not set in link")
 
     def getLinkForMsg(self, msg):
         nonce = msg.get(NONCE)
-        link = self.wallet.getLinkByNonce(nonce)
+        link = self.wallet.getLinkBy(nonce=nonce)
         if link:
             return link
         else:
@@ -463,9 +466,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             try:
                 link = self.getLinkForMsg(msg)
                 verkey = self.getVerkeyForLink(link)
-            except LinkNotFound:
+            except (LinkNotFound, VerkeyNotFound):
                 # This is for verification of `NOTIFY` events
-                link = self.wallet.getLinkInvitationByTarget(identifier)
+                link = self.wallet.getLinkBy(remote=identifier)
                 # TODO: If verkey is None, it should be fetched from Sovrin.
                 # Assuming CID for now.
                 verkey = link.targetVerkey
@@ -479,7 +482,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             return True
 
     def _getLinkByTarget(self, target) -> Link:
-        return self.wallet.getLinkInvitationByTarget(target)
+        return self.wallet.getLinkBy(remote=target)
 
     def _checkIfLinkIdentifierWrittenToSovrin(self, li: Link, availableClaims):
         req = self.getIdentity(li.localIdentifier)
@@ -548,16 +551,16 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                "error was: {}".format(e.args[0]))
                 raise e
 
-        def sendClaimList(reply=None, error=None):
-            logger.debug("sending available claims to {}".format(identifier))
-            resp = self.createInviteAcceptedMsg(
-                self.getAvailableClaimList(link.localIdentifier),
-                alreadyAccepted=alreadyAdded)
-            self.signAndSend(resp, link.localIdentifier, frm,
-                             origReqId=body.get(f.REQ_ID.nm))
+        def send_claims(reply=None, error=None):
+            return self.sendClaimList(link=link,
+                                      alreadyAdded=alreadyAdded,
+                                      sender=frm,
+                                      reqId=body.get(f.REQ_ID.nm),
+                                      reply=reply,
+                                      error=error)
 
         if alreadyAdded:
-            sendClaimList()
+            send_claims()
             logger.debug("already accepted, "
                          "so directly sending available claims")
             self.logger.info('Already added identifier [{}] in sovrin'
@@ -578,7 +581,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # so we might not even need to add it as a separate logic
             self.logger.info('Creating identifier [{}] in sovrin'
                                   .format(identifier))
-            self._sendToSovrinAndDo(reqs[0], clbk=sendClaimList)
+            self._sendToSovrinAndDo(reqs[0], clbk=send_claims)
 
             # TODO: If I have the below exception thrown, somehow the
             # error msg which is sent in verifyAndGetLink is not being received
@@ -586,9 +589,17 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # else:
             #     raise NotImplementedError
 
-    def _sendToSovrinAndDo(self, req, clbk=None, *args):
+    def sendClaimList(self, link, alreadyAdded, sender, reqId, reply=None, error=None):
+        logger.debug("sending available claims to {}".format(link.remoteIdentifier))
+        resp = self.createInviteAcceptedMsg(
+            self.getAvailableClaimList(link.remoteIdentifier),
+            alreadyAccepted=alreadyAdded)
+        self.signAndSend(resp, link.localIdentifier, sender,
+                         origReqId=reqId)
+
+    def _sendToSovrinAndDo(self, req, clbk=None, *args, **kwargs):
         self.client.submitReqs(req)
-        ensureReqCompleted(self.loop, req.key, self.client, clbk, *args)
+        ensureReqCompleted(self.loop, req.key, self.client, clbk, *args, **kwargs)
 
     def newAvailableClaimsPostClaimVerif(self, claimName):
         raise NotImplementedError
@@ -619,12 +630,38 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         ha = link.getRemoteEndpoint(required=True)
         self.connectToHa(ha)
 
+    def loadInvitationFile(self, filePath):
+        with open(filePath) as data_file:
+            invitation = json.load(
+                data_file, object_pairs_hook=collections.OrderedDict)
+            return self.loadInvitationDict(invitation)
+
+    def loadInvitationStr(self, json_str):
+        invitation = json.loads(
+            json_str, object_pairs_hook=collections.OrderedDict)
+        return self.loadInvitationDict(invitation)
+
+    def loadInvitationDict(self, invitation_dict):
+        linkInvitation = invitation_dict.get("link-invitation")
+        if not linkInvitation:
+            raise LinkNotFound
+        linkName = linkInvitation["name"]
+        existingLinkInvites = self.wallet. \
+            getMatchingLinks(linkName)
+        if len(existingLinkInvites) >= 1:
+            return self._mergeInvitation(invitation_dict)
+        Link.validate(invitation_dict)
+        link = self.loadInvitation(invitation_dict)
+        return link
+
     def loadInvitation(self, invitationData):
         linkInvitation = invitationData["link-invitation"]
         remoteIdentifier = linkInvitation[f.IDENTIFIER.nm]
+        # TODO signature should be validated!
         signature = invitationData["sig"]
         linkInvitationName = linkInvitation[NAME]
         remoteEndPoint = linkInvitation.get("endpoint", None)
+        remote_verkey = linkInvitation.get("verkey", None)
         linkNonce = linkInvitation[NONCE]
         proofRequestsJson = invitationData.get("proof-requests", None)
 
@@ -647,28 +684,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                   remoteIdentifier=remoteIdentifier,
                   remoteEndPoint=remoteEndPoint,
                   invitationNonce=linkNonce,
-                  proofRequests=proofRequests)
+                  proofRequests=proofRequests,
+                  remote_verkey=remote_verkey)
 
         self.wallet.addLink(li)
         return li
 
-    def loadInvitationFile(self, filePath):
-        with open(filePath) as data_file:
-            invitationData = json.load(
-                data_file, object_pairs_hook=collections.OrderedDict)
-            linkInvitation = invitationData.get("link-invitation")
-            if not linkInvitation:
-                raise LinkNotFound
-            linkName = linkInvitation["name"]
-            existingLinkInvites = self.wallet. \
-                getMatchingLinks(linkName)
-            if len(existingLinkInvites) >= 1:
-                return self._mergeInvitaion(invitationData)
-            Link.validate(invitationData)
-            link = self.loadInvitation(invitationData)
-            return link
-
-    def _mergeInvitaion(self, invitationData):
+    def _mergeInvitation(self, invitationData):
         linkInvitation = invitationData.get('link-invitation')
         linkName = linkInvitation['name']
         link = self.wallet.getLink(linkName)
@@ -823,3 +845,4 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 loop.call_later(.2, self.executeWhenResponseRcvd,
                                 startTime, maxCheckForMillis, loop,
                                 reqId, respType, checkIfLinkExists, clbk, *args)
+

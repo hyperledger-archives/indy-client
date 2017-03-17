@@ -1160,7 +1160,7 @@ class SovrinCli(PlenumCli):
             linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
             li = self._getOneLinkForFurtherProcessing(linkName)
             if li:
-                self.agent.sendReqAvailClaims(li)
+                self.agent.sendRequestForAvailClaims(li)
             return True
 
     def _newIdentifier(self, matchedVars):

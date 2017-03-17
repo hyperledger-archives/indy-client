@@ -23,15 +23,15 @@ class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
 
-    def sendReqAvailClaims(self, link: Link):
+    def sendRequestForAvailClaims(self, link: Link):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendAvailClaimsAsync(link))
+                                self.sendRequestForAvailClaimsAsync(link))
         else:
             self.loop.run_until_complete(
-                self.sendAvailClaimsAsync(link))
+                self.sendRequestForAvailClaimsAsync(link))
 
-    async def sendAvailClaimsAsync(self, link: Link):
+    async def sendRequestForAvailClaimsAsync(self, link: Link):
         op = {
             TYPE: REQ_AVAIL_CLAIMS,
             NONCE: link.invitationNonce
@@ -58,6 +58,7 @@ class AgentProver:
             proverId=link.invitationNonce,
             reqNonRevoc=False)
 
+        # TODO link.invitationNonce should not be used here. It has served its purpose by this point. Claim Requests do not need a nonce.
         op = {
             NONCE: link.invitationNonce,
             TYPE: CLAIM_REQUEST,

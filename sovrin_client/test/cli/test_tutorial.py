@@ -381,6 +381,10 @@ def acceptInvitation(be, do, userCli, agentMap, expect):
            "Observer threw an exception",
            "Identifier is not yet written to Sovrin"]
        )
+    li = userCli.agent.wallet.getLinkByNonce(agentMap['nonce'])
+    assert li
+    agentMap['identifier'] = li.localIdentifier
+    agentMap['verkey'] = li.localVerkey
 
 
 @pytest.fixture(scope="module")
@@ -845,6 +849,26 @@ def aliceAcceptedThriftLoanApplication(be, do, aliceCli, thriftMap,
 
 def testAliceAcceptsThriftLoanApplication(aliceAcceptedThriftLoanApplication):
     pass
+
+
+def testAliceShowProofIncludeSingleClaim(
+        aliceAcceptedThriftLoanApplication, be, do, aliceCli, thriftMap,
+        showNameProofRequestOut, jobApplicationProofRequestMap,
+        jobCertClaimAttrValueMap):
+    mapping = {}
+    mapping.update(thriftMap)
+    mapping.update(jobApplicationProofRequestMap)
+    mapping.update(jobCertClaimAttrValueMap)
+    mapping['proof-req-to-match'] = 'Name-Proof'
+    mapping['proof-request-version'] = '0.1'
+    mapping.update({
+        "set-attr-first_name": "Alice",
+        "set-attr-last_name": "Garcia",
+    })
+    do("show proof request {proof-req-to-match}",
+       expect=showNameProofRequestOut,
+       mapper=mapping,
+       within=3)
 
 
 @pytest.fixture(scope="module")

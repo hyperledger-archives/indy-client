@@ -147,7 +147,7 @@ Link (not yet accepted)
     Name: Faber College
     Identifier: not yet assigned
     Trust anchor: Faber College (not yet written to Sovrin)
-    Verification key: <same as local identifier>
+    Verification key: <empty>
     Signing key: <hidden>
     Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
     Target Verification key: <unknown, waiting for sync>
@@ -184,17 +184,26 @@ This gives Alice a friendly name for the entity that is bootstrapping the new pa
 It is important to understand that this identifier for Alice is not, in and of itself, the same thing as Alice’s self-sovereign identity. Rather, Alice’s identity will-- for her--be the sum total of all the pairwise relationships she has, and all the attributes knowable about those manifestations of her identity, across the full network. If Alice accepts this invitation, she will have a self-sovereign identity by virtue of the fact that she is accessible on the network through at least one relationship, and Faber College will be creating the first relationship participating in Alice’s identity--but Alice’s identity will not be captive to Faber College in any way.
 
 ```
-Verification key: < same as local identifier >
+Verification key: <empty>
 ```
 
 Alice’s **_verification key_** allows Sovrin and Faber College to trust, in cryptographic operations, that interactions with Alice are authentically bound to her as sender or receiver. It is an [ asymmetric public key](https://en.wikipedia.org/wiki/Public-key_cryptography), in cryptographic terms, and the Sovrin CLI generated this value randomly when it loaded the invitation.
 
-The Verification key has a subtle relationship with the Identifier value a couple lines above it in the CLI output. When an identifier is a **_CID_**, or a **_cryptographic identifier_**, then the identifier itself is the verification key, meaning that it can be used as direct input to cryptographic operations that prove an identity. (Notice that the identifier proposed for the pairwise Faber relationship in the invitation had cid-1 in its prefix.)
-Identifiers in Sovrin can also be **_DIDs_** (**_distributed identifiers_**). These are opaque, unique sequences of bits, like UUIDs or GUIDs. If an identifier is a DID, then its verification key is defined independently. We’re just
-collapsing the two for simplicity here.
+Verification key is a 32 byte Ed25519 verification key. Ed25519 is a particular elliptic curve, and is the default signature scheme for Sovrin.
+
+The Verification key has a subtle relationship with the Identifier value a couple lines above it in the CLI output.
+Identifiers in Sovrin are called **_DIDs_** (**_distributed identifiers_**). These are opaque, unique sequences of bits, like UUIDs or GUIDs.
+
+There are three options possible for **_verification key_** associated with a DID:
+- Empty. There are no verkey associated with a DID, and DID is NCID (non-cryptographic identifier).
+In this case, the creator of the Sovrin identity record (called a trust anchor) controls the identifier, and no independent proof-of-existence is possible until either Abbreviated or Full verkey is created.
+- Abbreviated. In this case, there is a verkey starting with a tilde '~' followed by 22 or 23 characters.
+The tilde indicates that the DID itself represents the first 16 bytes of the verkey, and the string following the tilde represents the second 16 bytes of the verkey, both using base58Check encoding.
+- Full. In this case, there is a full 44 character verkey, representing a base58Check encoding of all 32 bytes of a Ed25519 verification key
+ 
+In the current guide Abbreviated key will be created and used by Alice (you will notice `~` prefix for verification key in the guide).
 
 The key that Alice uses to interact with Faber can change if she revokes or rotates it, so accepting this invitation and activating this link doesn’t lock Alice in to permanent use of this key. Key management events are discoverable in the Sovrin ledger by parties such as Faber College; we’ll touch on that later in the guide.
-Besides telling Sovrin that we’re dealing with a CID, the cid-1 prefix on Identifier tells Sovrin more about the data type of the value: it is a 32 - byte Ed25519 verification key, using a base58 encoding. Ed25519 is a particular elliptic curve, and is the default signature scheme for Sovrin. Combining the Identifier and Verification key values, we know what sort of cryptography we’re going to use to talk to Faber.
 
 ```
 Signing key: < hidden >
@@ -299,9 +308,9 @@ ALICE> show link Faber
 Expanding Faber to "Faber College"
 Link 
     Name: Faber College
-    Identifier: cid-1:TSm6MozkgBUiVK2gh8JrkXrbynurM5WrdqBWgXpMfXd
+    Identifier: LZ46KqKd1VrNFjXuVFUSY9
     Trust anchor: Faber College (confirmed)
-    Verification key: <same as local identifier>
+    Verification key: ~CoEeFmQtaCRMrTy5SCfLLx
     Signing key: <hidden>
     Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
     Target Verification key: <same as target>
@@ -318,7 +327,7 @@ Try Next:
 
 Notice now that the Last synced line is updated.
 
-Alice can see now that the target verification key and target endpoint are updated, which allows her to communicate with Faber College. She can also see that the identity of the trust anchor was confirmed (from the Sovrin network), and that her invitation has been accepted.
+Alice can see now that the target verification key and target endpoint, as well as identifier and verification key are updated, which allows her to communicate with Faber College. She can also see that the identity of the trust anchor was confirmed (from the Sovrin network), and that her invitation has been accepted.
 
 ## Test Secure Interaction
 

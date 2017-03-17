@@ -152,6 +152,9 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "rcvd-claim-job-certificate-name": "Job-Certificate",
+            "rcvd-claim-job-certificate-version": "0.2",
+            "rcvd-claim-job-certificate-provider": "Acme Corp",
             "claim-ver-req-to-show": "0.1"
             }
 
@@ -325,11 +328,26 @@ def showTranscriptProofOut():
         "Claim ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
-        "student_name: {attr-student_name}",
-        "ssn: {attr-ssn}",
-        "degree: {attr-degree}",
-        "year: {attr-year}",
-        "status: {attr-status}",
+        "  student_name: {attr-student_name}",
+        "* ssn: {attr-ssn}",
+        "* degree: {attr-degree}",
+        "  year: {attr-year}",
+        "* status: {attr-status}",
+    ]
+
+
+@pytest.fixture(scope="module")
+def showJobCertificateClaimInProofOut():
+    return [
+        "The Proof is constructed from the following claims:",
+        "Claim ({rcvd-claim-job-certificate-name} "
+        "v{rcvd-claim-job-certificate-version} "
+        "from {rcvd-claim-job-certificate-provider})",
+        "* first_name: {attr-first_name}",
+        "* last_name: {attr-last_name}",
+        "  employee_status: {attr-employee_status}",
+        "  experience: {attr-experience}",
+        "  salary_bracket: {attr-salary_bracket}"
     ]
 
 
@@ -344,10 +362,27 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-first_name}: {set-attr-first_name}",
         "{proof-request-attr-last_name}: {set-attr-last_name}",
         "{proof-request-attr-phone_number}: {set-attr-phone_number}",
-        "{proof-request-attr-degree}: {attr-degree}",
-        "{proof-request-attr-status}: {attr-status}",
-        "{proof-request-attr-ssn}: {attr-ssn}"
+        "{proof-request-attr-degree} (V): {attr-degree}",
+        "{proof-request-attr-status} (V): {attr-status}",
+        "{proof-request-attr-ssn} (V): {attr-ssn}"
     ] + showTranscriptProofOut
+
+
+@pytest.fixture(scope="module")
+def showNameProofRequestOut(showJobCertificateClaimInProofOut):
+    return [
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-req-to-match}",
+        "Version: {proof-request-version}",
+        "Status: Requested",
+        "Attributes:",
+        "{proof-request-attr-first_name} (V): {set-attr-first_name}",
+        "{proof-request-attr-last_name} (V): {set-attr-last_name}",
+    ] + showJobCertificateClaimInProofOut + [
+        "Try Next:",
+        "set <attr-name> to <attr-value>",
+        'send proof "{proof-req-to-match}" to "{inviter}"'
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -736,6 +771,8 @@ def showAcceptedLinkOut():
     return [
             "Link",
             "Name: {inviter}",
+            "Identifier: {identifier}",
+            "Verification key: {verkey}",
             "Target: {target}",
             "Target Verification key: <same as target>",
             "Trust anchor: {inviter} (confirmed)",
@@ -749,7 +786,7 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Name: {inviter}",
             "    Identifier: not yet assigned",
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
-            "    Verification key: <same as local identifier>",
+            "    Verification key: <empty>",
             "    Signing key: <hidden>",
             "    Target: {target}",
             "    Target Verification key: <unknown, waiting for sync>",
@@ -771,7 +808,6 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
-            "Verification key: <same as local identifier>",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",

@@ -187,12 +187,12 @@ class WalletedAgent(Walleted, Agent, Caching):
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None,
-                 attrRepo=None,
-                 agentLogger=None):
+                 attrRepo=None):
+
         Agent.__init__(self, name, basedirpath, client, port, loop=loop)
         self._wallet = wallet or Wallet(name)
         self._attrRepo = attrRepo or AttributeRepoInMemory()
-        Walleted.__init__(self, agentLogger=(agentLogger or None))
+        Walleted.__init__(self)
         if self.client:
             self._initIssuerProverVerifier()
 

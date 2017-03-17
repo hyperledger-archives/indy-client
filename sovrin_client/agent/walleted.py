@@ -5,7 +5,7 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
-from typing import Dict, Union, NamedTuple, List
+from typing import Dict, Union, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
@@ -60,8 +60,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def __init__(self,
                  issuer: Issuer = None,
                  prover: Prover = None,
-                 verifier: Verifier = None,
-                 agentLogger=None):
+                 verifier: Verifier = None):
 
         AgentIssuer.__init__(self, issuer)
         AgentProver.__init__(self, prover)
@@ -91,7 +90,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             NEW_AVAILABLE_CLAIMS: self._handleNewAvailableClaimsDataResponse
         }
-        self.agentLogger = agentLogger or logger
+        self.logger = logger
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
@@ -164,6 +163,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # this looks ok for test code, but not production code
             link = Link(str(internalId),
                         self.wallet.defaultId,
+                        self.wallet.getVerkey(),
                         invitationNonce=nonce,
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
@@ -475,7 +475,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise SignatureRejected
         else:
             if typ == ACCEPT_INVITE:
-                self.agentLogger.info('\nSignature accepted.')
+                self.logger.info('\nSignature accepted.')
             return True
 
     def _getLinkByTarget(self, target) -> Link:
@@ -560,7 +560,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             sendClaimList()
             logger.debug("already accepted, "
                          "so directly sending available claims")
-            self.agentLogger.info('Already added identifier [{}] in sovrin'
+            self.logger.info('Already added identifier [{}] in sovrin'
                                   .format(identifier))
             # self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
             #                       "    Already accepted",
@@ -576,7 +576,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # how to provide separate logging for each agent
             # anyhow this class should be implemented by each agent
             # so we might not even need to add it as a separate logic
-            self.agentLogger.info('Creating identifier [{}] in sovrin'
+            self.logger.info('Creating identifier [{}] in sovrin'
                                   .format(identifier))
             self._sendToSovrinAndDo(reqs[0], clbk=sendClaimList)
 
@@ -720,6 +720,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             signer = DidSigner()
             self.wallet.addIdentifier(signer=signer)
             link.localIdentifier = signer.identifier
+            link.localVerkey = signer.verkey
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender
@@ -728,7 +729,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         logger.debug("{} accepting invitation from {} with id {}".
                      format(self.name, link.name, link.localIdentifier))
-        self.agentLogger.info('Invitation accepted with nonce {} from id {}'
+        self.logger.info('Invitation accepted with nonce {} from id {}'
                               .format(link.invitationNonce,
                                       link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)

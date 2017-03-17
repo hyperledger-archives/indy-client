@@ -39,7 +39,7 @@ from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
-    NotConnectedToNetwork, LinkNotReady
+    NotConnectedToNetwork, LinkNotReady, VerkeyNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.txn import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
@@ -439,7 +439,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link.targetVerkey:
             return link.targetVerkey
         else:
-            raise Exception("verkey not set in link")
+            raise VerkeyNotFound("verkey not set in link")
 
     def getLinkForMsg(self, msg):
         nonce = msg.get(NONCE)
@@ -466,7 +466,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             try:
                 link = self.getLinkForMsg(msg)
                 verkey = self.getVerkeyForLink(link)
-            except LinkNotFound:
+            except (LinkNotFound, VerkeyNotFound):
                 # This is for verification of `NOTIFY` events
                 link = self.wallet.getLinkBy(remote=identifier)
                 # TODO: If verkey is None, it should be fetched from Sovrin.

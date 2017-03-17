@@ -109,6 +109,8 @@ class Link:
 
         if self.isAccepted:
             trustAnchorStatus = '(confirmed)'
+            if self.targetVerkey is None:
+                targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
             linkStatus = self.linkStatus
 
         # TODO: The verkey would be same as the local identifier until we

@@ -9,7 +9,7 @@ from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
 from plenum.common.types import CLIENT_STACK_SUFFIX
 from plenum.common.util import randomSeed, randomString
 from plenum.test.cli.helper import exitFromCli
-from sovrin_client.test.cli.test_tutorial import philCli
+from sovrin_client.test.cli.conftest import philCli
 
 def getNewNodeData():
     newStewardSeed = randomSeed()

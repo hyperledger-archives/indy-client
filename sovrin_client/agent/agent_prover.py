@@ -15,7 +15,6 @@ from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD,
     REQ_AVAIL_CLAIMS
 from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.link import Link
-from sovrin_common.exceptions import LinkNotReady
 from sovrin_common.util import getNonceForProof
 from sovrin_common.exceptions import LinkNotReady
 
@@ -180,3 +179,20 @@ class AgentProver:
             if attributes.intersection(issuedAttrs.keys()):
                 matchingLinkAndRcvdClaim.append((li, cl, issuedAttrs))
         return matchingLinkAndRcvdClaim
+
+    async def getClaimsUsedForAttrs(self, attributes):
+        allMatchingClaims = await self.getMatchingLinksWithReceivedClaimAsync()
+        alreadySatisfiedKeys = {}
+        claimsToUse = []
+        alreadyAddedClaims = []
+
+        for li, cl, issuedAttrs in allMatchingClaims:
+            issuedClaimKeys = issuedAttrs.keys()
+            for key in attributes.keys():
+                if key not in alreadySatisfiedKeys and key in issuedClaimKeys:
+                    if li not in alreadyAddedClaims:
+                        claimsToUse.append((li, cl, issuedAttrs))
+                    alreadySatisfiedKeys[key] = True
+                    alreadyAddedClaims.append(li)
+
+        return claimsToUse

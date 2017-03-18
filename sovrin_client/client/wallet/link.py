@@ -13,7 +13,7 @@ class constant:
     TRUST_ANCHOR = "Trust Anchor"
     SIGNER_IDENTIFIER = "Identifier"
     SIGNER_VER_KEY = "Verification Key"
-    SIGNER_VER_KEY_SAME_AS_ID = '<same as local identifier>'
+    SIGNER_VER_KEY_EMPTY = '<empty>'
 
     TARGET_IDENTIFIER = "Target"
     TARGET_VER_KEY = "Target Verification Key"
@@ -44,6 +44,7 @@ class Link:
     def __init__(self,
                  name,
                  localIdentifier=None,
+                 localVerkey=None,
                  trustAnchor=None,
                  remoteIdentifier=None,
                  remoteEndPoint=None,
@@ -53,6 +54,7 @@ class Link:
                  remote_verkey=None):
         self.name = name
         self.localIdentifier = localIdentifier
+        self.localVerkey = localVerkey
         self.trustAnchor = trustAnchor
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
@@ -117,10 +119,10 @@ class Link:
         # support key rotation
         # TODO: This should be set as verkey in case of DID but need it from
         # wallet
-        verKey = constant.SIGNER_VER_KEY_SAME_AS_ID
-        fixedLinkHeading = "Link "
+        verKey = self.localVerkey if self.localVerkey else constant.SIGNER_VER_KEY_EMPTY
+        fixedLinkHeading = "Link"
         if not self.isAccepted:
-            fixedLinkHeading += "(not yet accepted)"
+            fixedLinkHeading += " (not yet accepted)"
 
         # TODO: Refactor to use string interpolation
         # try:

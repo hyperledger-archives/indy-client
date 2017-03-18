@@ -77,5 +77,6 @@ def createThrift(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    thrift = createThrift(port=7777)
-    runAgent(thrift)
+    TestWalletedAgent.createAndRunAgent(
+        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), basedirpath=None,
+        port=7777, looper=None, clientClass=TestClient)

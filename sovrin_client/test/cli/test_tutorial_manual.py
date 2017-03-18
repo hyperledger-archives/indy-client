@@ -5,11 +5,11 @@ import re
 import pytest
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from plenum.common.roles import Roles
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
 
-from sovrin_client.agent.agent import createAndRunAgent
 from sovrin_client.test.agent.acme import AcmeAgent
 from sovrin_client.test.agent.faber import FaberAgent
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
@@ -106,8 +106,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
         agentCls.getPassedArgs = lambda _: (agentPort,)
-        createAndRunAgent(agentCls, agentName, buildAgentWalletFunc(), tdir,
-                          agentPort, philCLI.looper, TestClient)
+        TestWalletedAgent.createAndRunAgent(
+            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+            philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':

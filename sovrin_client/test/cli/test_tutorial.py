@@ -37,67 +37,6 @@ def getSampleLinkInvitation():
     }
 
 
-@pytest.fixture(scope="module")
-def philCli(be, do, philCLI):
-    be(philCLI)
-    do('prompt Phil', expect=prompt_is('Phil'))
-
-    do('new keyring Phil', expect=['New keyring Phil created',
-                                   'Active keyring set to "Phil"'])
-
-    mapper = {
-        'seed': '11111111111111111111111111111111',
-        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
-    do('new key with seed {seed}', expect=['Key created in keyring Phil',
-                                           'Identifier for key is {idr}',
-                                           'Current identifier set to {idr}'],
-       mapper=mapper)
-
-    return philCLI
-
-
-@pytest.fixture(scope="module")
-def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                     nymAddedOut, faberMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddedOut, mapper=faberMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                    nymAddedOut, acmeMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddedOut, mapper=acmeMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                      nymAddedOut, thriftMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddedOut, mapper=thriftMap)
-    return philCli
-
-
 def checkIfValidEndpointIsAccepted(do, map, attribAdded):
     validEndpoints = []
     validPorts = ["1", "3457", "65535"]
@@ -135,43 +74,33 @@ def checkIfInvalidEndpointIsRejected(do, map):
            mapper=map)
 
 
-@pytest.fixture(scope="module")
-def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
-                           faberMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, faberMap)
-    checkIfValidEndpointIsAccepted(do, faberMap, attrAddedOut)
+def agentWithEndpointAdded(be, do, stewardCli, agentMap, attrAddedOut):
+    be(stewardCli)
+    checkIfInvalidEndpointIsRejected(do, agentMap)
+    checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
-       mapper=faberMap)
-    return philCli
+       mapper=agentMap)
+    return stewardCli
+
+
+@pytest.fixture(scope="module")
+def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
+                           faberMap, attrAddedOut):
+    agentWithEndpointAdded(be, do, philCli, faberMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, acmeMap)
-    checkIfValidEndpointIsAccepted(do, acmeMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=acmeMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, acmeMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, thriftMap)
-    checkIfValidEndpointIsAccepted(do, thriftMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=thriftMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, thriftMap, attrAddedOut)
 
 
 def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
@@ -452,6 +381,10 @@ def acceptInvitation(be, do, userCli, agentMap, expect):
            "Observer threw an exception",
            "Identifier is not yet written to Sovrin"]
        )
+    li = userCli.agent.wallet.getLinkByNonce(agentMap['nonce'])
+    assert li
+    agentMap['identifier'] = li.localIdentifier
+    agentMap['verkey'] = li.localVerkey
 
 
 @pytest.fixture(scope="module")
@@ -916,6 +849,26 @@ def aliceAcceptedThriftLoanApplication(be, do, aliceCli, thriftMap,
 
 def testAliceAcceptsThriftLoanApplication(aliceAcceptedThriftLoanApplication):
     pass
+
+
+def testAliceShowProofIncludeSingleClaim(
+        aliceAcceptedThriftLoanApplication, be, do, aliceCli, thriftMap,
+        showNameProofRequestOut, jobApplicationProofRequestMap,
+        jobCertClaimAttrValueMap):
+    mapping = {}
+    mapping.update(thriftMap)
+    mapping.update(jobApplicationProofRequestMap)
+    mapping.update(jobCertClaimAttrValueMap)
+    mapping['proof-req-to-match'] = 'Name-Proof'
+    mapping['proof-request-version'] = '0.1'
+    mapping.update({
+        "set-attr-first_name": "Alice",
+        "set-attr-last_name": "Garcia",
+    })
+    do("show proof request {proof-req-to-match}",
+       expect=showNameProofRequestOut,
+       mapper=mapping,
+       within=3)
 
 
 @pytest.fixture(scope="module")

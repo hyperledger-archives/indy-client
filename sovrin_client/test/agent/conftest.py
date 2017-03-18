@@ -144,6 +144,18 @@ def thriftAgentPort():
     return genHa()[1]
 
 
+def addAgentAndEndpoint(looper, agent, steward, stewardWallet):
+    looper.add(agent.client)
+    attrib = createAgentAndAddEndpoint(looper,
+                                       agent.wallet.defaultId,
+                                       agent.wallet,
+                                       agent.client,
+                                       agent.port,
+                                       steward,
+                                       stewardWallet)
+    return attrib
+
+
 @pytest.fixture(scope="module")
 def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
     return createFaber(faberWallet.name, faberWallet,
@@ -156,30 +168,24 @@ def faberAdded(nodeSet,
                steward,
                stewardWallet,
                emptyLooper,
-               faberAgentPort,
                faberAgent):
-    emptyLooper.add(faberAgent.client)
-    attrib = createAgentAndAddEndpoint(emptyLooper,
-                                       faberAgent.wallet.defaultId,
-                                       faberAgent.wallet,
-                                       faberAgent.client,
-                                       faberAgentPort,
-                                       steward,
-                                       stewardWallet)
-    return attrib
+    return addAgentAndEndpoint(emptyLooper, faberAgent, steward, stewardWallet)
+
+
+def startAgent(looper, agent, wallet):
+    agent = agent
+    wallet.pendSyncRequests()
+    prepared = wallet.preparePending()
+    agent.client.submitReqs(*prepared)
+
+    runAgent(agent, looper)
+    return agent, wallet
 
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
                    faberAgent, faberAdded):
-    faber = faberAgent
-    faberWallet.pendSyncRequests()
-    prepared = faberWallet.preparePending()
-    faber.client.submitReqs(*prepared)
-
-    runAgent(faber, emptyLooper)
-
-    return faber, faberWallet
+    return startAgent(emptyLooper, faberAgent, faberWallet)
 
 
 @pytest.fixture(scope="module")
@@ -194,30 +200,14 @@ def acmeAdded(nodeSet,
               steward,
               stewardWallet,
               emptyLooper,
-              acmeAgentPort,
               acmeAgent):
-    emptyLooper.add(acmeAgent.client)
-    attrib = createAgentAndAddEndpoint(emptyLooper,
-                                       acmeAgent.wallet.defaultId,
-                                       acmeAgent.wallet,
-                                       acmeAgent.client,
-                                       acmeAgentPort,
-                                       steward,
-                                       stewardWallet)
-    return attrib
+    return addAgentAndEndpoint(emptyLooper, acmeAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet, acmeAgent,
                   acmeAdded):
-    acme = acmeAgent
-    acmeWallet.pendSyncRequests()
-    prepared = acmeWallet.preparePending()
-    acme.client.submitReqs(*prepared)
-
-    runAgent(acme, emptyLooper)
-
-    return acme, acmeWallet
+    return startAgent(emptyLooper, acmeAgent, acmeWallet)
 
 
 @pytest.fixture(scope="module")
@@ -228,16 +218,18 @@ def thriftAgent(tdirWithPoolTxns, thriftAgentPort, thriftWallet):
 
 
 @pytest.fixture(scope="module")
+def thfiftAdded(nodeSet,
+              steward,
+              stewardWallet,
+              emptyLooper,
+              thriftAgent):
+    return addAgentAndEndpoint(emptyLooper, thriftAgent, steward, stewardWallet)
+
+
+@pytest.fixture(scope="module")
 def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
                     thriftAgent, thriftAdded):
-    thrift = thriftAgent
-    thriftWallet.pendSyncRequests()
-    prepared = thriftWallet.preparePending()
-    thrift.client.submitReqs(*prepared)
-
-    runAgent(thrift, emptyLooper)
-
-    return thrift, thriftWallet
+    return startAgent(emptyLooper, thriftAgent, thriftWallet)
 
 
 # TODO: Rename it, not clear whether link is added to which wallet and

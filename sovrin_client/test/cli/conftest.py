@@ -1,24 +1,22 @@
 import json
 import os
 import tempfile
-import traceback
-
-import itertools
-from time import sleep
 import re
 from typing import List
 
 import plenum
 import pytest
+
+from plenum.common.exceptions import BlowUp
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
+from plenum.common.roles import Roles
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
-    dirName, tdirWithDomainTxns, poolTxnNodeNames
-from plenum.test.helper import createTempDir
+    tdirWithDomainTxns, poolTxnNodeNames
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_common.txn import TRUST_ANCHOR, ENDPOINT
+from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -30,7 +28,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
@@ -154,6 +152,9 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             ENDPOINT: endpoint,
             "endpointAttr": json.dumps({ENDPOINT: endpoint}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "rcvd-claim-job-certificate-name": "Job-Certificate",
+            "rcvd-claim-job-certificate-version": "0.2",
+            "rcvd-claim-job-certificate-provider": "Acme Corp",
             "claim-ver-req-to-show": "0.1"
             }
 
@@ -336,6 +337,21 @@ def showTranscriptProofOut():
 
 
 @pytest.fixture(scope="module")
+def showJobCertificateClaimInProofOut():
+    return [
+        "The Proof is constructed from the following claims:",
+        "Claim ({rcvd-claim-job-certificate-name} "
+        "v{rcvd-claim-job-certificate-version} "
+        "from {rcvd-claim-job-certificate-provider})",
+        "* first_name: {attr-first_name}",
+        "* last_name: {attr-last_name}",
+        "  employee_status: {attr-employee_status}",
+        "  experience: {attr-experience}",
+        "  salary_bracket: {attr-salary_bracket}"
+    ]
+
+
+@pytest.fixture(scope="module")
 def showJobAppProofRequestOut(showTranscriptProofOut):
     return [
         'Found proof request "{proof-req-to-match}" in link "{inviter}"',
@@ -350,6 +366,23 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-status} (V): {attr-status}",
         "{proof-request-attr-ssn} (V): {attr-ssn}"
     ] + showTranscriptProofOut
+
+
+@pytest.fixture(scope="module")
+def showNameProofRequestOut(showJobCertificateClaimInProofOut):
+    return [
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-req-to-match}",
+        "Version: {proof-request-version}",
+        "Status: Requested",
+        "Attributes:",
+        "{proof-request-attr-first_name} (V): {set-attr-first_name}",
+        "{proof-request-attr-last_name} (V): {set-attr-last_name}",
+    ] + showJobCertificateClaimInProofOut + [
+        "Try Next:",
+        "set <attr-name> to <attr-value>",
+        'send proof "{proof-req-to-match}" to "{inviter}"'
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -738,6 +771,8 @@ def showAcceptedLinkOut():
     return [
             "Link",
             "Name: {inviter}",
+            "Identifier: {identifier}",
+            "Verification key: {verkey}",
             "Target: {target}",
             "Target Verification key: <same as target>",
             "Trust anchor: {inviter} (confirmed)",
@@ -751,7 +786,7 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Name: {inviter}",
             "    Identifier: not yet assigned",
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
-            "    Verification key: <same as local identifier>",
+            "    Verification key: <empty>",
             "    Signing key: <hidden>",
             "    Target: {target}",
             "    Target Verification key: <unknown, waiting for sync>",
@@ -773,7 +808,6 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
-            "Verification key: <same as local identifier>",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",
@@ -1221,3 +1255,54 @@ def poolNodesStarted(be, do, poolCLI):
     do('new node all', within=6, expect = connectedExpect)
     # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI
+
+
+
+@pytest.fixture(scope="module")
+def philCli(be, do, philCLI):
+    be(philCLI)
+    do('prompt Phil', expect=prompt_is('Phil'))
+
+    do('new keyring Phil', expect=['New keyring Phil created',
+                                   'Active keyring set to "Phil"'])
+
+    mapper = {
+        'seed': '11111111111111111111111111111111',
+        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+    do('new key with seed {seed}', expect=['Key created in keyring Phil',
+                                           'Identifier for key is {idr}',
+                                           'Current identifier set to {idr}'],
+       mapper=mapper)
+
+    return philCLI
+
+
+def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
+    be(userCli)
+    if not userCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectExpMsgs)
+
+    do('send NYM dest={{target}} role={role}'.format(
+        role=Roles.TRUST_ANCHOR.name),
+       within=3,
+       expect=nymAddExpMsgs, mapper=mapper)
+    return philCli
+
+
+@pytest.fixture(scope="module")
+def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                     nymAddedOut, faberMap):
+    return addAgent(be, do, philCli, faberMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope="module")
+def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                    nymAddedOut, acmeMap):
+    return addAgent(be, do, philCli, acmeMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope="module")
+def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                      nymAddedOut, thriftMap):
+    return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)

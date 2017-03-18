@@ -5,7 +5,7 @@ from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
-from sovrin_client.agent.agent import createAgent, runAgent, isSchemaFound
+from sovrin_client.agent.agent import createAgent, runAgent, runBootstrap
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -154,10 +154,7 @@ class AcmeAgent(TestWalletedAgent):
         return schemaJobCert
 
     async def bootstrap(self):
-        ranViaScript = False
-        if __name__ == "__main__":
-            ranViaScript = True
-        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
+        await runBootstrap(self.addSchemasToWallet)
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):
@@ -167,5 +164,6 @@ def createAcme(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    acme = createAcme(port=6666)
-    runAgent(acme)
+    TestWalletedAgent.createAndRunAgent(
+        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
+        port=6666, looper=None, clientClass=TestClient)

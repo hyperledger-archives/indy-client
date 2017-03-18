@@ -1277,12 +1277,19 @@ class SovrinCli(PlenumCli):
         return formatted
 
     async def _showMatchingClaimProof(self, c: Context):
-        matchingLinkAndReceivedClaim = await self.agent.getMatchingRcvdClaimsAsync(
+        matchingLinkAndReceivedClaim = await self.agent.getClaimsUsedForAttrs(
             c.proofRequest.attributes)
+
+        # filter all those claims who has some None value
+        # since they are not yet requested
+        filteredMatchingClaims = []
+        for li, cl, issuedAttrs in matchingLinkAndReceivedClaim:
+            if None not in [v for k, v in issuedAttrs.items()]:
+                filteredMatchingClaims.append((li, cl, issuedAttrs))
 
         attributesWithValue = c.proofRequest.attributes
         for k, v in c.proofRequest.attributes.items():
-            for li, cl, issuedAttrs in matchingLinkAndReceivedClaim:
+            for li, cl, issuedAttrs in filteredMatchingClaims:
                 if k in issuedAttrs:
                     attributesWithValue[k] = issuedAttrs[k]
                 else:
@@ -1293,20 +1300,22 @@ class SovrinCli(PlenumCli):
         self.print(c.proofRequest.fixedInfo + self.formatProofRequestAttribute(
             c.proofRequest.attributes,
             c.proofRequest.verifiableAttributes,
-            matchingLinkAndReceivedClaim
+            filteredMatchingClaims
         ))
         self.print('\nThe Proof is constructed from the following claims:')
-        showClaimNumber = len(matchingLinkAndReceivedClaim) > 1
+        showClaimNumber = len(filteredMatchingClaims) > 1
         claimNumber = 1
 
-        for li, (name, ver, _), issuedAttrs in matchingLinkAndReceivedClaim:
+        for li, (name, ver, _), issuedAttrs in filteredMatchingClaims:
             self.print('\n    Claim {}({} v{} from {})'.format(
                 '[{}] '.format(claimNumber) if showClaimNumber else '',
                 name, ver, li.name
             ))
             for k, v in issuedAttrs.items():
                 self.print('        {}'.format(
-                    '* ' if k in c.proofRequest.attributes else '  ') + k + ': ' + v)
+                    '* ' if k in c.proofRequest.attributes else '  ')
+                    + k + ': ' + '{}'.format('None' if v is None else v)
+                )
             claimNumber += 1
 
         self.printSuggestion(

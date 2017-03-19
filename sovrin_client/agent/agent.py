@@ -39,7 +39,6 @@ class Agent(Motor, AgentNet):
                  port: int = None,
                  loop=None):
 
-        self.endpoint = None
         if port:
             checkPortAvailable(HA("0.0.0.0", port))
         Motor.__init__(self)
@@ -47,7 +46,12 @@ class Agent(Motor, AgentNet):
         self._eventListeners = {}  # Dict[str, set(Callable)]
         self._name = name
         self._port = port
-        self._basedirpath = basedirpath
+
+        AgentNet.__init__(self,
+                          name=self._name.replace(" ", ""),
+                          port=self._port,
+                          basedirpath=basedirpath,
+                          msgHandler=self.handleEndpointMessage)
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -78,16 +82,11 @@ class Agent(Motor, AgentNet):
             c += 1
         if self.client:
             c += await self.client.prod(limit)
-        if self.endpoint:
+        if self.endpoint and self.endpoint.stack:
             c += await self.endpoint.service(limit)
         return c
 
     def start(self, loop):
-        AgentNet.__init__(self,
-                          name=self._name.replace(" ", ""),
-                          port=self._port,
-                          basedirpath=self._basedirpath,
-                          msgHandler=self.handleEndpointMessage)
         super().start(loop)
         if self.client:
             self.client.start(loop)

@@ -362,7 +362,7 @@ def checkAcceptInvitation(emptyLooper,
         #                        format(internalId))
         # TODO: Get link from invitee wallet to check.
         assert link.remoteIdentifier == inviteeAcceptanceId
-        assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        assert link.remoteEndPoint[1] == inviteeAgent.endpoint.stack.ha[1]
 
     emptyLooper.run(eventually(chk))
 

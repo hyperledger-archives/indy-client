@@ -12,8 +12,17 @@ from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
 from plenum.common.roles import Roles
+
+# noinspection PyUnresolvedReferences
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
-    tdirWithDomainTxns, poolTxnNodeNames
+    tdirWithDomainTxns, poolTxnNodeNames, nodeAndClientInfoFilePath
+
+# noinspection PyUnresolvedReferences
+from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
+    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
+    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
+    acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
+    thriftAgent, agentIpAddress
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
@@ -23,19 +32,11 @@ from sovrin_client.test.helper import createNym, buildStewardClient
 plenum.common.util.loggingConfigured = False
 
 from plenum.common.looper import Looper
-from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
-    checkCmdValid, doByCtx
+from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, doByCtx
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
     getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
-from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
-    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
-    acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
-    thriftAgent, agentIpAddress
-
-from plenum.test.conftest import nodeAndClientInfoFilePath
 
 config = getConfig()
 

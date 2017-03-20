@@ -86,8 +86,8 @@ class Agent(Motor, AgentNet):
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
                           port=self._port,
-                          basedirpath=self._basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+                          msgHandler=self.handleEndpointMessage,
+                          basedirpath=self._basedirpath)
         super().start(loop)
         if self.client:
             self.client.start(loop)

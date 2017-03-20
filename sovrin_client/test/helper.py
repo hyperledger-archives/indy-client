@@ -1,5 +1,7 @@
+import inspect
 import os
 import shutil
+from pathlib import Path
 from typing import Union, Tuple
 
 import pyorient
@@ -311,3 +313,14 @@ def addUser(looper, creatorClient, creatorWallet, name, useDid=True,
     verkey = wallet.getVerkey(idr) if addVerkey else None
     createNym(looper, idr, creatorClient, creatorWallet, verkey=verkey)
     return wallet
+
+
+def peer_path(filename):
+    s = inspect.stack()
+    caller = None
+    for i in range(1, len(s)):
+        # pycharm can wrap calls, so we want to ignore those in the stack
+        if 'pycharm' not in s[i].filename:
+            caller = s[i].filename
+            break
+    return Path(caller).parent.joinpath(filename)

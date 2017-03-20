@@ -50,9 +50,9 @@ class ThriftAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return True
 
-    def getAvailableClaimList(self, requesterId):
+    def getAvailableClaimList(self, link):
         return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
+               self.requesterAvailClaims.get(link.localIdentifier, [])
 
 
     def _addAtrribute(self, schemaKey, proverId, link):

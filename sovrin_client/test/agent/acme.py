@@ -113,9 +113,9 @@ class AcmeAgent(TestWalletedAgent):
         return claimName == "Job-Certificate" and \
                "Job-Application" in link.verifiedClaimProofs
 
-    def getAvailableClaimList(self, requesterId):
+    def getAvailableClaimList(self, link):
         return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
+               self.requesterAvailClaims.get(link.localIdentifier, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)

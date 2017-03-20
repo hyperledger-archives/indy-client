@@ -91,9 +91,9 @@ class FaberAgent(TestWalletedAgent):
     def isClaimAvailable(self, link, claimName):
         return claimName == "Transcript"
 
-    def getAvailableClaimList(self, requesterId):
+    def getAvailableClaimList(self, link):
         return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
+               self.requesterAvailClaims.get(link.localIdentifier, [])
 
     async def postClaimVerif(self, claimName, link, frm):
         pass

@@ -47,6 +47,9 @@ class AgentVerifier(Verifier):
         if result:
             for attribute in proofInput.revealedAttrs:
                 # Log attributes that were verified
-                self.logger.info('verified {}: {}'.format(attribute,
-                                                               revealedAttrs[attribute]))
+                self.logger.info('verified {}: {}'.format(
+                    attribute, revealedAttrs[attribute]))
+            self.logger.info('verified proof contains attributes from '
+                             'claim issued by: {}'.format(", ".join(
+                sorted([sk.issuerId for sk in proof.schemaKeys]))))
             await self._postClaimVerif(claimName, link, frm)

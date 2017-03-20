@@ -381,7 +381,7 @@ def acceptInvitation(be, do, userCli, agentMap, expect):
            "Observer threw an exception",
            "Identifier is not yet written to Sovrin"]
        )
-    li = userCli.agent.wallet.getLinkByNonce(agentMap['nonce'])
+    li = userCli.agent.wallet.getLinkBy(nonce=agentMap['nonce'])
     assert li
     agentMap['identifier'] = li.localIdentifier
     agentMap['verkey'] = li.localVerkey

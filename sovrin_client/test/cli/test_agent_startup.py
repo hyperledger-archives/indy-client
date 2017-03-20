@@ -23,7 +23,7 @@ def getNewAgent(name, basedir, port, wallet):
 
 def runAgent(looper, basedir, port, name=None, agent=None):
     wallet = agentWallet()
-    name = name or "Agent"+ randomString(5)
+    name = name or "Agent" + randomString(5)
     agent = agent or getNewAgent(name, basedir, port, wallet)
     agent._name = name
     return startAgent(looper, agent, wallet)

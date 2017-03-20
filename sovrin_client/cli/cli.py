@@ -1254,7 +1254,7 @@ class SovrinCli(PlenumCli):
         self.printSuggestion(self._getReqClaimUsage(claimName))
 
     @staticmethod
-    def formatProofRequestAttribute(attributes, verifiableAttributes,
+    def _formatProofRequestAttribute(attributes, verifiableAttributes,
                                     matchingLinkAndReceivedClaim):
         getClaim = itemgetter(2)
         containsAttr = lambda key: lambda t: key in getClaim(t)
@@ -1275,6 +1275,33 @@ class SovrinCli(PlenumCli):
                           + ': ' + str(v) + '\n')
 
         return formatted
+
+
+    @staticmethod
+    def _printClaimsUsedInProofConstruction(
+            filteredMatchingClaims, proofRequestAttrs):
+        toPrint = '\nThe Proof is constructed from the following claims:\n'
+        showClaimNumber = len(filteredMatchingClaims) > 1
+        claimNumber = 1
+        alreadyFulfilledAttrs = {}
+
+        for li, (name, ver, _), issuedAttrs in filteredMatchingClaims:
+            toPrint += '\n    Claim {}({} v{} from {})\n'.format(
+                '[{}] '.format(claimNumber) if showClaimNumber else '',
+                name, ver, li.name
+            )
+            for k, v in issuedAttrs.items():
+                toPrint += ('        {}'.format(
+                    '* ' if k in proofRequestAttrs and
+                            k not in alreadyFulfilledAttrs else '  ')
+                           + k + ': ' + '{}\n'.format('None' if v is None else v)
+                            )
+                if not k in alreadyFulfilledAttrs:
+                    alreadyFulfilledAttrs[k] = True
+
+            claimNumber += 1
+
+        return toPrint
 
     async def _showMatchingClaimProof(self, c: Context):
         matchingLinkAndReceivedClaim = await self.agent.getClaimsUsedForAttrs(
@@ -1297,26 +1324,14 @@ class SovrinCli(PlenumCli):
                     attributesWithValue[k] = c.selfAttestedAttrs.get(k, defaultValue)
 
         c.proofRequest.attributes = attributesWithValue
-        self.print(c.proofRequest.fixedInfo + self.formatProofRequestAttribute(
+        self.print(c.proofRequest.fixedInfo + self._formatProofRequestAttribute(
             c.proofRequest.attributes,
             c.proofRequest.verifiableAttributes,
             filteredMatchingClaims
         ))
-        self.print('\nThe Proof is constructed from the following claims:')
-        showClaimNumber = len(filteredMatchingClaims) > 1
-        claimNumber = 1
 
-        for li, (name, ver, _), issuedAttrs in filteredMatchingClaims:
-            self.print('\n    Claim {}({} v{} from {})'.format(
-                '[{}] '.format(claimNumber) if showClaimNumber else '',
-                name, ver, li.name
-            ))
-            for k, v in issuedAttrs.items():
-                self.print('        {}'.format(
-                    '* ' if k in c.proofRequest.attributes else '  ')
-                    + k + ': ' + '{}'.format('None' if v is None else v)
-                )
-            claimNumber += 1
+        self.print(self._printClaimsUsedInProofConstruction(
+            filteredMatchingClaims, c.proofRequest.attributes))
 
         self.printSuggestion(
             self._getSetAttrUsage() +

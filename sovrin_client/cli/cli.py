@@ -523,8 +523,8 @@ class SovrinCli(PlenumCli):
             if error:
                 self.print("{}".format(error), Token.BoldOrange)
             else:
-                self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
-                       Token.BoldBlue)
+                self.print("Attribute added for nym {}".
+                           format(reply[TARGET_NYM]), Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
                                     req.key, self.activeClient, out)

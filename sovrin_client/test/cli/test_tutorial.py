@@ -116,7 +116,7 @@ def checkIfValidEndpointIsAccepted(do, map, attribAdded):
         validEndpoints.append("127.0.0.1:{}".format(validPort))
 
     for validEndpoint in validEndpoints:
-        endpoint = json.dumps({ENDPOINT: validEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha':validEndpoint}})
         map["validEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={validEndpointAttr}",
            within=5,
@@ -138,7 +138,7 @@ def checkIfInvalidEndpointIsRejected(do, map):
         errorMsg = 'client request invalid: InvalidClientRequest(' \
                    '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
                                                             invalidEndpoint)
-        endpoint = json.dumps({ENDPOINT: invalidEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
            within=5,

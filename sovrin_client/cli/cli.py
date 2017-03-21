@@ -847,7 +847,7 @@ class SovrinCli(PlenumCli):
         return li
 
     def _sendAcceptInviteToTargetEndpoint(self, link: Link):
-        self.agent.acceptInvitation(link)
+        self.agent.accept_invitation(link)
 
     def _acceptLinkPostSync(self, link: Link):
         if link.isRemoteEndpointAvailable:

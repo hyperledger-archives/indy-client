@@ -10,6 +10,7 @@ from anoncreds.protocol.types import ClaimRequest
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, CLAIMS_LIST_FIELD
 from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD, \
     AVAIL_CLAIM_LIST
+from sovrin_common.identity import Identity
 
 
 class AgentIssuer:
@@ -65,7 +66,12 @@ class AgentIssuer:
 
     @abstractmethod
     def _add_attribute(self, schemaKey, proverId, link):
-        attr = self.backend.get_record_by_internal_id(link.internalId)
+        attr = self.issuer_backend.get_record_by_internal_id(link.internalId)
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
+
+    def publish_trust_anchor(self, idy: Identity):
+        self.wallet.addTrustAnchoredIdentity(idy)
+        reqs = self.wallet.preparePending()
+        self.client.submitReqs(*reqs)

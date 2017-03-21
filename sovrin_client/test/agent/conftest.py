@@ -348,7 +348,7 @@ def checkAcceptInvitation(emptyLooper,
     inviteeAgent.connectTo(linkName)
     ensureAgentsConnected(emptyLooper, inviteeAgent, inviterAgent)
 
-    inviteeAgent.acceptInvitation(linkName)
+    inviteeAgent.accept_invitation(linkName)
     inviteeAcceptanceId = inviteeWallet.getLink(linkName,
                                                 required=True).localIdentifier
     internalId = inviterAgent.get_internal_id_by_nonce(nonce)

@@ -44,17 +44,21 @@ class AgentProver:
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendReqClaimAsync(link, schemaKey))
+                                self.send_claim(link, schemaKey))
         else:
             self.loop.run_until_complete(
-                self.sendReqClaimAsync(link, schemaKey))
+                self.send_claim(link, schemaKey))
 
-    async def sendReqClaimAsync(self, link: Link, schemaKey):
-        name, version, origin = schemaKey
-        schemaKey = SchemaKey(name, version, origin)
+
+    # async def send_claim(self, link, claim_to_request):
+    #     return await self.sendReqClaimAsync(link, claim_to_request)
+
+    async def send_claim(self, link: Link, schema_key):
+        name, version, origin = schema_key
+        schema_key = SchemaKey(name, version, origin)
 
         claimReq = await self.prover.createClaimRequest(
-            schemaId=ID(schemaKey),
+            schemaId=ID(schema_key),
             proverId=link.invitationNonce,
             reqNonRevoc=False)
 

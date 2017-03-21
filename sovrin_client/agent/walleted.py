@@ -254,6 +254,17 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def add_attribute_definition(self, attr_def: AttribDef):
         self._attribDefs[attr_def.name] = attr_def
 
+    async def get_claim(self, schema_id: ID):
+        return await self.prover.wallet.getClaims(schema_id)
+
+    def new_identifier(self):
+        idr, _ = self.wallet.addIdentifier()
+        verkey = self.wallet.getVerkey(idr)
+        return idr, verkey
+
+    def get_link_by_name(self, name):
+        return self.wallet.getLink(str(name))
+
     def signAndSend(self, msg, signingIdr=None, toRaetStackName=None,
                     linkName=None, origReqId=None):
         if linkName:
@@ -710,7 +721,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 data_file, object_pairs_hook=collections.OrderedDict)
             return self.loadInvitationDict(invitation)
 
-    def loadInvitationStr(self, json_str):
+    def load_invitation_str(self, json_str):
         invitation = json.loads(
             json_str, object_pairs_hook=collections.OrderedDict)
         return self.loadInvitationDict(invitation)
@@ -803,7 +814,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         else:
             raise LinkAlreadyExists
 
-    def acceptInvitation(self, link: Union[str, Link]):
+    def accept_invitation(self, link: Union[str, Link]):
         if isinstance(link, str):
             link = self.wallet.getLink(link, required=True)
         elif isinstance(link, Link):

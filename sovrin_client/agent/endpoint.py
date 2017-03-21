@@ -67,3 +67,7 @@ class Endpoint(SimpleStack):
             # updates the store time so the join timer is accurate
             self.updateStamp()
             self.join(uid=remote.uid, cascade=True, timeout=30)
+
+    def host_address(self) -> str:
+        return str(self.ha[0]) + ":" + str(self.ha[1])
+

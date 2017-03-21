@@ -98,17 +98,17 @@ class BaseAgent(TestWalletedAgent):
         else:
             raise NonceNotFound
 
-    def getAvailableClaimList(self, nonce, requesterId):
-        assert nonce
-        assert requesterId
+    def getAvailableClaimList(self, link):
+        assert link
+        assert link.invitationNonce
+        assert link.remoteIdentifier
         return self.availableClaimsToAll + \
-               self.availableClaimsByNonce.get(nonce, []) + \
-               self.availableClaimsByIdentifier.get(requesterId, [])
+               self.availableClaimsByNonce.get(link.invitationNonce, []) + \
+               self.availableClaimsByIdentifier.get(link.remoteIdentifier, [])
 
     def isClaimAvailable(self, link, claimName):
         return claimName in [cl.get("name") for cl in
-                             self.getAvailableClaimList(link.invitationNonce,
-                                                        link.localIdentifier)]
+                             self.getAvailableClaimList(link)]
 
     def getSchemaKeysToBeGenerated(self):
         raise NotImplemented
@@ -129,19 +129,27 @@ class BaseAgent(TestWalletedAgent):
         pass
 
     async def initAvailableClaimList(self):
-        async def getAndAddToWallet(schemaKey):
+        async def getSchema(schemaKey):
             schema = await self.issuer.wallet.getSchema(ID(schemaKey))
-            self.availableClaimsToAll.append({
+            return {
                 NAME: schema.name,
                 VERSION: schema.version,
                 "schemaSeqNo": schema.seqId
-            })
+            }
 
         for schemaKey in self.getSchemaKeysForClaimsAvailableToAll():
-            await getAndAddToWallet(schemaKey)
-        for nonce, schemaKeys in self.getSchemaKeysForClaimsAvailableToSpecificNonce():
-            for schemaKey in schemaKeys:
-                await getAndAddToWallet(schemaKey)
+            schema = await getSchema(schemaKey)
+            self.availableClaimsToAll.append(schema)
+
+        for nonce, schemaNames in self.getSchemaKeysForClaimsAvailableToSpecificNonce().items():
+            for schemaName in schemaNames:
+                schemaKeys = list(filter(lambda sk: sk.name ==schemaName, self.getSchemaKeysToBeGenerated()))
+                assert len(schemaKeys) == 1, \
+                    "no such schema name found in generated schema keys"
+                schema = await getSchema(schemaKeys[0])
+                oldAvailClaims = self.availableClaimsByNonce.get(nonce, [])
+                oldAvailClaims.append(schema)
+                self.availableClaimsByNonce[nonce] = oldAvailClaims
 
     def _addAttribute(self, schemaKey, proverId, link):
         attr = self.getAttrs()[self.getInternalIdByInvitedNonce(proverId)]

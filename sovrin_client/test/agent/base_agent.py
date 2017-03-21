@@ -32,22 +32,57 @@ class BaseAgent(TestWalletedAgent):
             basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
+
         super().__init__(name, basedirpath, client, wallet,
                          portParam or port, loop=loop)
 
+        self.claimVersionNumber = 0.01
+
         self.logger = getlogger()
 
-        # available claims to anyone who interacts with this agent
+        # available claims to anyone whos connection is accepted by the agent
         self.availableClaimsToAll = []
 
-        # available claims only for certain individual (by nonce)
+        # available claims only for certain invitation (by nonce)
         self.availableClaimsByNonce = {}
 
         # mapping between specific identifier and available claims which would
-        # have been available once they have requested information (proof etc).
+        # have been available once they have provided requested information
+        # like proof etc.
         self.availableClaimsByIdentifier = {}
 
         self._invites = {}
+
+        self.updateClaimVersionFile(self.getClaimVersionFileName())
+
+    def getClaimVersionFileName(self):
+        return self.name.replace(" ","-").lower() + "-schema-version.txt"
+
+    def updateClaimVersionFile(self, fileName,):
+        claimVersionFilePath = '{}/{}'.format(self._basedirpath, fileName)
+        # get version number from file
+        if os.path.isfile(claimVersionFilePath):
+            try:
+                with open(claimVersionFilePath, mode='r+') as file:
+                    claimVersionNumber = float(file.read()) + 0.001
+                    file.seek(0)
+                    # increment version and update file
+                    file.write(str(claimVersionNumber))
+                    file.truncate()
+            except OSError as e:
+                self.logger.warn('Error occurred while reading version file: '
+                                 'error:{}'.format(e))
+                raise e
+            except ValueError as e:
+                self.logger.warn('Invalid version number')
+                raise e
+        else:
+            try:
+                with open(claimVersionFilePath, mode='w') as file:
+                    file.write(str(self.claimVersionNumber))
+            except OSError as e:
+                self.logger.warn('Error creating version file {}'.format(e))
+                raise e
 
     def setupLogging(self, filePath):
         Logger().setLogLevel(agentLoggingLevel)
@@ -71,8 +106,9 @@ class BaseAgent(TestWalletedAgent):
                self.availableClaimsByIdentifier.get(requesterId, [])
 
     def isClaimAvailable(self, link, claimName):
-        return claimName in self.getAvailableClaimList(link.invitationNonce,
-                                                       link.localIdentifier)
+        return claimName in [cl.get("name") for cl in
+                             self.getAvailableClaimList(link.invitationNonce,
+                                                        link.localIdentifier)]
 
     def getSchemaKeysToBeGenerated(self):
         raise NotImplemented
@@ -83,36 +119,47 @@ class BaseAgent(TestWalletedAgent):
     def getSchemaKeysForClaimsAvailableToSpecificNonce(self):
         return {}
 
+    def getAttrDefs(self):
+        raise NotImplemented
+
+    def getAttrs(self):
+        raise NotImplemented
+
     async def postClaimVerif(self, claimName, link, frm):
         pass
 
     async def initAvailableClaimList(self):
-        for schemaKey in self.getSchemaKeysForClaimsAvailableToAll():
+        async def getAndAddToWallet(schemaKey):
             schema = await self.issuer.wallet.getSchema(ID(schemaKey))
             self.availableClaimsToAll.append({
                 NAME: schema.name,
                 VERSION: schema.version,
                 "schemaSeqNo": schema.seqId
             })
-        for nonce, schemaKey in self.getSchemaKeysForClaimsAvailableToSpecificNonce():
-            schema = await self.issuer.wallet.getSchema(ID(schemaKey))
-            self.availableClaimsByNonce[nonce] = {
-                NAME: schema.name,
-                VERSION: schema.version,
-                "schemaSeqNo": schema.seqId
-            }
+
+        for schemaKey in self.getSchemaKeysForClaimsAvailableToAll():
+            await getAndAddToWallet(schemaKey)
+        for nonce, schemaKeys in self.getSchemaKeysForClaimsAvailableToSpecificNonce():
+            for schemaKey in schemaKeys:
+                await getAndAddToWallet(schemaKey)
 
     def _addAttribute(self, schemaKey, proverId, link):
-        attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
+        attr = self.getAttrs()[self.getInternalIdByInvitedNonce(proverId)]
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
 
     async def addSchemasToWallet(self):
         for schemaKey in self.getSchemaKeysToBeGenerated():
+            matchedAttrDefs = list(filter(lambda ad: ad.name == schemaKey.name,
+                             self.getAttrDefs()))
+            assert len(matchedAttrDefs) == 1, \
+                "check if agent has attrib def and it's name is equivalent " \
+                "to it's corresponding schema key name"
+            attrDef = matchedAttrDefs[0]
             schema = await self.issuer.genSchema(schemaKey.name,
                                                  schemaKey.version,
-                                                 self._attrDef.attribNames(),
+                                                 attrDef.attribNames(),
                                                  'CL')
             if schema:
                 schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)

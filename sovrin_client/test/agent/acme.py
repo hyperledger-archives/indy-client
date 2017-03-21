@@ -1,19 +1,15 @@
-import os
-
 from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
-from sovrin_client.agent.agent import createAgent, runAgent, runBootstrap
-from sovrin_client.agent.exception import NonceNotFound
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.agent.base_agent import BaseAgent
-from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.helper import TestClient, primes
+from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
@@ -39,26 +35,23 @@ class AcmeAgent(BaseAgent):
             "810b78be79f29fc81335abaa4ee1c5e8": 4
         }
 
-        self._attrDefJobCert = AttribDef('Job-Certificate_0.2',
-                                         [AttribType('first_name', encode=True),
-                                          AttribType('last_name', encode=True),
-                                          AttribType('employee_status',
-                                                     encode=True),
-                                          AttribType('experience', encode=True),
-                                          AttribType('salary_bracket',
-                                                     encode=True)])
+        self._attrDefJobCert = AttribDef('Job-Certificate',
+                  [AttribType('first_name', encode=True),
+                   AttribType('last_name', encode=True),
+                   AttribType('employee_status', encode=True),
+                   AttribType('experience', encode=True),
+                   AttribType('salary_bracket', encode=True)])
 
-        self._attrDefJobApp = AttribDef('Job-Application_0.2',
-                                        [AttribType('first_name', encode=True),
-                                         AttribType('last_name', encode=True),
-                                         AttribType('phone_number',
-                                                    encode=True),
-                                         AttribType('degree', encode=True),
-                                         AttribType('status', encode=True),
-                                         AttribType('ssn', encode=True)])
+        self._attrDefJobApp = AttribDef('Job-Application',
+                      [AttribType('first_name', encode=True),
+                       AttribType('last_name', encode=True),
+                       AttribType('phone_number', encode=True),
+                       AttribType('degree', encode=True),
+                       AttribType('status', encode=True),
+                       AttribType('ssn', encode=True)])
 
         # maps internal ids to attributes
-        self._attrsJobCert = {
+        self._attrs = {
             1: self._attrDefJobCert.attribs(
                 first_name="Alice",
                 last_name="Garcia",
@@ -85,30 +78,38 @@ class AcmeAgent(BaseAgent):
                 salary_bracket="between $50,000 to $70,000")
         }
 
+    def getAttrDefs(self):
+        return [self._attrDefJobCert, self._attrDefJobApp]
+
+    def getAttrs(self):
+        return self._attrs
+
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Job-Certificate", "0.2",
                           self.wallet.defaultId),
                 SchemaKey("Job-Application", "0.2",
                           self.wallet.defaultId)]
 
-    def getGeneralAvailableClaimSchemaKeys(self):
+    def getSchemaKeysForClaimsAvailableToAll(self):
         return []
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
         oldClaims = self.availableClaimsByIdentifier.get(link.localIdentifier)
-        if oldClaims:
-            newClaims = oldClaims.extend(nac)
-            self.availableClaimsByIdentifier[link.localIdentifier] = newClaims
+        if not oldClaims:
+            oldClaims = []
+        oldClaims.extend(nac)
+        self.availableClaimsByIdentifier[link.localIdentifier] = oldClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):
         if claimName == "Job-Application":
-            return await self.getJobCertAvailableClaimList()
+            return await self.getNewAvailableClaimList("Job-Certificate")
 
-    async def getJobCertAvailableClaimList(self):
+    async def getNewAvailableClaimList(self, claimName):
         availClaims = []
-        for sk in [sk for sk in self._schemaKeys if sk.name == "Job-Certificate"]:
+        for sk in [sk for sk in self.getSchemaKeysToBeGenerated()
+                   if sk.name == claimName]:
             schema = await self.issuer.wallet.getSchema(ID(sk))
             availClaims.append({
                 NAME: schema.name,

@@ -1,13 +1,10 @@
-import os
-
 from plenum.common.log import getlogger
 
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
+from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_client.test.agent.helper import buildThriftWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
@@ -15,7 +12,7 @@ from sovrin_client.test.helper import TestClient
 logger = getlogger()
 
 
-class ThriftAgent(TestWalletedAgent):
+class ThriftAgent(BaseAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,

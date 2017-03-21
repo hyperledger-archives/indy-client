@@ -1,18 +1,13 @@
-import os
-
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runBootstrap
-from sovrin_client.agent.exception import NonceNotFound
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.agent.base_agent import BaseAgent
-from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.helper import TestClient, primes
+from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
@@ -72,6 +67,13 @@ class FaberAgent(BaseAgent):
                 year="2015",
                 status="graduated")
         }
+
+
+    def getAttrDefs(self):
+        return [self._attrDef]
+
+    def getAttrs(self):
+        return self._attrs
 
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]

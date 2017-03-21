@@ -1,46 +1,9 @@
-from plenum.common.log import getlogger
-from plenum.common.types import f
-from plenum.common.util import getFormattedErrorMsg
-from plenum.test.testable import Spyable
-
-from sovrin_client.agent.agent import WalletedAgent, createAgent, runAgent
-from sovrin_client.client.client import Client
-from sovrin_common.exceptions import LinkNotFound
-from sovrin_common.txn import NONCE
-from sovrin_client.test.agent.helper import getAgentCmdLineParams
-
-logger = getlogger()
+from plenum.test.testable import spyable
+from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 
 
-@Spyable(
-    methods=[WalletedAgent._handlePing, WalletedAgent._handlePong])
-class TestWalletedAgent(WalletedAgent):
-    def getLinkForMsg(self, msg):
-        nonce = msg.get(NONCE)
-        identifier = msg.get(f.IDENTIFIER.nm)
-        link = None
-        for _, li in self.wallet._links.items():
-            if li.invitationNonce == nonce and li.remoteIdentifier == identifier:
-                link = li
-                break
-        if link:
-            return link
-        else:
-            raise LinkNotFound
-
-    @staticmethod
-    def getPassedArgs():
-        return getAgentCmdLineParams()
-
-    def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
-                      port=None, looper=None, clientClass=Client, bootstrap=True):
-        try:
-            loop = looper.loop if looper else None
-            agent = createAgent(agentClass, name, wallet, basedirpath, port,
-                                loop,
-                                clientClass)
-            runAgent(agent, looper, bootstrap)
-            return agent
-        except Exception as exc:
-            error = "Agent startup failed: [cause : {}]".format(str(exc))
-            logger.error(getFormattedErrorMsg(error))
+# @spyable(
+#     methods=[WalletedAgent._handlePing, WalletedAgent._handlePong])
+class TestWalletedAgent(WalletedAgent, RunnableAgent):
+    pass

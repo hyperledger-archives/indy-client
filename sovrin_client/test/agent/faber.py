@@ -4,19 +4,18 @@ from plenum.common.log import getlogger
 from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runBootstrap
-from sovrin_client.agent.exception import NonceNotFound
+from sovrin_client.agent.agent import createAgent, runBootstrap, WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildFaberWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient, primes
 
 logger = getlogger()
 
 
-class FaberAgent(TestWalletedAgent):
+class FaberAgent(WalletedAgent, RunnableAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
@@ -27,7 +26,7 @@ class FaberAgent(TestWalletedAgent):
             config = getConfig()
             basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
-        portParam, = self.getPassedArgs()
+        portParam, = self.get_passed_args()
 
         super().__init__('Faber College', basedirpath, client, wallet,
                          portParam or port, loop=loop)
@@ -82,16 +81,10 @@ class FaberAgent(TestWalletedAgent):
 
         self._schema = SchemaKey("Transcript", "1.2", self.wallet.defaultId)
 
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
+    def is_claim_available(self, link, claimName):
         return claimName == "Transcript"
 
-    def getAvailableClaimList(self, requesterId):
+    def get_available_claim_list(self, requesterId):
         return self.availableClaims + \
                self.requesterAvailClaims.get(requesterId, [])
 
@@ -106,8 +99,8 @@ class FaberAgent(TestWalletedAgent):
             "schemaSeqNo": schema.seqId
         })
 
-    def _addAtrribute(self, schemaKey, proverId, link):
-        attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
+    def _add_attribute(self, schemaKey, proverId, link):
+        attr = self._attrs[self.get_internal_id_by_nonce(proverId)]
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
@@ -136,6 +129,6 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
+    RunnableAgent.run_agent(
         FaberAgent, "Faber College", wallet=buildFaberWallet(),
-        basedirpath=None, port=5555, looper=None, clientClass=TestClient)
+        base_dir_path=None, port=5555, looper=None, client_class=TestClient)

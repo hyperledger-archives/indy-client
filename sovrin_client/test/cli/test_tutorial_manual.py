@@ -5,8 +5,9 @@ import re
 import pytest
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from plenum.common.roles import Roles
+from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
 
@@ -28,6 +29,9 @@ concerningLogLevels = [logging.WARNING,
                        logging.ERROR,
                        logging.CRITICAL]
 
+
+class TestWalletedAgent(WalletedAgent, RunnableAgent):
+    pass
 
 def getSeqNoFromCliOutput(cli):
     seqPat = re.compile("Sequence number is ([0-9]+)")
@@ -105,8 +109,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
 
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
-        agentCls.getPassedArgs = lambda _: (agentPort,)
-        TestWalletedAgent.createAndRunAgent(
+        agentCls.get_passed_args = lambda _: (agentPort,)
+        TestWalletedAgent.run_agent(
             agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
             philCLI.looper, TestClient)
 

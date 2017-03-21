@@ -5,19 +5,18 @@ from plenum.common.txn import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
-from sovrin_client.agent.agent import createAgent, runAgent, runBootstrap
-from sovrin_client.agent.exception import NonceNotFound
+from sovrin_client.agent.agent import createAgent, runBootstrap, WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildAcmeWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient, primes
 
 logger = getlogger()
 
 
-class AcmeAgent(TestWalletedAgent):
+class AcmeAgent(WalletedAgent, RunnableAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
@@ -28,7 +27,7 @@ class AcmeAgent(TestWalletedAgent):
             config = getConfig()
             basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
-        portParam, = self.getPassedArgs()
+        portParam, = self.get_passed_args()
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
                          portParam or port, loop=loop)
@@ -97,23 +96,17 @@ class AcmeAgent(TestWalletedAgent):
         self._schemaJobAppKey = SchemaKey("Job-Application", "0.2",
                                           self.wallet.defaultId)
 
-    def _addAtrribute(self, schemaKey, proverId, link):
-        attr = self._attrsJobCert[self.getInternalIdByInvitedNonce(proverId)]
+    def _add_attribute(self, schemaKey, proverId, link):
+        attr = self._attrsJobCert[self.get_internal_id_by_nonce(proverId)]
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
                                             userId=proverId,
                                             attributes=attr)
 
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
+    def is_claim_available(self, link, claimName):
         return claimName == "Job-Certificate" and \
                "Job-Application" in link.verifiedClaimProofs
 
-    def getAvailableClaimList(self, requesterId):
+    def get_available_claim_list(self, requesterId):
         return self.availableClaims + \
                self.requesterAvailClaims.get(requesterId, [])
 
@@ -164,6 +157,6 @@ def createAcme(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
-        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
-        port=6666, looper=None, clientClass=TestClient)
+    RunnableAgent.run_agent(
+        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), base_dir_path=None,
+        port=6666, looper=None, client_class=TestClient)

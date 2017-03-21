@@ -2,20 +2,19 @@ import os
 
 from plenum.common.log import getlogger
 
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent, WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildThriftWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
 
-class ThriftAgent(TestWalletedAgent):
+class ThriftAgent(WalletedAgent, RunnableAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
@@ -26,7 +25,7 @@ class ThriftAgent(TestWalletedAgent):
             config = getConfig()
             basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
-        portParam, = self.getPassedArgs()
+        portParam, = self.get_passed_args()
 
         super().__init__('Thrift Bank', basedirpath, client, wallet,
                          portParam or port, loop=loop)
@@ -35,28 +34,6 @@ class ThriftAgent(TestWalletedAgent):
         self._invites = {
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
-
-        self.availableClaims = []
-
-        # mapping between requester identifier and corresponding available claims
-        self.requesterAvailClaims = {}
-
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
-        return True
-
-    def getAvailableClaimList(self, requesterId):
-        return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
-
-
-    def _addAtrribute(self, schemaKey, proverId, link):
-        pass
 
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
@@ -77,6 +54,6 @@ def createThrift(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
-        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), basedirpath=None,
-        port=7777, looper=None, clientClass=TestClient)
+    RunnableAgent.run_agent(
+        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), base_dir_path=None,
+        port=7777, looper=None, client_class=TestClient)

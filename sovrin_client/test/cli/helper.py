@@ -14,7 +14,7 @@ from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     checkAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
@@ -22,7 +22,7 @@ from sovrin_common.txn import NYM
 from sovrin_client.test.helper import TestClient
 
 
-@Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
+@spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
 

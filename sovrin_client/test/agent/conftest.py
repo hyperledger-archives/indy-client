@@ -3,7 +3,6 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.txn import TRUST_ANCHOR
 
 from sovrin_common.strict_types import strict_types
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
 strict_types.defaultShouldCheck = True
 
@@ -91,11 +90,11 @@ def agentBuilder(tdirWithPoolTxns):
                             ha=("0.0.0.0", clientPort),
                             basedirpath=basedir)
 
-        agent = TestWalletedAgent(name=wallet.name,
-                                  basedirpath=basedir,
-                                  client=client,
-                                  wallet=wallet,
-                                  port=port)
+        agent = WalletedAgent(name=wallet.name,
+                              basedirpath=basedir,
+                              client=client,
+                              wallet=wallet,
+                              port=port)
 
         return agent
     return _
@@ -352,7 +351,7 @@ def checkAcceptInvitation(emptyLooper,
     inviteeAgent.acceptInvitation(linkName)
     inviteeAcceptanceId = inviteeWallet.getLink(linkName,
                                                 required=True).localIdentifier
-    internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
+    internalId = inviterAgent.get_internal_id_by_nonce(nonce)
 
     def chk():
         link = inviterWallet.getLinkBy(internalId=internalId)

@@ -478,11 +478,13 @@ def aliceRequestedTranscriptClaim(be, do, aliceCli, transcriptClaimMap,
        mapper=transcriptClaimMap)
 
     async def assertTotalClaimsRcvdIncreasedByOne():
-        assert totalClaimsRcvdBefore + 1 == \
-               len((await aliceCli.agent.prover.wallet.getAllClaims()).keys())
+        total_claims = len((await aliceCli.agent.prover.wallet.getAllClaims()).keys())
+        assert totalClaimsRcvdBefore + 1 == total_claims
 
+    aliceCli.looper.runFor(10)
     aliceCli.looper.run(
-        eventually(assertTotalClaimsRcvdIncreasedByOne, timeout=2))
+        eventually(assertTotalClaimsRcvdIncreasedByOne, timeout=22))
+    pass
 
 
 def testAliceReqClaim(aliceRequestedTranscriptClaim):

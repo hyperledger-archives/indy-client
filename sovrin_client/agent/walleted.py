@@ -22,8 +22,12 @@ from plenum.common.verifier import DidVerifier
 from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.verifier import Verifier
+from anoncreds.protocol.globals import TYPE_CL
+from anoncreds.protocol.types import AttribDef, ID
 from plenum.common.exceptions import NotConnectedToAny
+from plenum.common.txn import NAME, VERSION
 from sovrin_client.agent.agent_issuer import AgentIssuer
+from sovrin_client.agent.backend import BackendSystem
 from sovrin_client.agent.agent_prover import AgentProver
 from sovrin_client.agent.agent_verifier import AgentVerifier
 from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FIELD, \
@@ -95,6 +99,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         self.logger = logger
 
+        self.issuer_backend = None
+
+        self._invites = {}  # type: Dict[Nonce, InternalId]
+        self._attribDefs = {}  # type: Dict[str, AttribDef]
+        self.defined_claims = []  # type: List[Dict[str, Any]]
+        self.available_claims = {} # type: Dict[InternalId, List[ID]]
+
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
         if not self.client.hasObserver(obs):
@@ -120,15 +131,27 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     async def postClaimVerif(self, claimName, link, frm):
         raise NotImplementedError
 
-    def isClaimAvailable(self, link, claimName):
-        raise NotImplementedError
+    def is_claim_available(self, link, claim_name):
+        return any(ac[NAME] == claim_name
+                   for ac in self.available_claims[link.internalId])
 
     async def _postClaimVerif(self, claimName, link, frm):
         link.verifiedClaimProofs.append(claimName)
         await self.postClaimVerif(claimName, link, frm)
 
-    def getAvailableClaimList(self, requesterId):
-        raise NotImplementedError
+    async def set_available_claim(self, internal_id, schema_id):
+        sd = await self.schema_dict_from_id(schema_id)
+        try:
+            self.available_claims[internal_id].append(sd)
+        except KeyError:
+            self.available_claims[internal_id] = [sd]
+
+    def get_available_claim_list(self, requester_id):
+        li = self.wallet.getLinkBy(remote=requester_id)
+        if li is None:
+            return []
+
+        return self.available_claims.get(li.internalId, [])
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
         invalidSigResp = {
@@ -159,7 +182,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             return None
 
     def linkFromNonce(self, nonce, remoteIdr, remoteHa):
-        internalId = self.getInternalIdByInvitedNonce(nonce)
+        internalId = self.get_internal_id_by_nonce(nonce)
         link = self.wallet.getLinkBy(internalId=internalId)
         if not link:
             # QUESTION: We use wallet.defaultId as the local identifier,
@@ -178,8 +201,58 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return link
 
     @abstractmethod
-    def getInternalIdByInvitedNonce(self, nonce):
-        raise NotImplementedError
+    def get_internal_id_by_nonce(self, nonce):
+        if nonce in self._invites:
+            return self._invites[nonce]
+        else:
+            raise NonceNotFound
+
+    def set_issuer_backend(self, backend: BackendSystem):
+        self.issuer_backend = backend
+
+    async def publish_issuer_keys(self, schema_id, p_prime, q_prime):
+        keys = await self.issuer.genKeys(schema_id,
+                                         p_prime=p_prime,
+                                         q_prime=q_prime)
+        await self.add_to_available_claims(schema_id)
+        return keys
+
+    async def schema_dict_from_id(self, schema_id):
+        schema = await self.issuer.wallet.getSchema(schema_id)
+        return self.schema_dict(schema)
+
+    async def publish_revocation_registry(self, schema_id, rev_reg_id='110', size=5):
+        return await self.issuer.issueAccumulator(schemaId=schema_id,
+                                                  iA=rev_reg_id,
+                                                  L=size)
+
+    def schema_dict(self, schema):
+        return {
+            NAME: schema.name,
+            VERSION: schema.version,
+            "schemaSeqNo": schema.seqId
+        }
+
+    async def add_to_available_claims(self, schema_id):
+        schema = await self.issuer.wallet.getSchema(schema_id)
+        self.defined_claims.append(self.schema_dict(schema))
+
+    async def publish_schema(self,
+                             attrib_def_name,
+                             schema_name,
+                             schema_version,
+                             sig_type=TYPE_CL):
+        attribDef = self._attribDefs[attrib_def_name]
+        schema = await self.issuer.genSchema(schema_name,
+                                             schema_version,
+                                             attribDef.attribNames(),
+                                             sig_type)
+        schema_id = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+        return schema_id
+
+
+    def add_attribute_definition(self, attr_def: AttribDef):
+        self._attribDefs[attr_def.name] = attr_def
 
     def signAndSend(self, msg, signingIdr=None, toRaetStackName=None,
                     linkName=None, origReqId=None):
@@ -443,7 +516,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def getLinkForMsg(self, msg):
         nonce = msg.get(NONCE)
-        link = self.wallet.getLinkBy(nonce=nonce)
+        identifier = msg.get(f.IDENTIFIER.nm)
+        link = self.wallet.getLinkBy(nonce=nonce, remote=identifier)
         if link:
             return link
         else:
@@ -592,7 +666,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def sendClaimList(self, link, alreadyAdded, sender, reqId, reply=None, error=None):
         logger.debug("sending available claims to {}".format(link.remoteIdentifier))
         resp = self.createInviteAcceptedMsg(
-            self.getAvailableClaimList(link.remoteIdentifier),
+            self.get_available_claim_list(link.remoteIdentifier),
             alreadyAccepted=alreadyAdded)
         self.signAndSend(resp, link.localIdentifier, sender,
                          origReqId=reqId)

@@ -22,9 +22,6 @@ class ThriftAgent(TestWalletedAgent):
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
 
@@ -36,27 +33,8 @@ class ThriftAgent(TestWalletedAgent):
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
 
-        self.availableClaims = []
-
-        # mapping between requester identifier and corresponding available claims
-        self.requesterAvailClaims = {}
-
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
-        return True
-
-    def getAvailableClaimList(self, requesterId):
-        return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
-
-
-    def _addAtrribute(self, schemaKey, proverId, link):
-        pass
+    # def _addAttribute(self, schemaKey, proverId, link):
+    #     pass
 
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":

@@ -9,6 +9,7 @@ from sovrin_client.agent.agent import createAgent, runAgent, runBootstrap
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
@@ -17,26 +18,18 @@ from sovrin_client.test.helper import TestClient, primes
 logger = getlogger()
 
 
-class AcmeAgent(TestWalletedAgent):
+class AcmeAgent(BaseAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
                          portParam or port, loop=loop)
-
-        self.availableClaims = []
-
-        # mapping between requester identifier and corresponding available claims
-        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -46,7 +39,7 @@ class AcmeAgent(TestWalletedAgent):
             "810b78be79f29fc81335abaa4ee1c5e8": 4
         }
 
-        self._attrDefJobCert = AttribDef('Acme Job Certificat',
+        self._attrDefJobCert = AttribDef('Job-Certificate_0.2',
                                          [AttribType('first_name', encode=True),
                                           AttribType('last_name', encode=True),
                                           AttribType('employee_status',
@@ -55,7 +48,7 @@ class AcmeAgent(TestWalletedAgent):
                                           AttribType('salary_bracket',
                                                      encode=True)])
 
-        self._attrDefJobApp = AttribDef('Acme Job Application',
+        self._attrDefJobApp = AttribDef('Job-Application_0.2',
                                         [AttribType('first_name', encode=True),
                                          AttribType('last_name', encode=True),
                                          AttribType('phone_number',
@@ -92,37 +85,21 @@ class AcmeAgent(TestWalletedAgent):
                 salary_bracket="between $50,000 to $70,000")
         }
 
-        self._schemaJobCertKey = SchemaKey("Job-Certificate", "0.2",
-                                           self.wallet.defaultId)
-        self._schemaJobAppKey = SchemaKey("Job-Application", "0.2",
-                                          self.wallet.defaultId)
+    def getSchemaKeysToBeGenerated(self):
+        return [SchemaKey("Job-Certificate", "0.2",
+                          self.wallet.defaultId),
+                SchemaKey("Job-Application", "0.2",
+                          self.wallet.defaultId)]
 
-    def _addAtrribute(self, schemaKey, proverId, link):
-        attr = self._attrsJobCert[self.getInternalIdByInvitedNonce(proverId)]
-        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
-                                            userId=proverId,
-                                            attributes=attr)
-
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
-        return claimName == "Job-Certificate" and \
-               "Job-Application" in link.verifiedClaimProofs
-
-    def getAvailableClaimList(self, requesterId):
-        return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
+    def getGeneralAvailableClaimSchemaKeys(self):
+        return []
 
     async def postClaimVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
-        oldClaims = self.requesterAvailClaims.get(link.localIdentifier)
+        oldClaims = self.availableClaimsByIdentifier.get(link.localIdentifier)
         if oldClaims:
             newClaims = oldClaims.extend(nac)
-            self.requesterAvailClaims[link.localIdentifier] = newClaims
+            self.availableClaimsByIdentifier[link.localIdentifier] = newClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):
@@ -130,31 +107,15 @@ class AcmeAgent(TestWalletedAgent):
             return await self.getJobCertAvailableClaimList()
 
     async def getJobCertAvailableClaimList(self):
-        schema = await self.issuer.wallet.getSchema(
-            ID(self._schemaJobCertKey))
-        return [{
-            NAME: schema.name,
-            VERSION: schema.version,
-            "schemaSeqNo": schema.seqId
-        }]
-
-    async def addSchemasToWallet(self):
-        schemaJobCert = await self.issuer.genSchema(
-            self._schemaJobCertKey.name,
-            self._schemaJobCertKey.version,
-            self._attrDefJobCert.attribNames(),
-            'CL')
-        if schemaJobCert:
-            schemaJobCertId = ID(schemaKey=schemaJobCert.getKey(),
-                                   schemaId=schemaJobCert.seqId)
-            p_prime, q_prime = primes["prime1"]
-            await self.issuer.genKeys(schemaJobCertId, p_prime=p_prime,
-                                      q_prime=q_prime)
-            await self.issuer.issueAccumulator(schemaId=schemaJobCertId, iA='110', L=5)
-        return schemaJobCert
-
-    async def bootstrap(self):
-        await runBootstrap(self.addSchemasToWallet)
+        availClaims = []
+        for sk in [sk for sk in self._schemaKeys if sk.name == "Job-Certificate"]:
+            schema = await self.issuer.wallet.getSchema(ID(sk))
+            availClaims.append({
+                NAME: schema.name,
+                VERSION: schema.version,
+                "schemaSeqNo": schema.seqId
+            })
+        return availClaims
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):

@@ -20,8 +20,7 @@ class AgentIssuer:
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
         data = {
-            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link.invitationNonce,
-                                                          link.localIdentifier)
+            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link)
         }
         resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
         self.signAndSend(resp, link.localIdentifier, frm)

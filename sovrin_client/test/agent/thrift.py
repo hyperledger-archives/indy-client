@@ -30,9 +30,6 @@ class ThriftAgent(BaseAgent):
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
 
-    # def _addAttribute(self, schemaKey, proverId, link):
-    #     pass
-
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
             self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,

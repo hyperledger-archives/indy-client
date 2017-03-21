@@ -124,7 +124,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         link.verifiedClaimProofs.append(claimName)
         await self.postClaimVerif(claimName, link, frm)
 
-    def getAvailableClaimList(self, nonce, requesterId):
+    def getAvailableClaimList(self, link):
         raise NotImplementedError
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
@@ -551,8 +551,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         def sendClaimList(reply=None, error=None):
             logger.debug("sending available claims to {}".format(identifier))
             resp = self.createInviteAcceptedMsg(
-                self.getAvailableClaimList(link.invitationNonce,
-                                           link.localIdentifier),
+                self.getAvailableClaimList(link),
                 alreadyAccepted=alreadyAdded)
             self.signAndSend(resp, link.localIdentifier, frm,
                              origReqId=body.get(f.REQ_ID.nm))

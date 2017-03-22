@@ -1,45 +1,33 @@
 import json
 import os
-import tempfile
-import traceback
-
-import itertools
-from time import sleep
 import re
+import tempfile
 from typing import List
 
-import plenum
 import pytest
+
+import plenum
+from plenum.common.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
-from plenum.common.eventually import eventually
-from plenum.common.txn import PUBKEY
-from plenum.common.z_util import initNodeKeysForBothStacks
-from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
-    dirName, tdirWithDomainTxns, poolTxnNodeNames
-from plenum.test.helper import createTempDir
-
+from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
+from sovrin_client.test.helper import createNym, buildStewardClient
 from sovrin_common.txn import SPONSOR, ENDPOINT
 from sovrin_node.test.conftest import domainTxnOrderedFields
-from sovrin_client.test.helper import createNym, buildStewardClient
+from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
 plenum.common.util.loggingConfigured = False
 
 from plenum.common.looper import Looper
 from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
-    checkCmdValid, doByCtx
+    doByCtx
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
     getPoolTxnData, newCLI, getCliBuilder, P
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
-    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
-    acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
-    thriftAgent, agentIpAddress
-
-from plenum.test.conftest import nodeAndClientInfoFilePath
+    acmeIsRunning as runningAcme, thriftIsRunning as runningThrift
 
 config = getConfig()
 

@@ -6,29 +6,29 @@ from typing import Dict, Union, Tuple, Optional, Callable
 
 import pyorient
 from base58 import b58decode, b58encode
+from raet.raeting import AutoMode
+
 from plenum.client.client import Client as PlenumClient
 from plenum.common.error import fault
 from plenum.common.log import getlogger
-from plenum.common.stacked import SimpleRStack
 from plenum.common.startable import Status
 from plenum.common.txn import REPLY, STEWARD, NAME, VERSION, REQACK, REQNACK, \
     TXN_ID, TARGET_NYM, NONCE
 from plenum.common.types import OP_FIELD_NAME, f
-from stp_core.types import HA
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
-from raet.raeting import AutoMode
-
-from sovrin_common.config_util import getConfig
-from sovrin_common.txn import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
-    SPONSOR, NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
-    GET_ATTR
 from sovrin_client.persistence.client_req_rep_store_file import ClientReqRepStoreFile
 from sovrin_client.persistence.client_req_rep_store_orientdb import \
     ClientReqRepStoreOrientDB
 from sovrin_client.persistence.client_txn_log import ClientTxnLog
+from sovrin_common.config_util import getConfig
 from sovrin_common.persistence.identity_graph import getEdgeByTxnType, IdentityGraph
+from sovrin_common.txn import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
+    SPONSOR, NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
+    GET_ATTR
+from stp_core.raet.rstack import SimpleRStack
+from stp_core.types import HA
 
 logger = getlogger()
 

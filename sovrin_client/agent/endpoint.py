@@ -1,14 +1,16 @@
 from typing import Callable, Any, List
 
-from plenum.common.log import getlogger
-from plenum.common.raet import getHaFromLocalEstate
-from plenum.common.stacked import SimpleRStack
-from stp_core.types import HA
-from plenum.common.util import randomString, friendlyToRaw, randomSeed
-from plenum.common.zstack import SimpleZStack
 from raet.raeting import AutoMode
 from raet.road.estating import RemoteEstate
 from zmq.utils import z85
+
+from plenum.common.log import getlogger
+from plenum.common.raet import getHaFromLocalEstate
+from plenum.common.util import randomString, friendlyToRaw
+from stp_core.crypto.util import randomSeed
+from stp_core.raet.rstack import SimpleRStack
+from stp_core.types import HA
+from stp_core.zmq.zstack import SimpleZStack
 
 logger = getlogger()
 

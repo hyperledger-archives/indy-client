@@ -1,6 +1,6 @@
 from typing import Any
 
-from plenum.common.txn import NAME, NONCE, TYPE, DATA, VERSION
+from plenum.common.constants import NAME, NONCE, TYPE, DATA, VERSION
 from plenum.common.types import f
 
 from anoncreds.protocol.types import FullProof

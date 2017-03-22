@@ -19,11 +19,10 @@ from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.cli.phrase_word_completer import PhraseWordCompleter
 from plenum.common.port_dispenser import genHa
-from plenum.common.roles import Roles
 from plenum.common.signer import Signer
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import NAME, VERSION, TYPE, VERKEY, DATA
+from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
 from plenum.common.util import randomString, cleanSeed
 from prompt_toolkit.contrib.completers import WordCompleter
@@ -37,7 +36,7 @@ from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_IN
     EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
-    sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerCmd, sendNodeCmd, \
+    sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerKeyCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
     listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
     sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd
@@ -57,9 +56,12 @@ from sovrin_common.config_util import getConfig
 from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
     LinkNotFound, NotConnectedToNetwork, SchemaNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import TARGET_NYM, ROLE, TXN_TYPE, NYM, TXN_ID, REF, \
-    getTxnOrderedFields, ACTION, SHA256, TIMEOUT, SCHEDULE, \
+from sovrin_common.constants import TARGET_NYM, ROLE, TXN_TYPE, NYM, REF, \
+    ACTION, SHA256, TIMEOUT, SCHEDULE, \
     START, JUSTIFICATION, NULL
+from sovrin_common.roles import Roles
+from sovrin_common.transactions import SovrinTransactions
+from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.util import ensureReqCompleted, getIndex
 from sovrin_client.__metadata__ import __version__
 
@@ -124,7 +126,7 @@ class SovrinCli(PlenumCli):
             'send_nym',
             'send_get_nym',
             'send_attrib',
-            'send_cred_def',
+            'send_schema',
             'send_isr_key',
             'send_node',
             'send_pool_upg',
@@ -157,35 +159,33 @@ class SovrinCli(PlenumCli):
         completers = {}
         completers["nym"] = WordCompleter([])
         completers["role"] = WordCompleter([Roles.TRUST_ANCHOR.name, Roles.STEWARD.name])
-        completers["send_nym"] = PhraseWordCompleter("send NYM")
-        completers["send_get_nym"] = PhraseWordCompleter("send GET_NYM")
-        completers["send_attrib"] = PhraseWordCompleter("send ATTRIB")
-        completers["send_schema"] = PhraseWordCompleter("send SCHEMA")
-        completers["send_isr_key"] = PhraseWordCompleter("send ISSUER_KEY")
-        completers["send_node"] = PhraseWordCompleter("send NODE")
-        completers["send_pool_upg"] = PhraseWordCompleter("send POOL_UPGRADE")
+        completers["send_nym"] = PhraseWordCompleter(sendNymCmd.id)
+        completers["send_get_nym"] = PhraseWordCompleter(sendGetNymCmd.id)
+        completers["send_attrib"] = PhraseWordCompleter(sendAttribCmd.id)
+        completers["send_schema"] = PhraseWordCompleter(sendSchemaCmd.id)
+        completers["send_isr_key"] = PhraseWordCompleter(sendIssuerKeyCmd.id)
+        completers["send_node"] = PhraseWordCompleter(sendNodeCmd.id)
+        completers["send_pool_upg"] = PhraseWordCompleter(sendPoolUpgCmd.id)
         completers["add_genesis"] = PhraseWordCompleter(
-            "add genesis transaction")
-        completers["show_file"] = WordCompleter(["show"])
-        completers["load_file"] = WordCompleter(["load"])
-        completers["show_link"] = PhraseWordCompleter("show link")
-        completers["conn"] = WordCompleter(["connect"])
-        completers["disconn"] = WordCompleter(["disconnect"])
+            addGenesisTxnCmd.id)
+        completers["show_file"] = WordCompleter([showFileCmd.id])
+        completers["load_file"] = WordCompleter([loadFileCmd.id])
+        completers["show_link"] = PhraseWordCompleter(showLinkCmd.id)
+        completers["conn"] = WordCompleter([connectToCmd.id])
+        completers["disconn"] = WordCompleter([disconnectCmd.id])
         completers["env_name"] = WordCompleter(list(self.config.ENVS.keys()))
-        completers["sync_link"] = WordCompleter(["sync"])
-        completers["ping_target"] = WordCompleter(["ping"])
-        completers["show_claim"] = PhraseWordCompleter("show claim")
-        completers["req_claim"] = PhraseWordCompleter("request claim")
-        completers["accept_link_invite"] = PhraseWordCompleter(
-            "accept invitation from")
-        completers["set_attr"] = WordCompleter(["set"])
-        completers["send_claim"] = PhraseWordCompleter("send claim")
-        completers["new_id"] = PhraseWordCompleter("new identifier")
-        completers["list_claims"] = PhraseWordCompleter("list claims")
-        completers["show_proof_req"] = PhraseWordCompleter("show proof request")
+        completers["sync_link"] = WordCompleter([syncLinkCmd.id])
+        completers["ping_target"] = WordCompleter([pingTargetCmd.id])
+        completers["show_claim"] = PhraseWordCompleter(showClaimCmd.id)
+        completers["req_claim"] = PhraseWordCompleter(reqClaimCmd.id)
+        completers["accept_link_invite"] = PhraseWordCompleter(acceptLinkCmd.id)
+        completers["set_attr"] = WordCompleter([setAttrCmd.id])
+        completers["new_id"] = PhraseWordCompleter(newIdentifierCmd.id)
+        completers["list_claims"] = PhraseWordCompleter(listClaimsCmd.id)
+        completers["show_proof_req"] = PhraseWordCompleter(showProofRequestCmd.id)
         completers["send_proof_request"] = PhraseWordCompleter("send proof request")
-        completers["send_proof"] = PhraseWordCompleter("send proof")
-        completers["req_avail_claims"] = PhraseWordCompleter("request available claims from")
+        completers["send_proof"] = PhraseWordCompleter(sendProofCmd.id)
+        completers["req_avail_claims"] = PhraseWordCompleter(reqAvailClaimsCmd.id)
 
         return {**super().completers, **completers}
 
@@ -233,47 +233,61 @@ class SovrinCli(PlenumCli):
 
     @staticmethod
     def _getSetAttrUsage():
-        return ['set <attr-name> to <attr-value>']
+        return ['{} <attr-name> to <attr-value>'.format(setAttrCmd.id)]
 
     @staticmethod
     def _getSendProofUsage(proofRequest: ProofRequest=None,
                            inviter: Link=None):
-        return ['send proof "{}" to "{}"'.format(
+        return ['{} "{}" to "{}"'.format(
+            sendProofCmd.id,
             proofRequest.name or "<proof-request-name>",
             inviter.name or "<inviter-name>")]
 
     @staticmethod
     def _getShowFileUsage(filePath=None):
-        return ['show {}'.format(filePath or "<file-path>")]
+        return ['{} {}'.format(showFileCmd.id, filePath or "<file-path>")]
 
     @staticmethod
     def _getLoadFileUsage(filePath=None):
-        return ['load {}'.format(filePath or "<file-path>")]
+        return ['{} {}'.format(
+            loadFileCmd.id,
+            filePath or "<file-path>")]
 
     @staticmethod
     def _getShowProofRequestUsage(proofRequest: ProofRequest=None):
-        return ['show proof request "{}"'.format(
+        return ['{} "{}"'.format(
+            showProofRequestCmd.id,
             (proofRequest and proofRequest.name) or '<proof-request-name>')]
 
     @staticmethod
     def _getShowClaimUsage(claimName=None):
-        return ['show claim "{}"'.format(claimName or "<claim-name>")]
+        return ['{} "{}"'.format(
+            showClaimCmd.id,
+            claimName or "<claim-name>")]
 
     @staticmethod
     def _getReqClaimUsage(claimName=None):
-        return ['request claim "{}"'.format(claimName or "<claim-name>")]
+        return ['{} "{}"'.format(
+            reqClaimCmd.id,
+            claimName or "<claim-name>")]
 
     @staticmethod
     def _getShowLinkUsage(linkName=None):
-        return ['show link "{}"'.format(linkName or "<link-name>")]
+        return ['{} "{}"'.format(
+            showLinkCmd.id,
+            linkName or "<link-name>")]
 
     @staticmethod
     def _getSyncLinkUsage(linkName=None):
-        return ['sync "{}"'.format(linkName or "<link-name>")]
+        return ['{} "{}"'.format(
+            syncLinkCmd.id,
+            linkName or "<link-name>")]
 
     @staticmethod
     def _getAcceptLinkUsage(linkName=None):
-        return ['accept invitation from "{}"'.format(linkName or "<link-name>")]
+        return ['{} "{}"'.format(
+            acceptLinkCmd.id,
+            linkName or "<link-name>")]
 
     @staticmethod
     def _getPromptUsage():
@@ -284,7 +298,9 @@ class SovrinCli(PlenumCli):
         return "|".join(sorted(self.envs.keys(), reverse=True))
 
     def _getConnectUsage(self):
-        return ["connect <{}>".format(self.allEnvNames)]
+        return ["{} <{}>".format(
+            connectToCmd.id,
+            self.allEnvNames)]
 
     def _printMsg(self, notifier, msg):
         self.print(msg)
@@ -433,6 +449,24 @@ class SovrinCli(PlenumCli):
             return False
 
         return role
+
+    def _getTxnType(self, txnType):
+        try:
+            type =  SovrinTransactions(txnType)
+            return type.value
+        except ValueError:
+            pass
+
+        try:
+            type = SovrinTransactions[txnType]
+            return type.value
+        except KeyError:
+            pass
+
+        self.print("Invalid transaction type. Valid types are: {}".
+                   format(", ".join(map(lambda r: r.name, SovrinTransactions))),
+                   Token.Error)
+        return None
 
     def _getNym(self, nym):
         identity = Identity(identifier=nym)
@@ -584,7 +618,7 @@ class SovrinCli(PlenumCli):
         return attrInput
 
     def _sendNymAction(self, matchedVars):
-        if matchedVars.get('send_nym') == 'send NYM':
+        if matchedVars.get('send_nym') == sendNymCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             nym = matchedVars.get('dest_id')
@@ -598,7 +632,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendGetNymAction(self, matchedVars):
-        if matchedVars.get('send_get_nym') == 'send GET_NYM':
+        if matchedVars.get('send_get_nym') == sendGetNymCmd.id:
             if not self.hasAnyKey:
                 return True
             if not self.canMakeSovrinRequest:
@@ -608,7 +642,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendAttribAction(self, matchedVars):
-        if matchedVars.get('send_attrib') == 'send ATTRIB':
+        if matchedVars.get('send_attrib') == sendAttribCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             nym = matchedVars.get('dest_id')
@@ -622,7 +656,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendNodeAction(self, matchedVars):
-        if matchedVars.get('send_node') == 'send NODE':
+        if matchedVars.get('send_node') == sendNodeCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             nym = matchedVars.get('dest_id')
@@ -635,7 +669,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendPoolUpgAction(self, matchedVars):
-        if matchedVars.get('send_pool_upg') == 'send POOL_UPGRADE':
+        if matchedVars.get('send_pool_upg') == sendPoolUpgCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             name = matchedVars.get(NAME).strip()
@@ -668,7 +702,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendSchemaAction(self, matchedVars):
-        if matchedVars.get('send_schema') == 'send SCHEMA':
+        if matchedVars.get('send_schema') == sendSchemaCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
 
@@ -688,7 +722,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendIssuerKeyAction(self, matchedVars):
-        if matchedVars.get('send_isr_key') == 'send ISSUER_KEY':
+        if matchedVars.get('send_isr_key') == sendIssuerKeyCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             reference = int(matchedVars.get(REF))
@@ -721,7 +755,7 @@ class SovrinCli(PlenumCli):
         self.printUsageMsgs(msgs)
 
     def _loadFile(self, matchedVars):
-        if matchedVars.get('load_file') == 'load':
+        if matchedVars.get('load_file') == loadFileCmd.id:
             if not self.agent:
                 self._printNotConnectedEnvMessage()
             else:
@@ -927,13 +961,13 @@ class SovrinCli(PlenumCli):
                self.activeClient.hasSufficientConnections
 
     def _acceptInvitationLink(self, matchedVars):
-        if matchedVars.get('accept_link_invite') == 'accept invitation from':
+        if matchedVars.get('accept_link_invite') == acceptLinkCmd.id:
             linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
             self._acceptLinkInvitation(linkName)
             return True
 
     def _pingTarget(self, matchedVars):
-        if matchedVars.get('ping') == 'ping':
+        if matchedVars.get('ping') == pingTargetCmd.id:
             linkName = SovrinCli.removeSpecialChars(
                 matchedVars.get('target_name'))
             li = self._getOneLinkForFurtherProcessing(linkName)
@@ -946,7 +980,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _syncLink(self, matchedVars):
-        if matchedVars.get('sync_link') == 'sync':
+        if matchedVars.get('sync_link') == syncLinkCmd.id:
             # TODO: Shouldn't we remove single quotes too?
             linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
             self._syncLinkInvitation(linkName)
@@ -984,7 +1018,7 @@ class SovrinCli(PlenumCli):
         self._printShowAndAcceptLinkUsage()
 
     def _showLink(self, matchedVars):
-        if matchedVars.get('show_link') == 'show link':
+        if matchedVars.get('show_link') == showLinkCmd.id:
             linkName = matchedVars.get('link_name').replace('"', '')
 
             totalFound, exactlyMatchedLinks, likelyMatchedLinks = \
@@ -1094,7 +1128,7 @@ class SovrinCli(PlenumCli):
         return matchingLinksWithRcvdClaim[0]
 
     def _setAttr(self, matchedVars):
-        if matchedVars.get('set_attr') == 'set':
+        if matchedVars.get('set_attr') == setAttrCmd.id:
             attrName = matchedVars.get('attr_name')
             attrValue = matchedVars.get('attr_value')
             curLink, curClaimReq, selfAttestedAttrs = self.curContext
@@ -1106,7 +1140,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _reqClaim(self, matchedVars):
-        if matchedVars.get('req_claim') == 'request claim':
+        if matchedVars.get('req_claim') == reqClaimCmd.id:
             claimName = SovrinCli.removeSpecialChars(
                 matchedVars.get('claim_name'))
             matchingLink, ac = \
@@ -1156,7 +1190,7 @@ class SovrinCli(PlenumCli):
         self._setActiveIdentifier(id)
 
     def _reqAvailClaims(self, matchedVars):
-        if matchedVars.get('req_avail_claims') == 'request available claims from':
+        if matchedVars.get('req_avail_claims') == reqAvailClaimsCmd.id:
             linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
             li = self._getOneLinkForFurtherProcessing(linkName)
             if li:
@@ -1164,7 +1198,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _newIdentifier(self, matchedVars):
-        if matchedVars.get('new_id') == 'new identifier':
+        if matchedVars.get('new_id') == newIdentifierCmd.id:
             id_or_abbr_or_crypto = matchedVars.get('id_or_abbr_or_crypto')
             isAbbr = False
             isCrypto = False
@@ -1183,7 +1217,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendProof(self, matchedVars):
-        if matchedVars.get('send_proof') == 'send proof':
+        if matchedVars.get('send_proof') == sendProofCmd.id:
             claimName = SovrinCli.removeSpecialChars(
                 matchedVars.get('claim_name').strip())  # TODO this should be proof_request_name, not claim_name
             linkName = SovrinCli.removeSpecialChars(
@@ -1338,7 +1372,7 @@ class SovrinCli(PlenumCli):
             self._getSendProofUsage(c.proofRequest, c.link))
 
     def _showProofRequest(self, matchedVars):
-        if matchedVars.get('show_proof_req') == 'show proof request':
+        if matchedVars.get('show_proof_req') == showProofRequestCmd.id:
             proof_request_name = SovrinCli.removeSpecialChars(
                 matchedVars.get('proof_req_name'))
             matchingLink, proofRequest = \
@@ -1355,7 +1389,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _showClaim(self, matchedVars):
-        if matchedVars.get('show_claim') == 'show claim':
+        if matchedVars.get('show_claim') == showClaimCmd.id:
             claimName = SovrinCli.removeSpecialChars(
                 matchedVars.get('claim_name'))
             self.agent.loop.call_soon(asyncio.ensure_future,
@@ -1364,7 +1398,7 @@ class SovrinCli(PlenumCli):
             return True
 
     def _listClaims(self, matchedVars):
-        if matchedVars.get('list_claims') == 'list claims':
+        if matchedVars.get('list_claims') == listClaimsCmd.id:
             link_name = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
 
             li = self._getOneLinkForFurtherProcessing(link_name)
@@ -1377,7 +1411,7 @@ class SovrinCli(PlenumCli):
         self.print(link.avail_claims_str())
 
     def _showFile(self, matchedVars):
-        if matchedVars.get('show_file') == 'show':
+        if matchedVars.get('show_file') == showFileCmd.id:
             givenFilePath = matchedVars.get('file_path')
             filePath = SovrinCli._getFilePath(givenFilePath)
             if not filePath:
@@ -1400,7 +1434,7 @@ class SovrinCli(PlenumCli):
             return "Do not have information to connect to {}".format(envName)
 
     def _disconnect(self, matchedVars):
-        if matchedVars.get('disconn') == 'disconnect':
+        if matchedVars.get('disconn') == disconnectCmd.id:
             self._disconnectFromCurrentEnv()
             return True
 
@@ -1484,7 +1518,7 @@ class SovrinCli(PlenumCli):
         pass
 
     def _connectTo(self, matchedVars):
-        if matchedVars.get('conn') == 'connect':
+        if matchedVars.get('conn') == connectToCmd.id:
             envName = matchedVars.get('env_name')
             envError = self.canConnectToEnv(envName)
             if envError:
@@ -1711,7 +1745,7 @@ class SovrinCli(PlenumCli):
         mappings['sendNodeAction'] = sendNodeCmd
         mappings['sendPoolUpgAction'] = sendPoolUpgCmd
         mappings['sendSchemaAction'] = sendSchemaCmd
-        mappings['sendIssuerKeyAction'] = sendIssuerCmd
+        mappings['sendIssuerKeyAction'] = sendIssuerKeyCmd
         mappings['showFile'] = showFileCmd
         mappings['loadFile'] = loadFileCmd
         mappings['showLink'] = showLinkCmd

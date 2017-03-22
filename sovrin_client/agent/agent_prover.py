@@ -2,7 +2,7 @@ import asyncio
 from typing import Any
 from collections import OrderedDict
 
-from plenum.common.txn import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
+from plenum.common.constants import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
     DATA
 from plenum.common.types import f
 from plenum.common.util import getCryptonym

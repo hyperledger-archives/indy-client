@@ -1,5 +1,5 @@
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID

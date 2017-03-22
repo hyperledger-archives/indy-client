@@ -7,7 +7,7 @@ from sovrin_client.agent.agent import runBootstrap
 
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
-from plenum.common.txn import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 
 from anoncreds.protocol.types import ID
 from sovrin_client.agent.exception import NonceNotFound

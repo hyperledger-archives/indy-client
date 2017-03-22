@@ -8,15 +8,15 @@ import pytest
 from plenum.common.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import ENC, DATA, REPLY, TXN_TIME, TRUST_ANCHOR
-from plenum.common.types import f, OP_FIELD_NAME
+from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, OP_FIELD_NAME
+from plenum.common.types import f
 from plenum.common.util import adict
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
-    TXN_ID, NONCE, SKEY
+from sovrin_common.constants import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
+    NONCE, SKEY, TRUST_ANCHOR
 from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode

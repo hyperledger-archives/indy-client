@@ -1,9 +1,9 @@
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
-from plenum.common.txn import TRUST_ANCHOR
 
 from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+
 
 strict_types.defaultShouldCheck = True
 
@@ -29,7 +29,7 @@ from sovrin_client.agent.agent import runAgent
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
@@ -106,9 +106,13 @@ def aliceAgent(aliceWallet, agentBuilder):
     agent = agentBuilder(aliceWallet)
     return agent
 
+@pytest.fixture(scope="module")
+def aliceAdded(nodeSet, steward, stewardWallet,
+               emptyLooper, aliceAgent):
+    addAgent(emptyLooper, aliceAgent, steward, stewardWallet)
 
 @pytest.fixture(scope="module")
-def aliceIsRunning(emptyLooper, aliceAgent):
+def aliceIsRunning(emptyLooper, aliceAgent, aliceAdded):
     emptyLooper.add(aliceAgent)
     return aliceAgent
 
@@ -144,18 +148,6 @@ def thriftAgentPort():
     return genHa()[1]
 
 
-def addAgentAndEndpoint(looper, agent, steward, stewardWallet):
-    looper.add(agent.client)
-    attrib = createAgentAndAddEndpoint(looper,
-                                       agent.wallet.defaultId,
-                                       agent.wallet,
-                                       agent.client,
-                                       agent.port,
-                                       steward,
-                                       stewardWallet)
-    return attrib
-
-
 @pytest.fixture(scope="module")
 def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
     return createFaber(faberWallet.name, faberWallet,
@@ -164,13 +156,10 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
 
 
 @pytest.fixture(scope="module")
-def faberAdded(nodeSet,
-               steward,
-               stewardWallet,
+def faberAdded(nodeSet, steward, stewardWallet,
                emptyLooper,
                faberAgent):
-    return addAgentAndEndpoint(emptyLooper, faberAgent, steward, stewardWallet)
-
+    addAgent(emptyLooper, faberAgent, steward, stewardWallet)
 
 def startAgent(looper, agent, wallet):
     agent = agent
@@ -180,7 +169,6 @@ def startAgent(looper, agent, wallet):
 
     runAgent(agent, looper)
     return agent, wallet
-
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
@@ -196,12 +184,9 @@ def acmeAgent(tdirWithPoolTxns, acmeAgentPort, acmeWallet):
 
 
 @pytest.fixture(scope="module")
-def acmeAdded(nodeSet,
-              steward,
-              stewardWallet,
-              emptyLooper,
-              acmeAgent):
-    return addAgentAndEndpoint(emptyLooper, acmeAgent, steward, stewardWallet)
+def acmeAdded(nodeSet, steward, stewardWallet,
+              emptyLooper, acmeAgent):
+    addAgent(emptyLooper, acmeAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -223,7 +208,7 @@ def thfiftAdded(nodeSet,
               stewardWallet,
               emptyLooper,
               thriftAgent):
-    return addAgentAndEndpoint(emptyLooper, thriftAgent, steward, stewardWallet)
+    addAgent(emptyLooper, thriftAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -343,7 +328,7 @@ def checkAcceptInvitation(emptyLooper,
     Assumes link identified by linkName is already created
     """
     assert nonce
-    inviterAgent, inviterWallet = inviterAgentAndWallet # type: WalletedAgent, Wallet
+    inviterAgent, inviterWallet = inviterAgentAndWallet  # type: WalletedAgent, Wallet
 
     inviteeWallet = inviteeAgent.wallet
     inviteeAgent.connectTo(linkName)
@@ -367,16 +352,21 @@ def checkAcceptInvitation(emptyLooper,
     emptyLooper.run(eventually(chk))
 
 
-def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
-                              agentPort, steward, stewardWallet):
-    agentVerkey = agentWallet.getVerkey()
+def addAgent(looper, agent, steward, stewardWallet):
+    # 1. add Agent's NYM (by Steward)
+    agentNym = agent.wallet.defaultId
     createNym(looper,
               agentNym,
               steward,
               stewardWallet,
               role=TRUST_ANCHOR,
-              verkey=agentVerkey)
-    ep = '127.0.0.1:{}'.format(agentPort)
+              verkey=agent.wallet.getVerkey())
+
+    # 2. add client to the loop
+    looper.add(agent.client)
+
+    # 3. add attribute to the Agent's NYM with endpoint information (by Agent's client)
+    ep = '127.0.0.1:{}'.format(agent.port)
     attributeData = json.dumps({ENDPOINT: ep})
 
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
@@ -384,7 +374,7 @@ def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
                        value=attributeData,
                        dest=agentNym,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, agentClient, agentWallet, attrib)
+    addAttributeAndCheck(looper, agent.client, agent.wallet, attrib)
     return attrib
 
 

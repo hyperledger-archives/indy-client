@@ -11,18 +11,18 @@ from plenum.common.error import fault
 from plenum.common.log import getlogger
 from plenum.common.stacked import SimpleStack
 from plenum.common.startable import Status
-from plenum.common.txn import REPLY, NAME, VERSION, REQACK, REQNACK, \
-    TXN_ID, TARGET_NYM, NONCE, STEWARD, TRUST_ANCHOR
-from plenum.common.types import OP_FIELD_NAME, f, HA
+from plenum.common.constants import REPLY, NAME, VERSION, REQACK, REQNACK, \
+    TXN_ID, TARGET_NYM, NONCE, STEWARD, OP_FIELD_NAME
+from plenum.common.types import f, HA
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
 from raet.raeting import AutoMode
 
 from sovrin_common.config_util import getConfig
-from sovrin_common.txn import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
+from sovrin_common.constants import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
     NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
-    GET_ATTR
+    GET_ATTR, TRUST_ANCHOR
 from sovrin_client.persistence.client_req_rep_store_file import ClientReqRepStoreFile
 from sovrin_client.persistence.client_req_rep_store_orientdb import \
     ClientReqRepStoreOrientDB

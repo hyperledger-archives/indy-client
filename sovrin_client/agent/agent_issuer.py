@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Dict, Any
 
-from plenum.common.txn import NAME, VERSION, ORIGIN
+from plenum.common.constants import NAME, VERSION, ORIGIN
 from plenum.common.types import f
 
 from anoncreds.protocol.issuer import Issuer

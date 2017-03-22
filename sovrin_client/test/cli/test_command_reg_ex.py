@@ -1,11 +1,13 @@
 import pytest
 from plenum.cli.helper import getClientGrams
-from plenum.common.roles import Roles
+from plenum.common.constants import NAME, VERSION, TYPE, KEYS
 from plenum.test.cli.helper import assertCliTokens
 from plenum.test.cli.test_command_reg_ex import getMatchedVariables
 from prompt_toolkit.contrib.regular_languages.compiler import compile
 
 from sovrin_client.cli.helper import getNewClientGrams
+from sovrin_common.constants import REF
+from sovrin_common.roles import Roles
 
 
 @pytest.fixture("module")
@@ -43,6 +45,26 @@ def testSendNymWithVerkey(grammar):
     })
 
 
+def testGetNym(grammar):
+    dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+    matchedVars = getMatchedVariables(
+        grammar, "send GET_NYM dest={}".format(dest))
+    assertCliTokens(matchedVars, {
+        "send_get_nym": "send GET_NYM", "dest_id": dest})
+
+
+def testSendSchema(grammar):
+    name = "Degree"
+    version = "1.0"
+    type = "CL"
+    keys = "undergrad,last_name,first_name,birth_date,postgrad,expiry_date"
+    matchedVars = getMatchedVariables(grammar,
+                                      'send SCHEMA name={} version={} type={} keys={}'
+                                      .format(name, version, type, keys))
+    assertCliTokens(matchedVars, {
+        "send_schema": "send SCHEMA", NAME: name, VERSION: version, TYPE: type, KEYS: keys})
+
+
 def testSendAttribRegEx(grammar):
     dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
     raw = '{"legal org": "BRIGHAM YOUNG UNIVERSITY, PROVO, UT", ' \
@@ -64,7 +86,9 @@ def testAddAttrProverRegEx(grammar):
 
 
 def testSendIssuerKeyRegEx(grammar):
-    getMatchedVariables(grammar, "send ISSUER_KEY ref=15")
+    matchedVars = getMatchedVariables(grammar, "send ISSUER_KEY ref=15")
+    assertCliTokens(matchedVars, {
+        "send_isr_key": "send ISSUER_KEY", REF: "15"})
 
 
 def testShowFileCommandRegEx(grammar):

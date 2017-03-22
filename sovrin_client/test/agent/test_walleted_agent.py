@@ -6,7 +6,7 @@ from plenum.test.testable import Spyable
 from sovrin_client.agent.agent import WalletedAgent, createAgent, runAgent
 from sovrin_client.client.client import Client
 from sovrin_common.exceptions import LinkNotFound
-from sovrin_common.txn import NONCE
+from sovrin_common.constants import NONCE
 from sovrin_client.test.agent.helper import getAgentCmdLineParams
 
 logger = getlogger()

@@ -11,12 +11,12 @@ from plenum.common.exceptions import BlowUp
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
-from plenum.common.roles import Roles
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
     tdirWithDomainTxns, poolTxnNodeNames
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.roles import Roles
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -812,6 +812,7 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
+            "Verification key: <same as local identifier>",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",

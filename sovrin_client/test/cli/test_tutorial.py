@@ -174,6 +174,13 @@ def susanCli(preRequisite, be, do, susanCLI, newKeyringOut, susanMap):
     return susanCLI
 
 
+@pytest.fixture(scope="module")
+def bobCli(preRequisite, be, do, bobCLI, newKeyringOut, bobMap):
+    be(bobCLI)
+    setPromptAndKeyring(do, "Bob", newKeyringOut, bobMap)
+    return bobCLI
+
+
 def testNotConnected(be, do, aliceCli, notConnectedStatus):
     be(aliceCli)
     do('status', expect=notConnectedStatus)
@@ -946,3 +953,32 @@ def testAliceReqAvailClaimsFromThrift(
        mapper=thriftMap,
        expect=["Available Claim(s): No available claims found"],
        within=3)
+
+
+def assertReqAvailClaims(be, do, userCli, agentMap,
+                         connectedToTestExpMsgs, inviteLoadedExpMsgs,
+                         invitedAcceptedExpMsgs):
+    be(userCli)
+    connectIfNotAlreadyConnected(do, connectedToTestExpMsgs, userCli, agentMap)
+    do('load {invite}', expect=inviteLoadedExpMsgs, mapper=agentMap)
+    acceptInvitation(be, do, userCli, agentMap,
+                     invitedAcceptedExpMsgs)
+    do('request available claims from {inviter}',
+       mapper=agentMap,
+       expect=["Available Claim(s): {claims}"],
+       within=3)
+
+
+def testBobReqAvailClaimsFromAgents(
+        be, do, bobCli, loadInviteOut, faberMap, acmeMap, thriftMap,
+        connectedToTest, syncedInviteAcceptedWithClaimsOut,
+        unsycedAcceptedInviteWithoutClaimOut):
+    userCli = bobCli
+    assertReqAvailClaims(be, do, userCli, faberMap, connectedToTest,
+                         loadInviteOut, syncedInviteAcceptedWithClaimsOut)
+    acmeMap.update({"claims": "No available claims found"})
+    assertReqAvailClaims(be, do, userCli, acmeMap, connectedToTest,
+                         loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
+    thriftMap.update({"claims": "No available claims found"})
+    assertReqAvailClaims(be, do, userCli, thriftMap, connectedToTest,
+                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)

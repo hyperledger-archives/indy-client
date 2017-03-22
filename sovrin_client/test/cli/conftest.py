@@ -80,25 +80,29 @@ def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger)
                          logFileName=cliTempLogger)
 
 
+def getDefaultUserMap(name):
+    return {
+        'keyring-name': name,
+    }
+
 @pytest.fixture(scope="module")
 def aliceMap():
-    return {
-        'keyring-name': 'Alice',
-    }
+    return getDefaultUserMap("Alice")
 
 
 @pytest.fixture(scope="module")
 def earlMap():
-    return {
-        'keyring-name': 'Earl',
-    }
+    return getDefaultUserMap("Earl")
+
+
+@pytest.fixture(scope="module")
+def bobMap():
+    return getDefaultUserMap("Bob")
 
 
 @pytest.fixture(scope="module")
 def susanMap():
-    return {
-        'keyring-name': 'Susan',
-    }
+    return getDefaultUserMap("Susan")
 
 
 @pytest.fixture(scope="module")
@@ -828,6 +832,11 @@ def poolCLI_baby(CliBuilder):
 @pytest.yield_fixture(scope="module")
 def aliceCLI(CliBuilder):
     yield from CliBuilder("alice")
+
+
+@pytest.yield_fixture(scope="module")
+def bobCLI(CliBuilder):
+    yield from CliBuilder("bob")
 
 
 @pytest.yield_fixture(scope="module")

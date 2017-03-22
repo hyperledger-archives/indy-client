@@ -30,7 +30,7 @@ from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.txn import ENDPOINT
 from sovrin_client.test.agent.acme import createAcme
-from sovrin_client.test.agent.faber import createFaber
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
     buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
@@ -157,9 +157,13 @@ def addAgentAndEndpoint(looper, agent, steward, stewardWallet):
 
 @pytest.fixture(scope="module")
 def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
-    return createFaber(faberWallet.name, faberWallet,
-                       basedirpath=tdirWithPoolTxns,
-                       port=faberAgentPort)
+    return create_faber(faberWallet.name, faberWallet,
+                        base_dir_path=tdirWithPoolTxns,
+                        port=faberAgentPort)
+
+@pytest.fixture(scope="module")
+def faberBootstrap(faberAgent):
+    return bootstrap_faber(faberAgent)
 
 
 @pytest.fixture(scope="module")
@@ -171,20 +175,20 @@ def faberAdded(nodeSet,
     return addAgentAndEndpoint(emptyLooper, faberAgent, steward, stewardWallet)
 
 
-def startAgent(looper, agent, wallet):
+def startAgent(looper, agent, wallet, bootstrap=None):
     agent = agent
     wallet.pendSyncRequests()
     prepared = wallet.preparePending()
     agent.client.submitReqs(*prepared)
 
-    runAgent(agent, looper)
+    runAgent(agent, looper, bootstrap=bootstrap)
     return agent, wallet
 
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
-                   faberAgent, faberAdded):
-    return startAgent(emptyLooper, faberAgent, faberWallet)
+                   faberAgent, faberAdded, faberBootstrap):
+    return startAgent(emptyLooper, faberAgent, faberWallet, bootstrap=faberBootstrap)
 
 
 @pytest.fixture(scope="module")

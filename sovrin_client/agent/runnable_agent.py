@@ -2,7 +2,7 @@ import sys
 import argparse
 
 from sovrin_client.client.client import Client
-from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.agent.agent import createAgent, runAgent, Agent
 from plenum.common.log import getlogger
 from plenum.common.util import getFormattedErrorMsg
 
@@ -30,17 +30,10 @@ class RunnableAgent:
             return None,
 
     @classmethod
-    def run_agent(cls, agent_class, name, wallet=None, base_dir_path=None,
-                  port=None, looper=None, client_class=Client, bootstrap=True):
+    def run_agent(cls, agent: Agent, looper=None, bootstrap=None):
         try:
             loop = looper.loop if looper else None
-            agent = createAgent(agent_class,
-                                name,
-                                wallet,
-                                base_dir_path,
-                                port,
-                                loop,
-                                client_class)
+            agent.loop = loop
             runAgent(agent, looper, bootstrap)
             return agent
         except Exception as exc:

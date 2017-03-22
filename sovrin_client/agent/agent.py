@@ -220,10 +220,7 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
     if not port:
         _, port = genHa()
 
-    _, clientPort = genHa()
-    client = clientClass(randomString(6),
-                         ha=("0.0.0.0", clientPort),
-                         basedirpath=basedirpath)
+    client = create_client(base_dir_path=basedirpath, client_class=clientClass)
 
     return agentClass(basedirpath=basedirpath,
                       client=client,
@@ -232,20 +229,34 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
                       loop=loop)
 
 
-def runAgent(agent, looper=None, bootstrap=True):
+def create_client(base_dir_path=None, client_class=Client):
+    config = getConfig()
+
+    if not base_dir_path:
+        base_dir_path = config.baseDir
+
+    _, clientPort = genHa()
+    client = client_class(randomString(6),
+                          ha=("0.0.0.0", clientPort),
+                          basedirpath=base_dir_path)
+    return client
+
+
+
+def runAgent(agent, looper=None, bootstrap=None):
     assert agent
 
-    def doRun(looper):
+    def do_run(looper):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
         if bootstrap:
-            looper.run(agent.bootstrap())
+            looper.run(bootstrap)
 
     if looper:
-        doRun(looper)
+        do_run(looper)
     else:
         with Looper(debug=True, loop=agent.loop) as looper:
-            doRun(looper)
+            do_run(looper)
             looper.run()
 
 

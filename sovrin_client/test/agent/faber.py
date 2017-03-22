@@ -1,128 +1,103 @@
 from plenum.common.log import getlogger
+from sovrin_client.agent.runnable_agent import RunnableAgent
+from sovrin_client.agent.agent import create_client
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
-from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
-from sovrin_client.agent.agent import createAgent
-from sovrin_client.client.client import Client
-from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.agent.base_agent import BaseAgent
+from anoncreds.protocol.types import AttribType, AttribDef
+from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.test.helper import primes
 from sovrin_client.test.agent.helper import buildFaberWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
 
-class FaberAgent(BaseAgent):
-    def __init__(self,
-                 basedirpath: str,
-                 client: Client = None,
-                 wallet: Wallet = None,
-                 port: int = None,
-                 loop=None):
+def create_faber(name=None, wallet=None, base_dir_path=None, port=None):
 
-        portParam, = self.get_passed_args()
+    client = create_client(base_dir_path=None, client_class=TestClient)
 
-        super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+    agent = WalletedAgent(name=name or "Faber College",
+                       basedirpath=base_dir_path,
+                       client=client,
+                       wallet=wallet or buildFaberWallet(),
+                       port=port)
 
-        # maps invitation nonces to internal ids
-        self._invites = {
-            "b1134a647eb818069c089e7694f63e6d": 1,
-            "2a2eb72eca8b404e8d412c5bf79f2640": 2,
-            "7513d1397e87cada4214e2a650f603eb": 3,
-            "710b78be79f29fc81335abaa4ee1c5e8": 4
-        }
+    agent._invites = {
+        "b1134a647eb818069c089e7694f63e6d": 1,
+        "2a2eb72eca8b404e8d412c5bf79f2640": 2,
+        "7513d1397e87cada4214e2a650f603eb": 3,
+        "710b78be79f29fc81335abaa4ee1c5e8": 4
+    }
 
-        self.transcript_attrib = AttribDef('Transcript',
-                                  [AttribType('student_name', encode=True),
-                                   AttribType('ssn', encode=True),
-                                   AttribType('degree', encode=True),
-                                   AttribType('year', encode=True),
-                                   AttribType('status', encode=True)])
+    transcript_def = AttribDef('Transcript',
+                              [AttribType('student_name', encode=True),
+                               AttribType('ssn', encode=True),
+                               AttribType('degree', encode=True),
+                               AttribType('year', encode=True),
+                               AttribType('status', encode=True)])
 
-        self.add_attribute_definition(self.transcript_attrib)
+    agent.add_attribute_definition(transcript_def)
 
-        backend = MockBackendSystem(self.transcript_attrib)
+    backend = MockBackendSystem(transcript_def)
 
-        backend.add_record(1,
-                           student_name="Alice Garcia",
-                           ssn="123-45-6789",
-                           degree="Bachelor of Science, Marketing",
-                           year="2015",
-                           status="graduated")
+    backend.add_record(1,
+                       student_name="Alice Garcia",
+                       ssn="123-45-6789",
+                       degree="Bachelor of Science, Marketing",
+                       year="2015",
+                       status="graduated")
 
-        backend.add_record(2,
-                           student_name="Carol Atkinson",
-                           ssn="783-41-2695",
-                           degree="Bachelor of Science, Physics",
-                           year="2012",
-                           status="graduated")
+    backend.add_record(2,
+                       student_name="Carol Atkinson",
+                       ssn="783-41-2695",
+                       degree="Bachelor of Science, Physics",
+                       year="2012",
+                       status="graduated")
 
-        backend.add_record(3,
-                           student_name="Frank Jeffrey",
-                           ssn="996-54-1211",
-                           degree="Bachelor of Arts, History",
-                           year="2013",
-                           status="dropped")
+    backend.add_record(3,
+                       student_name="Frank Jeffrey",
+                       ssn="996-54-1211",
+                       degree="Bachelor of Arts, History",
+                       year="2013",
+                       status="dropped")
 
-        backend.add_record(4,
-                           student_name="Craig Richards",
-                           ssn="151-44-5876",
-                           degree="MBA, Finance",
-                           year="2015",
-                           status="graduated")
+    backend.add_record(4,
+                       student_name="Craig Richards",
+                       ssn="151-44-5876",
+                       degree="MBA, Finance",
+                       year="2015",
+                       status="graduated")
 
-        self.set_issuer_backend(backend)
+    agent.set_issuer_backend(backend)
 
-        self.set_available_claim(1, self.getSchemaKeysToBeGenerated())
+    return agent
 
-        # maps internal ids to attributes
-        # self._attrs = {
-        #     1: self._attrDef.attribs(
-        #         student_name="Alice Garcia",
-        #         ssn="123-45-6789",
-        #         degree="Bachelor of Science, Marketing",
-        #         year="2015",
-        #         status="graduated"),
-        #     2: self._attrDef.attribs(
-        #         student_name="Carol Atkinson",
-        #         ssn="783-41-2695",
-        #         degree="Bachelor of Science, Physics",
-        #         year="2012",
-        #         status="graduated"),
-        #     3: self._attrDef.attribs(
-        #         student_name="Frank Jeffrey",
-        #         ssn="996-54-1211",
-        #         degree="Bachelor of Arts, History",
-        #         year="2013",
-        #         status="dropped"),
-        #     4: self._attrDef.attribs(
-        #         student_name="Craig Richards",
-        #         ssn="151-44-5876",
-        #         degree="MBA, Finance",
-        #         year="2015",
-        #         status="graduated")
-        # }
+async def bootstrap_faber(agent):
+    schema_id = await agent.publish_schema('Transcript',
+                                           schema_name='Transcript',
+                                           schema_version='1.2')
 
+    # NOTE: do NOT use known primes in a non-test environment
+    issuer_pub_key, revocation_pub_key = await agent.publish_issuer_keys(schema_id,
+                                                                         p_prime=primes["prime1"][0],
+                                                                         q_prime=primes["prime1"][1])
+    print(issuer_pub_key)
+    print(revocation_pub_key)
 
-    # def getAttrDefs(self):
-    #     return [self._attrDef]
+    accPK = await agent.publish_revocation_registry(schema_id=schema_id)
 
-    # def getAttrs(self):
-    #     return self._attrs
+    print(accPK)
 
-    def getSchemaKeysToBeGenerated(self):
-        return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]
-
-
-def createFaber(name=None, wallet=None, basedirpath=None, port=None):
-    return createAgent(FaberAgent, name or "Faber College",
-                       wallet or buildFaberWallet(),
-                       basedirpath, port, clientClass=TestClient)
+    await agent.set_available_claim(1, schema_id)
+    await agent.set_available_claim(2, schema_id)
+    await agent.set_available_claim(3, schema_id)
+    await agent.set_available_claim(4, schema_id)
 
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
-        FaberAgent, "Faber College", wallet=buildFaberWallet(),
-        basedirpath=None, port=5555, looper=None, clientClass=TestClient)
+    port = RunnableAgent.parser_cmd_args()
+    if port is None:
+        port = 5555
+    agent = create_faber(name="Faber College", wallet=buildFaberWallet(), base_dir_path=None, port=port)
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_faber(agent))
+

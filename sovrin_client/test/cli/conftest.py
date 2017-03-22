@@ -20,7 +20,7 @@ from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
 # noinspection PyUnresolvedReferences
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
-    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, \
+    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, faberBootstrap, \
     acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
     thriftAgent, agentIpAddress
 
@@ -1096,9 +1096,9 @@ def faberIsRunningWithoutNymAdded(emptyLooper, tdirWithPoolTxns, faberWallet,
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
-                   faberAddedByPhil, faberAgent):
+                   faberAddedByPhil, faberAgent, faberBootstrap):
     faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
-                                      faberWallet, faberAgent, faberAddedByPhil)
+                                      faberWallet, faberAgent, faberAddedByPhil, faberBootstrap)
     return faber, faberWallet
 
 

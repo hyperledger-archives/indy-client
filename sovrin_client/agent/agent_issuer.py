@@ -19,9 +19,8 @@ class AgentIssuer:
     async def processReqAvailClaims(self, msg):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
-        acs = self.getAvailableClaimList(link.localIdentifier)
         data = {
-            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link.localIdentifier)
+            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link)
         }
         resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
         self.signAndSend(resp, link.localIdentifier, frm)
@@ -47,7 +46,7 @@ class AgentIssuer:
         schema = await self.issuer.wallet.getSchema(ID(schemaKey))
         schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
 
-        self._addAtrribute(schemaKey=schemaKey, proverId=claimReq.userId,
+        self._addAttribute(schemaKey=schemaKey, proverId=claimReq.userId,
                            link=link)
 
         claim = await self.issuer.issueClaim(schemaId, claimReq)
@@ -64,5 +63,5 @@ class AgentIssuer:
                          origReqId=body.get(f.REQ_ID.nm))
 
     @abstractmethod
-    def _addAtrribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
+    def _addAttribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
         raise NotImplementedError

@@ -154,7 +154,9 @@ def getPoolTxnData(nodeAndClientInfoFilePath, poolId, newPoolTxnNodeNames):
 
 def prompt_is(prompt):
     def x(cli):
-        assert cli.currPromptText == prompt
+        assert cli.currPromptText == prompt, \
+            "expected prompt: {}, actual prompt: {}".\
+                format(prompt, cli.currPromptText)
     return x
 
 

@@ -3,14 +3,14 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound
+from plenum.common.exceptions import RemoteNotFound, NoConsensusYet
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.port_dispenser import genHa
 from plenum.common.startable import Status
-from plenum.common.types import Identifier
-from plenum.common.util import randomString
+from plenum.common.types import Identifier, HA
+from plenum.common.util import randomString, checkPortAvailable
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
@@ -29,6 +29,7 @@ from sovrin_common.config import agentLoggingLevel
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
 
+
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,
@@ -37,17 +38,16 @@ class Agent(Motor, AgentNet):
                  client: Client = None,
                  port: int = None,
                  loop=None):
+
+        self.endpoint = None
+        if port:
+            checkPortAvailable(HA("0.0.0.0", port))
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
         self._name = name
         self._port = port
-
-        AgentNet.__init__(self,
-                          name=self._name.replace(" ", ""),
-                          port=port,
-                          basedirpath=basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+        self._basedirpath = basedirpath
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -83,6 +83,11 @@ class Agent(Motor, AgentNet):
         return c
 
     def start(self, loop):
+        AgentNet.__init__(self,
+                          name=self._name.replace(" ", ""),
+                          port=self._port,
+                          basedirpath=self._basedirpath,
+                          msgHandler=self.handleEndpointMessage)
         super().start(loop)
         if self.client:
             self.client.start(loop)
@@ -182,12 +187,12 @@ class WalletedAgent(Walleted, Agent, Caching):
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None,
-                 attrRepo=None,
-                 agentLogger=None):
+                 attrRepo=None):
+
         Agent.__init__(self, name, basedirpath, client, port, loop=loop)
         self._wallet = wallet or Wallet(name)
         self._attrRepo = attrRepo or AttributeRepoInMemory()
-        Walleted.__init__(self, agentLogger=(agentLogger or None))
+        Walleted.__init__(self)
         if self.client:
             self._initIssuerProverVerifier()
 
@@ -228,6 +233,8 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
 
 
 def runAgent(agent, looper=None, bootstrap=True):
+    assert agent
+
     def doRun(looper):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
@@ -242,26 +249,10 @@ def runAgent(agent, looper=None, bootstrap=True):
             looper.run()
 
 
-def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
-                      port=None, looper=None, clientClass=Client, bootstrap=True):
-    loop = looper.loop if looper else None
-    agent = createAgent(agentClass, name, wallet, basedirpath, port, loop,
-                        clientClass)
-    runAgent(agent, looper, bootstrap)
-    return agent
-
-
-def isSchemaFound(schema, ranViaScript):
-    if not schema:
-        msg = "Schema not found, check if Sovrin is running and " \
-              "agent's identifier is added"
-        msgHalfLength = int(len(msg)/2)
-        errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
-        print("\n" + errorLine)
-        print("Schema not found, check if Sovrin is running and "
-              "agent's identifier is added")
-        print(errorLine + "\n")
-        if ranViaScript:
-            exit(1)
-        else:
-            raise Exception
+async def runBootstrap(bootstrapFunc):
+    try:
+        await bootstrapFunc()
+    except TimeoutError as exc:
+        raise NoConsensusYet("consensus is not yet achieved, "
+                             "check if sovrin is running and "
+                             "client is able to connect to it") from exc

@@ -20,9 +20,8 @@ class AgentIssuer:
     async def processReqAvailClaims(self, msg):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
-        acs = self.get_available_claim_list(link.localIdentifier)
         data = {
-            CLAIMS_LIST_FIELD: acs
+            CLAIMS_LIST_FIELD: self.get_available_claim_list(link)
         }
         resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
         self.signAndSend(resp, link.localIdentifier, frm)

@@ -20,7 +20,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
-    aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
+    aliceRequestedTranscriptClaim, jobApplicationProofSent, \
     jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
@@ -199,7 +199,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('set phone_number to 123-45-6789')
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
-        jobApplicationClaimSent(be, do, userCLI, aMap, None, None, None)
+        jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,

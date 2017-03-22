@@ -1,40 +1,30 @@
-import os
-
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
+from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
-from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runBootstrap, WalletedAgent
-from sovrin_client.agent.runnable_agent import RunnableAgent
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
+from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_client.test.agent.helper import buildFaberWallet
-from sovrin_client.test.helper import TestClient, primes
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
 
-class FaberAgent(WalletedAgent, RunnableAgent):
+class FaberAgent(BaseAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.get_passed_args()
 
         super().__init__('Faber College', basedirpath, client, wallet,
                          portParam or port, loop=loop)
-
-        self.availableClaims = []
-
-        # mapping between requester identifier and corresponding available claims
-        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -44,82 +34,86 @@ class FaberAgent(WalletedAgent, RunnableAgent):
             "710b78be79f29fc81335abaa4ee1c5e8": 4
         }
 
-        self._attrDef = AttribDef('faber',
+        self.transcript_attrib = AttribDef('Transcript',
                                   [AttribType('student_name', encode=True),
                                    AttribType('ssn', encode=True),
                                    AttribType('degree', encode=True),
                                    AttribType('year', encode=True),
                                    AttribType('status', encode=True)])
 
+        self.add_attribute_definition(self.transcript_attrib)
+
+        backend = MockBackendSystem(self.transcript_attrib)
+
+        backend.add_record(1,
+                           student_name="Alice Garcia",
+                           ssn="123-45-6789",
+                           degree="Bachelor of Science, Marketing",
+                           year="2015",
+                           status="graduated")
+
+        backend.add_record(2,
+                           student_name="Carol Atkinson",
+                           ssn="783-41-2695",
+                           degree="Bachelor of Science, Physics",
+                           year="2012",
+                           status="graduated")
+
+        backend.add_record(3,
+                           student_name="Frank Jeffrey",
+                           ssn="996-54-1211",
+                           degree="Bachelor of Arts, History",
+                           year="2013",
+                           status="dropped")
+
+        backend.add_record(4,
+                           student_name="Craig Richards",
+                           ssn="151-44-5876",
+                           degree="MBA, Finance",
+                           year="2015",
+                           status="graduated")
+
+        self.set_issuer_backend(backend)
+
+        self.set_available_claim(1, self.getSchemaKeysToBeGenerated())
+
         # maps internal ids to attributes
-        self._attrs = {
-            1: self._attrDef.attribs(
-                student_name="Alice Garcia",
-                ssn="123-45-6789",
-                degree="Bachelor of Science, Marketing",
-                year="2015",
-                status="graduated"),
-            2: self._attrDef.attribs(
-                student_name="Carol Atkinson",
-                ssn="783-41-2695",
-                degree="Bachelor of Science, Physics",
-                year="2012",
-                status="graduated"),
-            3: self._attrDef.attribs(
-                student_name="Frank Jeffrey",
-                ssn="996-54-1211",
-                degree="Bachelor of Arts, History",
-                year="2013",
-                status="dropped"),
-            4: self._attrDef.attribs(
-                student_name="Craig Richards",
-                ssn="151-44-5876",
-                degree="MBA, Finance",
-                year="2015",
-                status="graduated")
-        }
+        # self._attrs = {
+        #     1: self._attrDef.attribs(
+        #         student_name="Alice Garcia",
+        #         ssn="123-45-6789",
+        #         degree="Bachelor of Science, Marketing",
+        #         year="2015",
+        #         status="graduated"),
+        #     2: self._attrDef.attribs(
+        #         student_name="Carol Atkinson",
+        #         ssn="783-41-2695",
+        #         degree="Bachelor of Science, Physics",
+        #         year="2012",
+        #         status="graduated"),
+        #     3: self._attrDef.attribs(
+        #         student_name="Frank Jeffrey",
+        #         ssn="996-54-1211",
+        #         degree="Bachelor of Arts, History",
+        #         year="2013",
+        #         status="dropped"),
+        #     4: self._attrDef.attribs(
+        #         student_name="Craig Richards",
+        #         ssn="151-44-5876",
+        #         degree="MBA, Finance",
+        #         year="2015",
+        #         status="graduated")
+        # }
 
-        self._schema = SchemaKey("Transcript", "1.2", self.wallet.defaultId)
 
-    def is_claim_available(self, link, claimName):
-        return claimName == "Transcript"
+    # def getAttrDefs(self):
+    #     return [self._attrDef]
 
-    def get_available_claim_list(self, requesterId):
-        return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
+    # def getAttrs(self):
+    #     return self._attrs
 
-    async def postClaimVerif(self, claimName, link, frm):
-        pass
-
-    async def initAvailableClaimList(self):
-        schema = await self.issuer.wallet.getSchema(ID(self._schema))
-        self.availableClaims.append({
-            NAME: schema.name,
-            VERSION: schema.version,
-            "schemaSeqNo": schema.seqId
-        })
-
-    def _add_attribute(self, schemaKey, proverId, link):
-        attr = self._attrs[self.get_internal_id_by_nonce(proverId)]
-        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
-                                            userId=proverId,
-                                            attributes=attr)
-
-    async def addSchemasToWallet(self):
-        schema = await self.issuer.genSchema(self._schema.name,
-                                             self._schema.version,
-                                             self._attrDef.attribNames(),
-                                             'CL')
-        if schema:
-            schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
-            p_prime, q_prime = primes["prime2"]
-            await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
-            await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
-            await self.initAvailableClaimList()
-        return schema
-
-    async def bootstrap(self):
-        await runBootstrap(self.addSchemasToWallet)
+    def getSchemaKeysToBeGenerated(self):
+        return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]
 
 
 def createFaber(name=None, wallet=None, basedirpath=None, port=None):
@@ -129,6 +123,6 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    RunnableAgent.run_agent(
+    TestWalletedAgent.createAndRunAgent(
         FaberAgent, "Faber College", wallet=buildFaberWallet(),
-        base_dir_path=None, port=5555, looper=None, client_class=TestClient)
+        basedirpath=None, port=5555, looper=None, clientClass=TestClient)

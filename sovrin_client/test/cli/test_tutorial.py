@@ -732,7 +732,7 @@ def sendProof(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
 
 
 @pytest.fixture(scope="module")
-def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
+def jobApplicationProofSent(be, do, aliceCli, acmeMap,
                             aliceAcceptedAcmeJobInvitation,
                             aliceRequestedTranscriptClaim,
                             aliceSelfAttestsAttributes):
@@ -741,7 +741,7 @@ def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
     assert totalAvailableClaimsBefore + 1 == getTotalAvailableClaims(aliceCli)
 
 
-def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
+def testAliceSendClaimProofToAcme(jobApplicationProofSent):
     pass
 
 
@@ -750,7 +750,7 @@ def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
 # building and sending proofs from more than one claim
 
 def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
-                                   jobApplicationClaimSent,
+                                   jobApplicationProofSent,
                                    showAcceptedLinkWithAvailableClaimsOut):
     be(aliceCli)
     mapping = {}
@@ -764,7 +764,7 @@ def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
 
 def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
                          showJobCertClaimOut,
-                         jobApplicationClaimSent):
+                         jobApplicationProofSent):
     be(aliceCli)
     totalSchemasBefore = getTotalSchemas(aliceCli)
     do("show claim {name}",
@@ -777,7 +777,7 @@ def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
 @pytest.fixture(scope="module")
 def jobCertClaimRequested(be, do, aliceCli, preRequisite,
                         jobCertificateClaimMap, reqClaimOut1,
-                        jobApplicationClaimSent):
+                        jobApplicationProofSent):
 
     def removeSchema():
         inviter = jobCertificateClaimMap["inviter"]
@@ -937,5 +937,14 @@ def testAliceReqAvailClaimsFromAcme(
     be(aliceCli)
     do('request available claims from {inviter}',
        mapper=acmeMap,
+       expect=["Available Claim(s): Job-Certificate"],
+       within=3)
+
+
+def testAliceReqAvailClaimsFromThrift(
+        be, do, aliceCli, bankKYCProofSent, thriftMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=thriftMap,
        expect=["Available Claim(s): No available claims found"],
        within=3)

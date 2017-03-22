@@ -1,29 +1,24 @@
-import os
-
 from plenum.common.log import getlogger
 
-from sovrin_client.agent.agent import createAgent, WalletedAgent
-from sovrin_client.agent.runnable_agent import RunnableAgent
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
+from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_client.test.agent.helper import buildThriftWallet
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
 
-class ThriftAgent(WalletedAgent, RunnableAgent):
+class ThriftAgent(BaseAgent):
     def __init__(self,
                  basedirpath: str,
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
                  loop=None):
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.get_passed_args()
 
@@ -54,6 +49,6 @@ def createThrift(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
-    RunnableAgent.run_agent(
-        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), base_dir_path=None,
-        port=7777, looper=None, client_class=TestClient)
+    TestWalletedAgent.createAndRunAgent(
+        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), basedirpath=None,
+        port=7777, looper=None, clientClass=TestClient)

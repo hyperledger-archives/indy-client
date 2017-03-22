@@ -133,7 +133,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def is_claim_available(self, link, claim_name):
         return any(ac[NAME] == claim_name
-                   for ac in self.available_claims[link.internalId])
+                   for ac in self.available_claims.get(link.internalId, {}))
 
     async def _postClaimVerif(self, claimName, link, frm):
         link.verifiedClaimProofs.append(claimName)
@@ -146,8 +146,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         except KeyError:
             self.available_claims[internal_id] = [sd]
 
-    def get_available_claim_list(self, requester_id):
-        li = self.wallet.getLinkBy(remote=requester_id)
+    def get_available_claim_list(self, link):
+        li = self.wallet.getLinkBy(remote=link.remoteIdentifier)
         if li is None:
             return []
 
@@ -677,7 +677,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def sendClaimList(self, link, alreadyAdded, sender, reqId, reply=None, error=None):
         logger.debug("sending available claims to {}".format(link.remoteIdentifier))
         resp = self.createInviteAcceptedMsg(
-            self.get_available_claim_list(link.remoteIdentifier),
+            self.get_available_claim_list(link),
             alreadyAccepted=alreadyAdded)
         self.signAndSend(resp, link.localIdentifier, sender,
                          origReqId=reqId)

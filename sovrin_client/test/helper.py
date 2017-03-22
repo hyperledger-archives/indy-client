@@ -10,7 +10,8 @@ from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import REQNACK
-from plenum.common.types import OP_FIELD_NAME, f, Identifier, HA
+from plenum.common.types import OP_FIELD_NAME, f, Identifier
+from stp_core.types import HA
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.common.eventually import eventually
 from plenum.test.helper import initDirWithGenesisTxns

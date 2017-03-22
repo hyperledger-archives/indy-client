@@ -3,7 +3,7 @@ import argparse
 
 from plenum.common.looper import Looper
 from plenum.common.script_helper import changeHA
-from plenum.common.types import HA
+from stp_core.types import HA
 from plenum.common.util import getMaxFailures
 from plenum.common.eventually import eventually
 from plenum.test.helper import checkSufficientRepliesRecvd

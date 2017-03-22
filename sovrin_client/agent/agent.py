@@ -1,19 +1,17 @@
 import asyncio
+import os
 from typing import Dict
 from typing import Tuple
-import os
 
+from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from plenum.common.error import fault
 from plenum.common.exceptions import RemoteNotFound
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
-from plenum.common.port_dispenser import genHa
 from plenum.common.startable import Status
 from plenum.common.types import Identifier
 from plenum.common.util import randomString
-
-from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
 from sovrin_client.agent.endpoint import ZEndpoint, Endpoint
@@ -23,10 +21,11 @@ from sovrin_client.anon_creds.sovrin_prover import SovrinProver
 from sovrin_client.anon_creds.sovrin_verifier import SovrinVerifier
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_common.config import agentLoggingLevel
 from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
 from sovrin_common.strict_types import strict_types, decClassMethods
-from sovrin_common.config import agentLoggingLevel
+from stp_core.network.port_dispenser import genHa
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)

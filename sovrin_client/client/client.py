@@ -9,11 +9,12 @@ from base58 import b58decode, b58encode
 from plenum.client.client import Client as PlenumClient
 from plenum.common.error import fault
 from plenum.common.log import getlogger
-from plenum.common.stacked import SimpleStack
+from plenum.common.stacked import SimpleRStack
 from plenum.common.startable import Status
 from plenum.common.txn import REPLY, STEWARD, NAME, VERSION, REQACK, REQNACK, \
     TXN_ID, TARGET_NYM, NONCE
-from plenum.common.types import OP_FIELD_NAME, f, HA
+from plenum.common.types import OP_FIELD_NAME, f
+from stp_core.types import HA
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
@@ -60,8 +61,8 @@ class Client(PlenumClient):
                              auto=AutoMode.always)
             self.peerMsgRoutes = []
             self.peerMsgRouter = Router(*self.peerMsgRoutes)
-            self.peerStack = SimpleStack(stackargs,
-                                         msgHandler=self.handlePeerMessage)
+            self.peerStack = SimpleRStack(stackargs,
+                                          msgHandler=self.handlePeerMessage)
             self.peerStack.sign = self.sign
             self.peerInbox = deque()
         self._observers = {}  # type Dict[str, Callable]

@@ -1,12 +1,8 @@
-from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
-from plenum.common.txn import PUBKEY
-from plenum.common.types import HA
-
 from sovrin_client.agent.endpoint import Endpoint
-from sovrin_client.agent.helper import friendlyVerkeyToPubkey
-from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.strict_types import strict_types
+from stp_core.network.port_dispenser import genHa
 
 strict_types.defaultShouldCheck = True
 

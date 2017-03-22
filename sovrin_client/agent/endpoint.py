@@ -2,8 +2,8 @@ from typing import Callable, Any, List
 
 from plenum.common.log import getlogger
 from plenum.common.raet import getHaFromLocalEstate
-from plenum.common.stacked import SimpleStack
-from plenum.common.types import HA
+from plenum.common.stacked import SimpleRStack
+from stp_core.types import HA
 from plenum.common.util import randomString, friendlyToRaw, randomSeed
 from plenum.common.zstack import SimpleZStack
 from raet.raeting import AutoMode
@@ -41,7 +41,7 @@ class EndpointCore:
             self.transmitToClient(msg, nm)
 
 
-class Endpoint(SimpleStack, EndpointCore):
+class Endpoint(SimpleRStack, EndpointCore):
     def __init__(self, port: int, msgHandler: Callable,
                  name: str=None, basedirpath: str=None):
         if name and basedirpath:
@@ -59,7 +59,7 @@ class Endpoint(SimpleStack, EndpointCore):
         if basedirpath:
             stackParams["basedirpath"] = basedirpath
 
-            SimpleStack.__init__(self, stackParams, self.baseMsgHandler)
+            SimpleRStack.__init__(self, stackParams, self.baseMsgHandler)
 
         self.msgHandler = msgHandler
 

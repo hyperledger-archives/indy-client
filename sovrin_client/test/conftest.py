@@ -1,5 +1,4 @@
 from plenum.common.eventually import eventually
-from plenum.common.port_dispenser import genHa
 from plenum.common.raet import initLocalKeep
 from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
@@ -7,8 +6,8 @@ from plenum.test.node_catchup.helper import \
     ensureClientConnectedToNodesAndPoolLedgerSame
 from plenum.test.test_node import checkNodesConnected
 from sovrin_client.client.wallet.node import Node
-
 from sovrin_common import strict_types
+from stp_core.network.port_dispenser import genHa
 
 # typecheck during tests
 strict_types.defaultShouldCheck = True

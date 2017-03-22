@@ -64,10 +64,10 @@ class BaseAgent(TestWalletedAgent):
         if os.path.isfile(claimVersionFilePath):
             try:
                 with open(claimVersionFilePath, mode='r+') as file:
-                    claimVersionNumber = float(file.read()) + 0.001
+                    self.claimVersionNumber = float(file.read()) + 0.001
                     file.seek(0)
                     # increment version and update file
-                    file.write(str(claimVersionNumber))
+                    file.write(str(self.claimVersionNumber))
                     file.truncate()
             except OSError as e:
                 self.logger.warn('Error occurred while reading version file: '

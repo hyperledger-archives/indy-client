@@ -40,3 +40,14 @@ def buildAcmeWallet():
 def buildThriftWallet():
     return buildAgentWallet("ThriftBank", b'Thrift00000000000000000000000000')
 
+
+async def bootstrap_schema(agent, attrib_def_name, schema_name, schema_version, p_prime, q_prime):
+    schema_id = await agent.publish_schema(attrib_def_name,
+                                           schema_name=schema_name,
+                                           schema_version=schema_version)
+
+    _, _ = await agent.publish_issuer_keys(schema_id, p_prime=p_prime, q_prime=q_prime)
+
+    await agent.publish_revocation_registry(schema_id=schema_id)
+
+    return schema_id

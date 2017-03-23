@@ -63,7 +63,6 @@ class AgentIssuer:
         self.signAndSend(resp, link.localIdentifier, frm,
                          origReqId=body.get(f.REQ_ID.nm))
 
-    @abstractmethod
     def _add_attribute(self, schemaKey, proverId, link):
         attr = self.issuer_backend.get_record_by_internal_id(link.internalId)
         self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,

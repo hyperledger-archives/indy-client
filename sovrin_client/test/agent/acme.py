@@ -1,131 +1,124 @@
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
+from sovrin_client.agent.runnable_agent import RunnableAgent
+from sovrin_client.agent.agent import create_client
+from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
-from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
-    ID
-from sovrin_client.agent.agent import createAgent
-from sovrin_client.client.client import Client
-from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.agent.base_agent import BaseAgent
-from sovrin_client.test.agent.helper import buildAcmeWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.test.helper import primes
+from sovrin_client.test.agent.helper import buildFaberWallet, bootstrap_schema
 from sovrin_client.test.helper import TestClient
+
+from anoncreds.protocol.types import AttribType, AttribDef, ID
 
 logger = getlogger()
 
+schema_id = None
 
-class AcmeAgent(BaseAgent):
-    def __init__(self,
-                 basedirpath: str,
-                 client: Client = None,
-                 wallet: Wallet = None,
-                 port: int = None,
-                 loop=None):
-
-        portParam, = self.get_passed_args()
-
-        super().__init__('Acme Corp', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
-
-        # maps invitation nonces to internal ids
-        self._invites = {
-            "57fbf9dc8c8e6acde33de98c6d747b28c": 1,
-            "3a2eb72eca8b404e8d412c5bf79f2640": 2,
-            "8513d1397e87cada4214e2a650f603eb": 3,
-            "810b78be79f29fc81335abaa4ee1c5e8": 4
-        }
-
-        self._attrDefJobCert = AttribDef('Job-Certificate',
-                  [AttribType('first_name', encode=True),
-                   AttribType('last_name', encode=True),
-                   AttribType('employee_status', encode=True),
-                   AttribType('experience', encode=True),
-                   AttribType('salary_bracket', encode=True)])
-
-        self._attrDefJobApp = AttribDef('Job-Application',
-                      [AttribType('first_name', encode=True),
-                       AttribType('last_name', encode=True),
-                       AttribType('phone_number', encode=True),
-                       AttribType('degree', encode=True),
-                       AttribType('status', encode=True),
-                       AttribType('ssn', encode=True)])
-
-        # maps internal ids to attributes
-        self._attrs = {
-            1: self._attrDefJobCert.attribs(
-                first_name="Alice",
-                last_name="Garcia",
-                employee_status="Permanent",
-                experience="3 years",
-                salary_bracket="between $50,000 to $100,000"),
-            2: self._attrDefJobCert.attribs(
-                first_name="Carol",
-                last_name="Atkinson",
-                employee_status="Permanent",
-                experience="2 years",
-                salary_bracket="between $60,000 to $90,000"),
-            3: self._attrDefJobCert.attribs(
-                first_name="Frank",
-                last_name="Jeffrey",
-                employee_status="Temporary",
-                experience="4 years",
-                salary_bracket="between $40,000 to $80,000"),
-            4: self._attrDefJobCert.attribs(
-                first_name="Craig",
-                last_name="Richards",
-                employee_status="On Contract",
-                experience="3 years",
-                salary_bracket="between $50,000 to $70,000")
-        }
-
-    def getAttrDefs(self):
-        return [self._attrDefJobCert, self._attrDefJobApp]
-
-    def getAttrs(self):
-        return self._attrs
-
-    def getSchemaKeysToBeGenerated(self):
-        return [SchemaKey("Job-Certificate", "0.2",
-                          self.wallet.defaultId),
-                SchemaKey("Job-Application", "0.2",
-                          self.wallet.defaultId)]
-
-    def getSchemaKeysForClaimsAvailableToAll(self):
-        return []
-
+class AcmeAgent(WalletedAgent):
     async def postClaimVerif(self, claimName, link, frm):
-        nac = await self.newAvailableClaimsPostClaimVerif(claimName)
-        oldClaims = self.availableClaimsByIdentifier.get(link.remoteIdentifier)
-        if not oldClaims:
-            oldClaims = []
-        oldClaims.extend(nac)
-        self.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
-        self.sendNewAvailableClaimsData(nac, frm, link)
-
-    async def newAvailableClaimsPostClaimVerif(self, claimName):
         if claimName == "Job-Application":
-            return await self.getNewAvailableClaimList("Job-Certificate")
 
-    async def getNewAvailableClaimList(self, claimName):
-        availClaims = []
-        for sk in [sk for sk in self.getSchemaKeysToBeGenerated()
-                   if sk.name == claimName]:
-            schema = await self.issuer.wallet.getSchema(ID(sk))
-            availClaims.append({
-                NAME: schema.name,
-                VERSION: schema.version,
-                "schemaSeqNo": schema.seqId
-            })
-        return availClaims
+            for schema in await self.issuer.wallet.getAllSchemas():
+
+                if schema.name == 'Job-Certificate':
+                    await self.set_available_claim(link.internalId,
+                                                   ID(schemaKey=schema.getKey(), schemaId=schema.seqId))
+
+                    claims = self.get_available_claim_list(link)
+                    self.sendNewAvailableClaimsData(claims, frm, link)
 
 
-def createAcme(name=None, wallet=None, basedirpath=None, port=None):
-    return createAgent(AcmeAgent, name or "Acme Corp",
-                       wallet or buildAcmeWallet(),
-                       basedirpath, port, clientClass=TestClient)
+def create_acme(name=None, wallet=None, base_dir_path=None, port=None):
+
+    client = create_client(base_dir_path=None, client_class=TestClient)
+
+    agent = AcmeAgent(name=name or "Faber College",
+                       basedirpath=base_dir_path,
+                       client=client,
+                       wallet=wallet or buildFaberWallet(),
+                       port=port)
+
+    # maps invitation nonces to internal ids
+    agent._invites = {
+        "57fbf9dc8c8e6acde33de98c6d747b28c": 1,
+        "3a2eb72eca8b404e8d412c5bf79f2640": 2,
+        "8513d1397e87cada4214e2a650f603eb": 3,
+        "810b78be79f29fc81335abaa4ee1c5e8": 4
+    }
+
+    job_cert_def = AttribDef('Job-Certificate',
+                             [AttribType('first_name', encode=True),
+                              AttribType('last_name', encode=True),
+                              AttribType('employee_status', encode=True),
+                              AttribType('experience', encode=True),
+                              AttribType('salary_bracket', encode=True)])
+
+    job_appl_def = AttribDef('Job-Application',
+                             [AttribType('first_name', encode=True),
+                              AttribType('last_name', encode=True),
+                              AttribType('phone_number', encode=True),
+                              AttribType('degree', encode=True),
+                              AttribType('status', encode=True),
+                              AttribType('ssn', encode=True)])
+
+    agent.add_attribute_definition(job_cert_def)
+    agent.add_attribute_definition(job_appl_def)
+
+    backend = MockBackendSystem(job_cert_def)
+    backend.add_record(1,
+                       first_name="Alice",
+                       last_name="Garcia",
+                       employee_status="Permanent",
+                       experience="3 years",
+                       salary_bracket="between $50,000 to $100,000")
+
+    backend.add_record(2,
+                       first_name="Carol",
+                       last_name="Atkinson",
+                       employee_status="Permanent",
+                       experience="2 years",
+                       salary_bracket="between $60,000 to $90,000")
+
+    backend.add_record(3,
+                       first_name="Frank",
+                       last_name="Jeffrey",
+                       employee_status="Temporary",
+                       experience="4 years",
+                       salary_bracket="between $40,000 to $80,000")
+
+    backend.add_record(4,
+                       first_name="Craig",
+                       last_name="Richards",
+                       employee_status="On Contract",
+                       experience="3 years",
+                       salary_bracket="between $50,000 to $70,000")
+
+    agent.set_issuer_backend(backend)
+
+    return agent
+
+async def bootstrap_acme(agent):
+    await bootstrap_schema(agent,
+                           'Job-Certificate',
+                           'Job-Certificate',
+                           '0.2',
+                           primes["prime1"][0],
+                           primes["prime1"][1])
+
+    await bootstrap_schema(agent,
+                           'Job-Application',
+                           'Job-Application',
+                           '0.2',
+                           primes["prime2"][0],
+                           primes["prime2"][1])
 
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
-        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
-        port=6666, looper=None, clientClass=TestClient)
+    args = RunnableAgent.parser_cmd_args()
+
+    port = args[0]
+    if port is None:
+        port = 6666
+    agent = create_acme(name='Acme Corp', wallet=buildFaberWallet(), base_dir_path=None, port=port)
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_acme(agent))
+

@@ -1,34 +1,16 @@
-from plenum.common.log import getlogger
-
-from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from sovrin_client.client.client import Client
-from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.agent.base_agent import BaseAgent
-from sovrin_client.test.agent.helper import buildThriftWallet
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from plenum.common.log import getlogger
+from sovrin_client.agent.runnable_agent import RunnableAgent
+from sovrin_client.agent.agent import create_client
+
+from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
 
-class ThriftAgent(BaseAgent):
-    def __init__(self,
-                 basedirpath: str,
-                 client: Client = None,
-                 wallet: Wallet = None,
-                 port: int = None,
-                 loop=None):
-
-        portParam, = self.get_passed_args()
-
-        super().__init__('Thrift Bank', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
-
-        # maps invitation nonces to internal ids
-        self._invites = {
-            "77fbf9dc8c8e6acde33de98c6d747b28c": 1
-        }
+class ThriftAgent(WalletedAgent):
 
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
@@ -38,17 +20,31 @@ class ThriftAgent(BaseAgent):
                                       "'Loan-Application-KYC'\n",
                                       self.wallet.defaultId, frm)
 
-    async def bootstrap(self):
-        pass
 
+def create_thrift(name=None, wallet=None, base_dir_path=None, port=None):
 
-def createThrift(name=None, wallet=None, basedirpath=None, port=None):
-    return createAgent(ThriftAgent, name or "Thrift Bank",
-                       wallet or buildThriftWallet(),
-                       basedirpath, port, clientClass=TestClient)
+    client = create_client(base_dir_path=None, client_class=TestClient)
 
+    agent = ThriftAgent(name=name or 'Thrift Bank',
+                       basedirpath=base_dir_path,
+                       client=client,
+                       wallet=wallet or buildFaberWallet(),
+                       port=port)
+
+    agent._invites = {
+        "77fbf9dc8c8e6acde33de98c6d747b28c": 1
+    }
+
+    return agent
+
+async def bootstrap_thrift(agent):
+    pass
 
 if __name__ == "__main__":
-    TestWalletedAgent.createAndRunAgent(
-        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), basedirpath=None,
-        port=7777, looper=None, clientClass=TestClient)
+    args = RunnableAgent.parser_cmd_args()
+    port = args[0]
+    if port is None:
+        port = 7777
+    agent = create_thrift(name='Thrift Bank', wallet=buildFaberWallet(), base_dir_path=None, port=port)
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_thrift(agent))
+

@@ -19,7 +19,7 @@ from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
 
 # noinspection PyUnresolvedReferences
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, \
+    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, acmeBootstrap, \
     acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, faberBootstrap, \
     acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
     thriftAgent, agentIpAddress
@@ -1104,9 +1104,9 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
 
 @pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet,
-                   acmeAddedByPhil, acmeAgent):
+                   acmeAddedByPhil, acmeAgent, acmeBootstrap):
     acme, acmeWallet = runningAcme(emptyLooper, tdirWithPoolTxns,
-                                   acmeWallet, acmeAgent, acmeAddedByPhil)
+                                   acmeWallet, acmeAgent, acmeAddedByPhil, acmeBootstrap)
 
     return acme, acmeWallet
 

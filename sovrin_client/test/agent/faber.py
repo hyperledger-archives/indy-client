@@ -1,6 +1,7 @@
 from plenum.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
+from sovrin_client.test.agent.helper import bootstrap_schema
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
 from anoncreds.protocol.types import AttribType, AttribDef
@@ -73,20 +74,12 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=None):
     return agent
 
 async def bootstrap_faber(agent):
-    schema_id = await agent.publish_schema('Transcript',
-                                           schema_name='Transcript',
-                                           schema_version='1.2')
-
-    # NOTE: do NOT use known primes in a non-test environment
-    issuer_pub_key, revocation_pub_key = await agent.publish_issuer_keys(schema_id,
-                                                                         p_prime=primes["prime1"][0],
-                                                                         q_prime=primes["prime1"][1])
-    print(issuer_pub_key)
-    print(revocation_pub_key)
-
-    accPK = await agent.publish_revocation_registry(schema_id=schema_id)
-
-    print(accPK)
+    schema_id = await bootstrap_schema(agent,
+                                 'Transcript',
+                                 'Transcript',
+                                 '1.2',
+                                 primes["prime1"][0],
+                                 primes["prime1"][1])
 
     await agent.set_available_claim(1, schema_id)
     await agent.set_available_claim(2, schema_id)
@@ -95,7 +88,8 @@ async def bootstrap_faber(agent):
 
 
 if __name__ == "__main__":
-    port = RunnableAgent.parser_cmd_args()
+    args = RunnableAgent.parser_cmd_args()
+    port = args[0]
     if port is None:
         port = 5555
     agent = create_faber(name="Faber College", wallet=buildFaberWallet(), base_dir_path=None, port=port)

@@ -3,6 +3,8 @@ import logging
 import re
 
 import pytest
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
 from plenum.common.roles import Roles
@@ -11,11 +13,11 @@ from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
 
-from sovrin_client.test.agent.acme import AcmeAgent
-from sovrin_client.test.agent.faber import FaberAgent
+from sovrin_client.test.agent.acme import AcmeAgent, create_acme, bootstrap_acme
+# from sovrin_client.test.agent.faber import FaberAgent
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
     buildThriftWallet
-from sovrin_client.test.agent.thrift import ThriftAgent
+from sovrin_client.test.agent.thrift import ThriftAgent, create_thrift, bootstrap_thrift
 from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
@@ -99,20 +101,22 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     tMap = thriftMap(agentIpAddress, thriftAgentPort)
 
     agentParams = [
-        (FaberAgent, "Faber College", faberAgentPort,
-         buildFaberWallet),
-        (AcmeAgent, "Acme Corp", acmeAgentPort,
-         buildAcmeWallet),
-        (ThriftAgent, "Thrift Bank", thriftAgentPort,
-         buildThriftWallet)
+        (create_faber, "Faber College", faberAgentPort,
+         buildFaberWallet, bootstrap_faber),
+        (create_acme, "Acme Corp", acmeAgentPort,
+         buildAcmeWallet, bootstrap_acme),
+        (create_thrift, "Thrift Bank", thriftAgentPort,
+         buildThriftWallet, bootstrap_thrift)
     ]
 
-    for agentCls, agentName, agentPort, buildAgentWalletFunc in \
-            agentParams:
-        agentCls.get_passed_args = lambda _: (agentPort,)
-        TestWalletedAgent.run_agent(
-            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
-            philCLI.looper, TestClient)
+    for create_agent_fuc, agentName, agentPort, buildAgentWalletFunc, bootstrap_func in agentParams:
+        # agentCls.get_passed_args = lambda _: (agentPort,)
+        agent = create_agent_fuc(name=agentName, wallet=buildAgentWalletFunc(),
+                                 base_dir_path=tdir, port=agentPort)
+        RunnableAgent.run_agent(agent, bootstrap=bootstrap_func(agent), looper=philCLI.looper)
+        # TestWalletedAgent.run_agent(
+        #     agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+        #     philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':
@@ -129,7 +133,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema
         assert schema.seqId
 
-        issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
+        issuerKey = await faberAgent.issuer.wallet.getPublicKey(schemaId)
         assert issuerKey
 
     async def checkJobCertWritten():

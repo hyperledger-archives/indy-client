@@ -200,7 +200,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             link.remoteEndPoint = remoteHa
         return link
 
-    @abstractmethod
     def get_internal_id_by_nonce(self, nonce):
         if nonce in self._invites:
             return self._invites[nonce]

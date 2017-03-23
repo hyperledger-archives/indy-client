@@ -29,11 +29,11 @@ from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.txn import ENDPOINT
-from sovrin_client.test.agent.acme import createAcme
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
     buildAcmeWallet, buildThriftWallet
-from sovrin_client.test.agent.thrift import createThrift
+from sovrin_client.test.agent.thrift import create_thrift
 from sovrin_node.test.helper import addAttributeAndCheck
 from sovrin_client.test.helper import createNym, TestClient
 
@@ -165,6 +165,10 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
 def faberBootstrap(faberAgent):
     return bootstrap_faber(faberAgent)
 
+@pytest.fixture(scope="module")
+def acmeBootstrap(acmeAgent):
+    return bootstrap_acme(acmeAgent)
+
 
 @pytest.fixture(scope="module")
 def faberAdded(nodeSet,
@@ -193,8 +197,8 @@ def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
 
 @pytest.fixture(scope="module")
 def acmeAgent(tdirWithPoolTxns, acmeAgentPort, acmeWallet):
-    return createAcme(acmeWallet.name, acmeWallet,
-                      basedirpath=tdirWithPoolTxns,
+    return create_acme(acmeWallet.name, acmeWallet,
+                      base_dir_path=tdirWithPoolTxns,
                       port=acmeAgentPort)
 
 
@@ -209,14 +213,14 @@ def acmeAdded(nodeSet,
 
 @pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet, acmeAgent,
-                  acmeAdded):
-    return startAgent(emptyLooper, acmeAgent, acmeWallet)
+                  acmeAdded, acmeBootstrap):
+    return startAgent(emptyLooper, acmeAgent, acmeWallet, bootstrap=acmeBootstrap)
 
 
 @pytest.fixture(scope="module")
 def thriftAgent(tdirWithPoolTxns, thriftAgentPort, thriftWallet):
-    return createThrift(thriftWallet.name, thriftWallet,
-                        basedirpath=tdirWithPoolTxns,
+    return create_thrift(thriftWallet.name, thriftWallet,
+                        base_dir_path=tdirWithPoolTxns,
                         port=thriftAgentPort)
 
 

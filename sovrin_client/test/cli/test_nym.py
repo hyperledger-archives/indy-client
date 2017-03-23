@@ -1,9 +1,8 @@
 import pytest
-from plenum.common.roles import Roles
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import TRUST_ANCHOR
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.cli.helper import prompt_is
+from sovrin_common.roles import Roles
 from sovrin_node.test.did.conftest import wallet, abbrevVerkey, abbrevIdr
 
 

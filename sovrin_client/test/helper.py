@@ -9,8 +9,8 @@ from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import REQNACK
-from plenum.common.types import OP_FIELD_NAME, f, Identifier, HA
+from plenum.common.constants import REQNACK, OP_FIELD_NAME
+from plenum.common.types import f, Identifier, HA
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.common.eventually import eventually
 from plenum.test.helper import initDirWithGenesisTxns
@@ -27,7 +27,7 @@ from sovrin_common.constants import Environment
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client
-from sovrin_common.txn import NULL
+from sovrin_common.constants import NULL
 
 logger = getlogger()
 

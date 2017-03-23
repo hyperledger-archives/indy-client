@@ -1,5 +1,5 @@
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
     ID
@@ -76,6 +76,22 @@ class AcmeAgent(BaseAgent):
                 employee_status="On Contract",
                 experience="3 years",
                 salary_bracket="between $50,000 to $70,000")
+        }
+
+        self._proofRequestsSchema = {
+            "Job-Application-v0.2": {
+                "name": "Job-Application",
+                "version": "0.2",
+                "attributes": {
+                    "first_name": "string",
+                    "last_name": "string",
+                    "phone_number": "string",
+                    "degree": "string",
+                    "status": "string",
+                    "ssn": "string"
+                },
+                "verifiableAttributes": ["degree", "status", "ssn"]
+            }
         }
 
     def getAttrDefs(self):

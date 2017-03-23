@@ -11,12 +11,12 @@ from plenum.common.exceptions import BlowUp
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
-from plenum.common.roles import Roles
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
     tdirWithDomainTxns, poolTxnNodeNames
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.roles import Roles
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -126,21 +126,25 @@ def faberMap(agentIpAddress, faberAgentPort):
 def acmeMap(agentIpAddress, acmeAgentPort):
     endpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
     return {'inviter': 'Acme Corp',
-            'invite': "sample/acme-job-application.sovrin",
-            'invite-not-exists': "sample/acme-job-application.sovrin.not.exists",
-            'inviter-not-exists': "non-existing-inviter",
-            "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
-            "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
+            'invite': 'sample/acme-job-application.sovrin',
+            'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
+            'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
+            'inviter-not-exists': 'non-existing-inviter',
+            'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
             ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "proof-requests": "Job-Application",
-            "proof-request-to-show": "Job-Application",
-            "claim-ver-req-to-show": "0.2",
-            "proof-req-to-match": "Job-Application",
-            "claims": "<claim-name>",
-            "rcvd-claim-transcript-provider": "Faber College",
-            "rcvd-claim-transcript-name": "Transcript",
-            "rcvd-claim-transcript-version": "1.2"
+            'endpointAttr': json.dumps({ENDPOINT: endpoint}),
+            'proof-requests': 'Job-Application',
+            'proof-request-to-show': 'Job-Application',
+            'claim-ver-req-to-show': '0.2',
+            'proof-req-to-match': 'Job-Application',
+            'claims': '<claim-name>',
+            'rcvd-claim-transcript-provider': 'Faber College',
+            'rcvd-claim-transcript-name': 'Transcript',
+            'rcvd-claim-transcript-version': '1.2',
+            'send-proof-target': '1',
+            'pr-name': 'Job-Application',
+            'pr-schema-version': '0.2'
             }
 
 
@@ -812,6 +816,7 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
+            "Verification key: ~",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",

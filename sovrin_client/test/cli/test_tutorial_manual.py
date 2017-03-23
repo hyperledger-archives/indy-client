@@ -6,9 +6,9 @@ import pytest
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from plenum.common.roles import Roles
+from sovrin_common.roles import Roles
 from sovrin_common.setup_util import Setup
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
 from sovrin_client.test.agent.acme import AcmeAgent
 from sovrin_client.test.agent.faber import FaberAgent

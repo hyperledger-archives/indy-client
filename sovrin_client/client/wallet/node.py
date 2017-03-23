@@ -1,4 +1,4 @@
-from plenum.common.txn import TXN_TYPE, TARGET_NYM, NODE, DATA
+from plenum.common.constants import TXN_TYPE, TARGET_NYM, NODE, DATA
 from plenum.common.types import Identifier
 from sovrin_common.generates_request import GeneratesRequest
 from sovrin_common.types import Request

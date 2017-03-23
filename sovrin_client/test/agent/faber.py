@@ -81,10 +81,10 @@ async def bootstrap_faber(agent):
                                  primes["prime1"][0],
                                  primes["prime1"][1])
 
-    await agent.set_available_claim(1, schema_id)
-    await agent.set_available_claim(2, schema_id)
-    await agent.set_available_claim(3, schema_id)
-    await agent.set_available_claim(4, schema_id)
+    await agent._set_available_claim_by_internal_id(1, schema_id)
+    await agent._set_available_claim_by_internal_id(2, schema_id)
+    await agent._set_available_claim_by_internal_id(3, schema_id)
+    await agent._set_available_claim_by_internal_id(4, schema_id)
 
 
 if __name__ == "__main__":

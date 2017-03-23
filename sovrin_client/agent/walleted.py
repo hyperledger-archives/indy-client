@@ -3,16 +3,14 @@ import collections
 import inspect
 import json
 import time
-from abc import abstractmethod
 from datetime import datetime
-from functools import partial
-from typing import Dict, Union, NamedTuple, List
+from typing import Dict, Union, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
-from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
+from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, \
     TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
@@ -23,7 +21,7 @@ from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.verifier import Verifier
 from anoncreds.protocol.globals import TYPE_CL
-from anoncreds.protocol.types import AttribDef, ID
+from anoncreds.protocol.types import AttribDef, ID, SchemaKey
 from plenum.common.exceptions import NotConnectedToAny
 from plenum.common.txn import NAME, VERSION
 from sovrin_client.agent.agent_issuer import AgentIssuer
@@ -37,7 +35,7 @@ from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
@@ -104,7 +102,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self._invites = {}  # type: Dict[Nonce, InternalId]
         self._attribDefs = {}  # type: Dict[str, AttribDef]
         self.defined_claims = []  # type: List[Dict[str, Any]]
-        self.available_claims = {} # type: Dict[InternalId, List[ID]]
+        self.available_claims = {} # type: Dict[Identifier, List[ID]]
+        self.available_claims_by_internal_id = {}  # type: Dict[InternalId, List[ID]]
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
@@ -133,25 +132,40 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def is_claim_available(self, link, claim_name):
         return any(ac[NAME] == claim_name
-                   for ac in self.available_claims.get(link.internalId, {}))
+                   for ac in self.available_claims.get(link.remoteIdentifier, {}))
 
     async def _postClaimVerif(self, claimName, link, frm):
         link.verifiedClaimProofs.append(claimName)
         await self.postClaimVerif(claimName, link, frm)
 
-    async def set_available_claim(self, internal_id, schema_id):
+    async def _set_available_claim_by_internal_id(self, internal_id, schema_id):
         sd = await self.schema_dict_from_id(schema_id)
         try:
-            self.available_claims[internal_id].append(sd)
+            if not any(d == sd for d in self.available_claims_by_internal_id[internal_id]):
+                self.available_claims_by_internal_id[internal_id].append(sd)
         except KeyError:
-            self.available_claims[internal_id] = [sd]
+            self.available_claims_by_internal_id[internal_id] = [sd]
+
+    def _get_available_claim_list_by_internal_id(self, internal_id):
+        return self.available_claims_by_internal_id.get(internal_id, [])
+
+    def _set_available_claim_by_schema_dict(self, identifier, sd):
+        try:
+            if not any(d == sd for d in self.available_claims[identifier]):
+                self.available_claims[identifier].append(sd)
+        except KeyError:
+            self.available_claims[identifier] = [sd]
+
+    async def set_available_claim(self, identifier, schema_id):
+        sd = await self.schema_dict_from_id(schema_id)
+        self._set_available_claim_by_schema_dict(identifier, sd)
 
     def get_available_claim_list(self, link):
         li = self.wallet.getLinkBy(remote=link.remoteIdentifier)
         if li is None:
             return []
 
-        return self.available_claims.get(li.internalId, [])
+        return self.available_claims.get(li.remoteIdentifier, [])
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
         invalidSigResp = {
@@ -611,6 +625,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         self.signAndSend(resp, signingIdr, to, origReqId=origReqId)
 
+    def addClaimsAvailableAfterInviteAccept(self, link):
+        internal_id = self._invites.get(link.invitationNonce, None)
+        if internal_id:
+            schemas = self._get_available_claim_list_by_internal_id(internal_id)
+            for schema in schemas:
+                self._set_available_claim_by_schema_dict(link.remoteIdentifier, schema)
+
     def _handleAcceptance(self, msg):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
@@ -653,6 +674,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             #                       "    Already accepted",
             #                       link.verkey, frm)
         else:
+            self.addClaimsAvailableAfterInviteAccept(link)
             logger.debug(
                 "not added to the ledger, so add nym to the ledger "
                 "and then will send available claims")

@@ -23,7 +23,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationProofSent, \
-    jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
+    jobCertClaimRequested, bankBasicProofSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
 
@@ -224,7 +224,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         acceptInvitation(be, do, userCLI, tMap,
                          syncedInviteAcceptedOutWithoutClaims)
         # Send claims
-        bankBasicClaimSent(be, do, userCLI, tMap, None)
+        bankBasicProofSent(be, do, userCLI, tMap, None)
 
         thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(
             thriftAgent.issuer.wallet, acmeSchemaId))
@@ -244,9 +244,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    reqClaimOut1, syncLinkOutWithEndpoint,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
-
     aliceCLI.looper.runFor(3)
 
+    # Same flow is executed by different cli
     executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
                    aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
                    reqClaimOut1, syncLinkOutWithEndpoint,

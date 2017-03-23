@@ -242,7 +242,6 @@ def create_client(base_dir_path=None, client_class=Client):
     return client
 
 
-
 def runAgent(agent, looper=None, bootstrap=None):
     assert agent
 
@@ -250,7 +249,7 @@ def runAgent(agent, looper=None, bootstrap=None):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
         if bootstrap:
-            looper.run(bootstrap)
+            looper.run(runBootstrap(bootstrap))
 
     if looper:
         do_run(looper)
@@ -262,7 +261,7 @@ def runAgent(agent, looper=None, bootstrap=None):
 
 async def runBootstrap(bootstrapFunc):
     try:
-        await bootstrapFunc()
+        await bootstrapFunc
     except TimeoutError as exc:
         raise NoConsensusYet("consensus is not yet achieved, "
                              "check if sovrin is running and "

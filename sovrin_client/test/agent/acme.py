@@ -14,6 +14,7 @@ logger = getlogger()
 
 schema_id = None
 
+
 class AcmeAgent(WalletedAgent):
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Job-Application":
@@ -21,8 +22,9 @@ class AcmeAgent(WalletedAgent):
             for schema in await self.issuer.wallet.getAllSchemas():
 
                 if schema.name == 'Job-Certificate':
-                    await self.set_available_claim(link.internalId,
-                                                   ID(schemaKey=schema.getKey(), schemaId=schema.seqId))
+                    await self.set_available_claim(link.remoteIdentifier,
+                                                   ID(schemaKey=schema.getKey(),
+                                                      schemaId=schema.seqId))
 
                     claims = self.get_available_claim_list(link)
                     self.sendNewAvailableClaimsData(claims, frm, link)
@@ -119,6 +121,7 @@ if __name__ == "__main__":
     port = args[0]
     if port is None:
         port = 6666
-    agent = create_acme(name='Acme Corp', wallet=buildFaberWallet(), base_dir_path=None, port=port)
+    agent = create_acme(name='Acme Corp', wallet=buildFaberWallet(),
+                        base_dir_path=None, port=port)
     RunnableAgent.run_agent(agent, bootstrap=bootstrap_acme(agent))
 

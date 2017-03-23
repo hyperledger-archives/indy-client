@@ -874,7 +874,7 @@ def testAliceShowProofIncludeSingleClaim(
 
 
 @pytest.fixture(scope="module")
-def bankBasicClaimSent(be, do, aliceCli, thriftMap,
+def bankBasicProofSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)
@@ -884,13 +884,13 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
     sendProof(be, do, aliceCli, mapping, None, extraMsgs)
 
 
-def testAliceSendBankBasicClaim(bankBasicClaimSent):
+def testAliceSendBankBasicClaim(bankBasicProofSent):
     pass
 
 
 @pytest.fixture(scope="module")
 def bankKYCProofSent(be, do, aliceCli, thriftMap,
-                     bankBasicClaimSent):
+                     bankBasicProofSent):
     mapping = {}
     mapping.update(thriftMap)
     mapping["proof-req-to-match"] = "Loan-Application-KYC"

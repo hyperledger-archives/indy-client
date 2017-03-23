@@ -7,7 +7,7 @@ from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
+from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
     VALIDATOR, STEWARD
 from plenum.common.types import f
@@ -18,7 +18,7 @@ from plenum.test.testable import spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
-from sovrin_common.txn import NYM
+from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
 
 
@@ -151,12 +151,15 @@ def getPoolTxnData(nodeAndClientInfoFilePath, poolId, newPoolTxnNodeNames):
 
 def prompt_is(prompt):
     def x(cli):
-        assert cli.currPromptText == prompt
+        assert cli.currPromptText == prompt, \
+            "expected prompt: {}, actual prompt: {}".\
+                format(prompt, cli.currPromptText)
     return x
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None, unique_name=None, logFileName=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None,
+           logFileName=None, cliClass=TestCLI, name=None, agentCreator=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -173,13 +176,15 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
     from sovrin_node.test.helper import TestNode
-    return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
+    return newPlenumCLI(looper, tempDir, cliClass=cliClass,
                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-                        unique_name=unique_name, logFileName=logFileName)
+                        unique_name=unique_name, logFileName=logFileName,
+                        name=name, agentCreator=agentCreator)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  logFileName=None, multiPoolNodes=None):
+                  logFileName=None, multiPoolNodes=None, cliClass=TestCLI,
+                  name=None, agentCreator=None):
     def _(space,
           looper=None,
           unique_name=None):
@@ -192,7 +197,10 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                        domainDir=tdirWithDomainTxns,
                        multiPoolNodes=multiPoolNodes,
                        unique_name=unique_name or space,
-                       logFileName=logFileName)
+                       logFileName=logFileName,
+                       cliClass=cliClass,
+                       name=name,
+                       agentCreator=agentCreator)
             return c
         if looper:
             yield new()

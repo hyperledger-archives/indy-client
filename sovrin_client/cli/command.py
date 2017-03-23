@@ -1,64 +1,72 @@
 from plenum.cli.command import Command
-from plenum.common.roles import Roles
-from sovrin_common.txn import TRUST_ANCHOR
+from sovrin_common.roles import Roles
+from sovrin_common.transactions import SovrinTransactions
+
+nymName = SovrinTransactions.NYM.name
+getNymName = SovrinTransactions.GET_NYM.name
+attribName = SovrinTransactions.ATTRIB.name
+nodeName = SovrinTransactions.NODE.name
+schemaName = SovrinTransactions.SCHEMA.name
+poolUpgradeName = SovrinTransactions.POOL_UPGRADE.name
+issuerKeyName = SovrinTransactions.ISSUER_KEY.name
 
 sendNymCmd = Command(
-    id="send NYM",
+    id="send {nym}".format(nym=nymName),
     title="Adds given identifier to sovrin",
-    usage="send NYM dest=<target identifier> role=<role> [verkey=<ver-key>]",
+    usage="send {nym} dest=<target identifier> role=<role> [verkey=<ver-key>]".format(nym=nymName),
     examples=[
-        "send NYM dest=BiCMHDqC5EjheFHumZX9nuAoVEp8xyuBgiRi5JcY5whi role={role}".format(role=Roles.TRUST_ANCHOR.name),
-        "send NYM dest=33A18XMqWqTzDpLHXLR5nT verkey=~Fem61Q5SnYhGVVHByQNxHj"])
+        "send {nym} dest=BiCMHDqC5EjheFHumZX9nuAoVEp8xyuBgiRi5JcY5whi role={role}".format(nym=nymName,
+                                                                                          role=Roles.TRUST_ANCHOR.name),
+        "send {nym} dest=33A18XMqWqTzDpLHXLR5nT verkey=~Fem61Q5SnYhGVVHByQNxHj".format(nym=nymName)])
 
 sendGetNymCmd = Command(
-    id="send GET_NYM",
+    id="send {getNym}".format(getNym=getNymName),
     title="Get NYM from sovrin",
-    usage="send GET_NYM dest=<target identifier>",
-    examples="send GET_NYM dest=33A18XMqWqTzDpLHXLR5nT")
+    usage="send {getNym} dest=<target identifier>".format(getNym=getNymName),
+    examples="send {getNym} dest=33A18XMqWqTzDpLHXLR5nT".format(getNym=getNymName))
 
 sendAttribCmd = Command(
-    id="send ATTRIB",
+    id="send {attrib}".format(attrib=attribName),
     title="Adds attributes to existing identifier",
-    usage="send ATTRIB dest=<target identifier> [raw={<json-data>}] [hash=<hashed-data>] [enc: <encrypted-data>]",
-    examples='send ATTRIB dest=33A18XMqWqTzDpLHXLR5nT raw={"endpoint": "127.0.0.1:5555"}')
-
+    usage="send {attrib} dest=<target identifier> [raw={{<json-data>}}] [hash=<hashed-data>] [enc: <encrypted-data>]".format(
+        attrib=attribName),
+    examples='send {attrib} dest=33A18XMqWqTzDpLHXLR5nT raw={{"endpoint": "127.0.0.1:5555"}}'.format(attrib=attribName))
 
 sendNodeCmd = Command(
-    id="send NODE",
+    id="send {node}".format(node=nodeName),
     title="Adds a node to the pool",
-    usage="send NODE dest=<target node identifier> data={<json-data>}",
+    usage="send {node} dest=<target node identifier> data={{<json-data>}}".format(node=nodeName),
     note="Only Steward (must be already added on sovrin) can execute this command to add new node to the pool",
-    examples='send NODE dest=87Ys5T2eZfau4AATsBZAYvqwvD8XL5xYCHgg2o1ffjqg data={"services":["VALIDATOR"], "node_ip": "127.0.0.1", "node_port": 9711, "client_ip": "127.0.0.1", "client_port": 9712, "alias": "Node101"}')
-
+    examples='send {node} dest=87Ys5T2eZfau4AATsBZAYvqwvD8XL5xYCHgg2o1ffjqg data={{"services":["VALIDATOR"], "node_ip": "127.0.0.1", "node_port": 9711, "client_ip": "127.0.0.1", "client_port": 9712, "alias": "Node101"}}'.format(
+        node=nodeName))
 
 sendPoolUpgCmd = Command(
-    id="send POOL_UPGRADE",
+    id="send {poolUpgrade}".format(poolUpgrade=poolUpgradeName),
     title="Sends instructions to nodes to update themselves",
-    usage="send POOL_UPGRADE name=<name> version=<version> sha256=<sha256> action=<action> schedule=<schedule> timeout=<timeout>",
-    examples="send POOL_UPGRADE name=upgrade-01 "
-                              "version=0.0.1 sha256=aad1242 action=start "
-                              "schedule={'AtDfpKFe1RPgcr5nnYBw1Wxkgyn8Zjyh5MzFoEUTeoV3': "
-                              "'2017-01-25T12:49:05.258870+00:00', "
-                              "'4yC546FFzorLPgTNTc6V43DnpFrR8uHvtunBxb2Suaa2': "
-                              "'2017-01-25T12:33:53.258870+00:00', "
-                              "'JpYerf4CssDrH76z7jyQPJLnZ1vwYgvKbvcp16AB5RQ': "
-                              "'2017-01-25T12:44:01.258870+00:00', "
-                              "'DG5M4zFm33Shrhjj6JB7nmx9BoNJUq219UXDfvwBDPe2': "
-                              "'2017-01-25T12:38:57.258870+00:00'} "
-                              "timeout=10")
-
+    usage="send {poolUpgrade} name=<name> version=<version> sha256=<sha256> action=<action> schedule=<schedule> timeout=<timeout>".format(poolUpgrade=poolUpgradeName),
+    examples="send {poolUpgrade} name=upgrade-01 "
+             "version=0.0.1 sha256=aad1242 action=start "
+             "schedule={{'AtDfpKFe1RPgcr5nnYBw1Wxkgyn8Zjyh5MzFoEUTeoV3': "
+             "'2017-01-25T12:49:05.258870+00:00', "
+             "'4yC546FFzorLPgTNTc6V43DnpFrR8uHvtunBxb2Suaa2': "
+             "'2017-01-25T12:33:53.258870+00:00', "
+             "'JpYerf4CssDrH76z7jyQPJLnZ1vwYgvKbvcp16AB5RQ': "
+             "'2017-01-25T12:44:01.258870+00:00', "
+             "'DG5M4zFm33Shrhjj6JB7nmx9BoNJUq219UXDfvwBDPe2': "
+             "'2017-01-25T12:38:57.258870+00:00'}} "
+             "timeout=10".format(poolUpgrade=poolUpgradeName))
 
 sendSchemaCmd = Command(
-    id="send SCHEMA",
+    id="send {schema}".format(schema=schemaName),
     title="Adds schema to sovrin",
-    usage="send SCHEMA name=<schema-name> version=<version> type=<type> keys=<comma separated attributes>",
-    examples="send SCHEMA name=Degree version=1.0 type=CL keys=undergrad,last_name,first_name,birth_date,postgrad,expiry_date")
+    usage="send {schema} name=<schema-name> version=<version> type=<type> keys=<comma separated attributes>".format(schema=schemaName),
+    examples="send {schema} name=Degree version=1.0 type=CL keys=undergrad,last_name,first_name,birth_date,postgrad,expiry_date".format(schema=schemaName))
 
-sendIssuerCmd = Command(
-    id="send ISSUER_KEY",
+sendIssuerKeyCmd = Command(
+    id="send {issuerKey}".format(issuerKey=issuerKeyName),
     title="Adds issuer keys for given schema",
-    usage="send ISSUER_KEY ref=<ref-no-of-SCHEMA-txn>",
-    examples="send ISSUER_KEY ref=10")
+    usage="send {issuerKey} ref=<ref-no-of-SCHEMA-txn>".format(issuerKey=issuerKeyName),
+    examples="send {issuerKey} ref=10".format(issuerKey=issuerKeyName))
 
 sendProofRequestCmd = Command(
     id="send proofreq",
@@ -67,13 +75,13 @@ sendProofRequestCmd = Command(
     examples="send proofreq Over-21 to JaneDo")
 
 showFileCmd = Command(
-    id="show file",
+    id="show",
     title="Shows content of given file",
     usage="show <file-path>",
     examples="show sample/faber-invitation.sovrin")
 
 loadFileCmd = Command(
-    id="load file",
+    id="load",
     title="Creates the link",
     usage="load <file-path>",
     examples="load sample/faber-invitation.sovrin")
@@ -96,7 +104,7 @@ disconnectCmd = Command(
     usage="disconnect")
 
 syncLinkCmd = Command(
-    id="sync link",
+    id="sync",
     title="Synchronizes the link between the endpoints",
     usage="sync link <link-name>",
     examples="sync link faber")
@@ -119,6 +127,13 @@ listClaimsCmd = Command(
     usage="list claims <link-name>",
     examples="list claims faber")
 
+listLinksCmd = Command(
+    id='list links',
+    title='List available links in active wallet',
+    usage='list links',
+    examples='list links'
+)
+
 reqClaimCmd = Command(
     id="request claim",
     title="Request given claim",
@@ -132,13 +147,13 @@ showProofRequestCmd = Command(
     examples="show proof request Transcription")
 
 acceptLinkCmd = Command(
-    id="accept invitation",
+    id="accept invitation from",
     title="Accept invitation from given target",
     usage="accept invitation from <target>",
     examples="accept invitation from Faber")
 
 setAttrCmd = Command(
-    id="set attributes",
+    id="set",
     title="Sets given value to given attribute name",
     usage="set <attr-name> to <attr-value>",
     examples="set first_name to Alice")
@@ -152,12 +167,13 @@ sendProofCmd = Command(
 addGenesisTxnCmd = Command(
     id="add genesis transaction",
     title="Adds given genesis transaction",
-    usage="add genesis transaction NYM dest=<dest-identifier> [role=<role>]",
+    usage="add genesis transaction {nym} dest=<dest-identifier> [role=<role>]".format(nym=nymName),
     examples=[
-        'add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML',
-        'add genesis transaction NYM dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role={role}'.format(role=Roles.STEWARD.name),
-        'add genesis transaction NODE for 2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML by FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW with data '
-        '{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}'])
+        'add genesis transaction {nym} dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML'.format(nym=nymName),
+        'add genesis transaction {nym} dest=2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML role={role}'.format(
+            nym=nymName, role=Roles.STEWARD.name),
+        'add genesis transaction {node} for 2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML by FvDi9xQZd1CZitbK15BNKFbA7izCdXZjvxf91u3rQVzW with data '
+        '{{"node_ip": "localhost", "node_port": "9701", "client_ip": "localhost", "client_port": "9702", "alias": "AliceNode"}}'.format(node=nodeName)])
 
 newIdentifierCmd = Command(
     id="new identifier",
@@ -172,9 +188,8 @@ newIdentifierCmd = Command(
         "new identifier abbr with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "new identifier 4QxzWk3ajdnEA37NdNU5Kt with seed aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"])
 
-
 reqAvailClaimsCmd = Command(
-    id="request available claims",
+    id="request available claims from",
     title="Requests all available claims from given connection",
     usage="request available claims from <connection-name>",
     examples="request available claims from Faber"

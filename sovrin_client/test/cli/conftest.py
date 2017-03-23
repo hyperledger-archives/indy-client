@@ -11,7 +11,7 @@ from plenum.common.exceptions import BlowUp
 from plenum.common.log import getlogger
 from plenum.common.raet import initLocalKeep
 from plenum.common.eventually import eventually
-from plenum.common.roles import Roles
+from sovrin_common.roles import Roles
 
 # noinspection PyUnresolvedReferences
 from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
@@ -25,7 +25,7 @@ from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     thriftAgent, agentIpAddress
 
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
-from sovrin_common.txn import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from sovrin_client.test.helper import createNym, buildStewardClient
 
@@ -81,25 +81,29 @@ def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger)
                          logFileName=cliTempLogger)
 
 
+def getDefaultUserMap(name):
+    return {
+        'keyring-name': name,
+    }
+
 @pytest.fixture(scope="module")
 def aliceMap():
-    return {
-        'keyring-name': 'Alice',
-    }
+    return getDefaultUserMap("Alice")
 
 
 @pytest.fixture(scope="module")
 def earlMap():
-    return {
-        'keyring-name': 'Earl',
-    }
+    return getDefaultUserMap("Earl")
+
+
+@pytest.fixture(scope="module")
+def bobMap():
+    return getDefaultUserMap("Bob")
 
 
 @pytest.fixture(scope="module")
 def susanMap():
-    return {
-        'keyring-name': 'Susan',
-    }
+    return getDefaultUserMap("Susan")
 
 
 @pytest.fixture(scope="module")
@@ -123,21 +127,25 @@ def faberMap(agentIpAddress, faberAgentPort):
 def acmeMap(agentIpAddress, acmeAgentPort):
     endpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
     return {'inviter': 'Acme Corp',
-            'invite': "sample/acme-job-application.sovrin",
-            'invite-not-exists': "sample/acme-job-application.sovrin.not.exists",
-            'inviter-not-exists': "non-existing-inviter",
-            "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
-            "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
+            'invite': 'sample/acme-job-application.sovrin',
+            'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
+            'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
+            'inviter-not-exists': 'non-existing-inviter',
+            'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
             ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
-            "proof-requests": "Job-Application",
-            "proof-request-to-show": "Job-Application",
-            "claim-ver-req-to-show": "0.2",
-            "proof-req-to-match": "Job-Application",
-            "claims": "<claim-name>",
-            "rcvd-claim-transcript-provider": "Faber College",
-            "rcvd-claim-transcript-name": "Transcript",
-            "rcvd-claim-transcript-version": "1.2"
+            'endpointAttr': json.dumps({ENDPOINT: endpoint}),
+            'proof-requests': 'Job-Application',
+            'proof-request-to-show': 'Job-Application',
+            'claim-ver-req-to-show': '0.2',
+            'proof-req-to-match': 'Job-Application',
+            'claims': '<claim-name>',
+            'rcvd-claim-transcript-provider': 'Faber College',
+            'rcvd-claim-transcript-name': 'Transcript',
+            'rcvd-claim-transcript-version': '1.2',
+            'send-proof-target': '1',
+            'pr-name': 'Job-Application',
+            'pr-schema-version': '0.2'
             }
 
 
@@ -809,6 +817,7 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
+            "Verification key: ~",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",
@@ -829,6 +838,11 @@ def poolCLI_baby(CliBuilder):
 @pytest.yield_fixture(scope="module")
 def aliceCLI(CliBuilder):
     yield from CliBuilder("alice")
+
+
+@pytest.yield_fixture(scope="module")
+def bobCLI(CliBuilder):
+    yield from CliBuilder("bob")
 
 
 @pytest.yield_fixture(scope="module")

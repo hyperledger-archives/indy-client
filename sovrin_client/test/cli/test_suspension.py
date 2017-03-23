@@ -1,11 +1,10 @@
 from copy import copy
 
 import pytest
-from plenum.common.roles import Roles
 
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.test.cli.conftest import nymAddedOut
-
+from sovrin_common.roles import Roles
 
 vals = {
     'newTrusteeIdr': SimpleSigner().identifier,

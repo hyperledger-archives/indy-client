@@ -6,7 +6,7 @@ from plenum.common.log import Logger, getlogger
 from sovrin_client.agent.agent import runBootstrap, WalletedAgent
 from sovrin_client.agent.runnable_agent import RunnableAgent
 
-from plenum.common.txn import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 
 from anoncreds.protocol.types import ID
 from sovrin_client.agent.exception import NonceNotFound
@@ -62,10 +62,10 @@ class BaseAgent(WalletedAgent, RunnableAgent):
         if os.path.isfile(claimVersionFilePath):
             try:
                 with open(claimVersionFilePath, mode='r+') as file:
-                    claimVersionNumber = float(file.read()) + 0.001
+                    self.claimVersionNumber = float(file.read()) + 0.001
                     file.seek(0)
                     # increment version and update file
-                    file.write(str(claimVersionNumber))
+                    file.write(str(self.claimVersionNumber))
                     file.truncate()
             except OSError as e:
                 self.logger.warn('Error occurred while reading version file: '

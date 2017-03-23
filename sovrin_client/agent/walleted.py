@@ -10,7 +10,7 @@ from base58 import b58decode
 from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
-from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, \
+from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, \
     TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
@@ -21,9 +21,9 @@ from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.verifier import Verifier
 from anoncreds.protocol.globals import TYPE_CL
-from anoncreds.protocol.types import AttribDef, ID, SchemaKey
+from anoncreds.protocol.types import AttribDef, ID
 from plenum.common.exceptions import NotConnectedToAny
-from plenum.common.txn import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 from sovrin_client.agent.agent_issuer import AgentIssuer
 from sovrin_client.agent.backend import BackendSystem
 from sovrin_client.agent.agent_prover import AgentProver
@@ -35,7 +35,7 @@ from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
@@ -43,7 +43,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
     NotConnectedToNetwork, LinkNotReady, VerkeyNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
 
@@ -84,10 +84,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             CLAIM_REQUEST: self.processReqClaim,
             CLAIM: self.handleReqClaimResponse,
 
-            # TODO
-            # PROOF_REQUEST: some handler here
             PROOF: self.verifyProof,
             PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF_REQUEST: self.handleProofRequest,
 
             PONG: self._handlePong,
             INVITE_ACCEPTED: self._handleAcceptInviteResponse,
@@ -796,7 +795,23 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self.wallet.addLink(li)
         return li
 
-    def _mergeInvitation(self, invitationData):
+    def loadInvitationFile(self, filePath):
+        with open(filePath) as data_file:
+            invitationData = json.load(
+                data_file, object_pairs_hook=collections.OrderedDict)
+            linkInvitation = invitationData.get("link-invitation")
+            if not linkInvitation:
+                raise LinkNotFound
+            linkName = linkInvitation["name"]
+            existingLinkInvites = self.wallet. \
+                getMatchingLinks(linkName)
+            if len(existingLinkInvites) >= 1:
+                return self._mergeInvitaion(invitationData)
+            Link.validate(invitationData)
+            link = self.loadInvitation(invitationData)
+            return link
+
+    def _mergeInvitaion(self, invitationData):
         linkInvitation = invitationData.get('link-invitation')
         linkName = linkInvitation['name']
         link = self.wallet.getLink(linkName)

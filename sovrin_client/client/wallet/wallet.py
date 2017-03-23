@@ -10,7 +10,7 @@ from ledger.util import F
 from plenum.client.wallet import Wallet as PWallet
 from plenum.common.did_method import DidMethods
 from plenum.common.log import getlogger
-from plenum.common.txn import TXN_TYPE, TARGET_NYM, DATA, \
+from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
     IDENTIFIER, NYM, ROLE, VERKEY, NODE
 from plenum.common.types import Identifier, f
 
@@ -22,7 +22,7 @@ from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
+from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
 
 ENCODING = "utf-8"
 
@@ -59,6 +59,9 @@ class Wallet(PWallet, TrustAnchoring):
         # pending transactions that have been prepared (probably submitted)
         self._prepared = {}  # type: Dict[(Identifier, int), Request]
         self.lastKnownSeqs = {}  # type: Dict[str, int]
+
+        # dict for proof request schema Dict[str, Dict[str, any]]
+        self._proofRequestsSchema = None
 
         self.replyHandler = {
             ATTRIB: self._attribReply,
@@ -343,3 +346,6 @@ class Wallet(PWallet, TrustAnchoring):
         # TODO, Question: Should it consider self owned identities too or
         # should it just have identities that are retrieved from the DL
         return self.knownIds.get(idr)
+
+    def getLinkNames(self):
+        return list(self._links.keys())

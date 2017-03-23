@@ -5,7 +5,7 @@ from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.test.helper import primes
-from sovrin_client.test.agent.helper import buildFaberWallet, bootstrap_schema
+from sovrin_client.test.agent.helper import bootstrap_schema, buildAcmeWallet
 from sovrin_client.test.helper import TestClient
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID
@@ -34,10 +34,10 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=None):
 
     client = create_client(base_dir_path=None, client_class=TestClient)
 
-    agent = AcmeAgent(name=name or "Faber College",
+    agent = AcmeAgent(name=name or "Acme Corp",
                        basedirpath=base_dir_path,
                        client=client,
-                       wallet=wallet or buildFaberWallet(),
+                       wallet=wallet or buildAcmeWallet(),
                        port=port)
 
     # maps invitation nonces to internal ids
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     port = args[0]
     if port is None:
         port = 6666
-    agent = create_acme(name='Acme Corp', wallet=buildFaberWallet(),
+    agent = create_acme(name='Acme Corp', wallet=buildAcmeWallet(),
                         base_dir_path=None, port=port)
     RunnableAgent.run_agent(agent, bootstrap=bootstrap_acme(agent))
 

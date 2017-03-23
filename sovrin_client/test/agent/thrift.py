@@ -4,7 +4,7 @@ from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
 
 from sovrin_client.agent.agent import WalletedAgent
-from sovrin_client.test.agent.helper import buildFaberWallet
+from sovrin_client.test.agent.helper import buildThriftWallet
 from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
@@ -28,7 +28,7 @@ def create_thrift(name=None, wallet=None, base_dir_path=None, port=None):
     agent = ThriftAgent(name=name or 'Thrift Bank',
                        basedirpath=base_dir_path,
                        client=client,
-                       wallet=wallet or buildFaberWallet(),
+                       wallet=wallet or buildThriftWallet(),
                        port=port)
 
     agent._invites = {
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     port = args[0]
     if port is None:
         port = 7777
-    agent = create_thrift(name='Thrift Bank', wallet=buildFaberWallet(), base_dir_path=None, port=port)
+    agent = create_thrift(name='Thrift Bank', wallet=buildThriftWallet(),
+                          base_dir_path=None, port=port)
     RunnableAgent.run_agent(agent, bootstrap=bootstrap_thrift(agent))
 

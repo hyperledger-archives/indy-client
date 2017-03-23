@@ -1,6 +1,5 @@
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
-from plenum.common.txn import TRUST_ANCHOR
 
 from sovrin_common.strict_types import strict_types
 
@@ -28,7 +27,7 @@ from sovrin_client.agent.agent import runAgent
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
@@ -105,9 +104,14 @@ def aliceAgent(aliceWallet, agentBuilder):
     agent = agentBuilder(aliceWallet)
     return agent
 
+@pytest.fixture(scope="module")
+def aliceAdded(nodeSet, steward, stewardWallet,
+               emptyLooper, aliceAgent):
+    addAgentAndEndpoint(emptyLooper, aliceAgent, steward, stewardWallet)
+
 
 @pytest.fixture(scope="module")
-def aliceIsRunning(emptyLooper, aliceAgent):
+def aliceIsRunning(emptyLooper, aliceAgent, aliceAdded):
     emptyLooper.add(aliceAgent)
     return aliceAgent
 
@@ -164,6 +168,7 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
 @pytest.fixture(scope="module")
 def faberBootstrap(faberAgent):
     return bootstrap_faber(faberAgent)
+
 
 @pytest.fixture(scope="module")
 def acmeBootstrap(acmeAgent):
@@ -350,7 +355,7 @@ def checkAcceptInvitation(emptyLooper,
     Assumes link identified by linkName is already created
     """
     assert nonce
-    inviterAgent, inviterWallet = inviterAgentAndWallet # type: WalletedAgent, Wallet
+    inviterAgent, inviterWallet = inviterAgentAndWallet  # type: WalletedAgent, Wallet
 
     inviteeWallet = inviteeAgent.wallet
     inviteeAgent.connectTo(linkName)

@@ -1,6 +1,6 @@
 from typing import List
 
-from plenum.common.txn import NAME, NONCE
+from plenum.common.constants import NAME, NONCE
 from plenum.common.types import f
 from plenum.common.util import prettyDateDifference
 from sovrin_client.client.wallet.types import AvailableClaim

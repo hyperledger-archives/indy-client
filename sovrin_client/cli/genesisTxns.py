@@ -1,7 +1,7 @@
-from plenum.common.txn import STEWARD, TRUST_ANCHOR
+from plenum.common.constants import STEWARD, TXN_ID
 from plenum.common.types import f
 
-from sovrin_common.txn import TXN_TYPE, TARGET_NYM, ROLE, TXN_ID, NYM
+from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE, NYM, TRUST_ANCHOR
 
 STEWARD_SEED = b'steward seed used for signer....'
 TRUST_ANCHOR_SEED = b'sponsors are people too.........'

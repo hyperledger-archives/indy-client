@@ -4,14 +4,14 @@ from ledger.util import F
 from plenum.common.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
 from plenum.common.log import getlogger
-from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
+from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
     ORIGIN
 
 from anoncreds.protocol.repo.public_repo import PublicRepo
 from anoncreds.protocol.types import Schema, ID, PublicKey, \
     RevocationPublicKey, AccumulatorPublicKey, \
     Accumulator, TailsType, TimestampType
-from sovrin_common.txn import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
+from sovrin_common.constants import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
     GET_ISSUER_KEY, REF, ISSUER_KEY, PRIMARY, REVOCATION
 from sovrin_common.types import Request
 

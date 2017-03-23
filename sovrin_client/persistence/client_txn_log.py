@@ -1,10 +1,10 @@
 from typing import List
 
-from plenum.common.txn import TXN_TYPE
+from plenum.common.constants import TXN_TYPE
 from plenum.common.util import updateFieldsWithSeqNo
 from plenum.persistence.client_txn_log import ClientTxnLog as PClientTxnLog
 
-from sovrin_common.txn import getTxnOrderedFields
+from sovrin_common.txn_util import getTxnOrderedFields
 
 
 class ClientTxnLog(PClientTxnLog):

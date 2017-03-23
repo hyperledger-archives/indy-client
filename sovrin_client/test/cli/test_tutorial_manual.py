@@ -7,11 +7,11 @@ from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
-from plenum.common.roles import Roles
+from sovrin_common.roles import Roles
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
 from sovrin_client.test.agent.acme import AcmeAgent, create_acme, bootstrap_acme
 # from sovrin_client.test.agent.faber import FaberAgent

@@ -1,11 +1,16 @@
 import argparse
+import os
 import sys
 
+from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
-
+from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_common.config_util import getConfig
+
+config = getConfig()
 
 
 def connectAgents(agent1, agent2):

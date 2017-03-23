@@ -243,6 +243,11 @@ def test_end_to_end(tconf):
         print(issuer_pub_key)
         print(revocation_pub_key)
 
+        accPK = run_async(bank_agent.publish_revocation_registry(
+            schema_id=schema_id))
+
+        print(accPK)
+
         run_async(bank_agent.set_available_claim(alices_id_in_banks_system, schema_id))
         run_async(bank_agent.set_available_claim(bobs_id_in_banks_system, schema_id))
 

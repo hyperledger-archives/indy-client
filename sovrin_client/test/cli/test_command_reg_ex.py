@@ -76,8 +76,9 @@ def testSendAttribRegEx(grammar):
 
 
 def testAddAttrRegEx(grammar):
-    getMatchedVariables(grammar,
-                        "add attribute first_name=Tyler,last_name=Ruff,birth_date=12/17/1991,undergrad=True,postgrad=True,expiry_date=12/31/2101 for Tyler")
+    getMatchedVariables(
+        grammar,
+        "add attribute first_name=Tyler,last_name=Ruff,birth_date=12/17/1991,undergrad=True,postgrad=True,expiry_date=12/31/2101 for Tyler")
 
 
 def testAddAttrProverRegEx(grammar):
@@ -199,49 +200,9 @@ def testProofReqRegEx(grammar):
 
 def testSendProofReqRegEx(grammar):
     matchedVars = getMatchedVariables(grammar,
-                                      "send proofreq Over-21 to JaneDoe")
-    assertCliTokens(matchedVars, {"send_proof_req": "send proofreq",
-                                  "proof_name": "Over-21",
-                                  "target": " JaneDoe"})
-
-
-def testProofReqRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar,
-                                      "show proof request Transcript")
-    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
-                                  "proof_req_name": "Transcript"})
-
-    matchedVars = getMatchedVariables(grammar,
-                                      "show proof request Transcript ")
-    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
-                                  "proof_req_name": "Transcript "})
-
-
-def testSendProofReqRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar,
-                                      "send proofreq Over-21 to JaneDoe")
-    assertCliTokens(matchedVars, {"send_proof_req": "send proofreq",
-                                  "proof_name": "Over-21",
-                                  "target": " JaneDoe"})
-
-
-def testProofReqRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar,
-                                      "show proof request Transcript")
-    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
-                                  "proof_req_name": "Transcript"})
-
-    matchedVars = getMatchedVariables(grammar,
-                                      "show proof request Transcript ")
-    assertCliTokens(matchedVars, {"show_proof_req": "show proof request",
-                                  "proof_req_name": "Transcript "})
-
-
-def testSendProofReqRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar,
-                                      "send proofreq Over-21 to JaneDoe")
-    assertCliTokens(matchedVars, {"send_proof_req": "send proofreq",
-                                  "proof_name": "Over-21",
+                                      "send proof-request Over-21 to JaneDoe")
+    assertCliTokens(matchedVars, {"send_proof_req": "send proof-request",
+                                  "proof_request_name": "Over-21",
                                   "target": " JaneDoe"})
 
 
@@ -252,7 +213,7 @@ def testSetAttribute(grammar):
         "set_attr": "set", "attr_name": "first_name", "attr_value": "Alice"})
 
 
-def testSendClaim(grammar):
+def testSendProof(grammar):
     getMatchedVariables(grammar, 'send proof Job-Application to Acme')
 
 
@@ -369,4 +330,5 @@ def testReqAvailClaims(grammar):
 
     assertCliTokens(matchedVars, {
         "req_avail_claims": "request available claims from",
-        "link_name": "Faber"})
+        "link_name": "Faber"
+    })

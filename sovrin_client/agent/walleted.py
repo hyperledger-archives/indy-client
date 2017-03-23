@@ -32,7 +32,7 @@ from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
@@ -83,6 +83,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             PROOF: self.verifyProof,
             PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF_REQUEST: self.handleProofRequest,
 
             PONG: self._handlePong,
             INVITE_ACCEPTED: self._handleAcceptInviteResponse,

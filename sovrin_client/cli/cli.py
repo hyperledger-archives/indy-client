@@ -34,12 +34,13 @@ from anoncreds.protocol.types import Schema, ID
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
+from sovrin_client.agent.msg_constants import ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
 from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
     sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerKeyCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
     listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
-    sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd
+    sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd, listLinksCmd
 
 from sovrin_client.cli.helper import getNewClientGrams, \
     USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
@@ -140,6 +141,7 @@ class SovrinCli(PlenumCli):
             'ping_target'
             'show_claim',
             'list_claims',
+            'list_links',
             # 'show_claim_req',
             'show_proof_req',
             'req_claim',
@@ -182,8 +184,11 @@ class SovrinCli(PlenumCli):
         completers["set_attr"] = WordCompleter([setAttrCmd.id])
         completers["new_id"] = PhraseWordCompleter(newIdentifierCmd.id)
         completers["list_claims"] = PhraseWordCompleter(listClaimsCmd.id)
-        completers["show_proof_req"] = PhraseWordCompleter(showProofRequestCmd.id)
-        completers["send_proof_request"] = PhraseWordCompleter("send proof request")
+        completers["list_links"] = PhraseWordCompleter(listLinksCmd.id)
+        completers["show_proof_req"] = PhraseWordCompleter(
+            showProofRequestCmd.id)
+        completers["send_proof_request"] = PhraseWordCompleter(
+            sendProofRequestCmd.id)
         completers["send_proof"] = PhraseWordCompleter(sendProofCmd.id)
         completers["req_avail_claims"] = PhraseWordCompleter(reqAvailClaimsCmd.id)
 
@@ -214,6 +219,7 @@ class SovrinCli(PlenumCli):
                         self._pingTarget,
                         self._showClaim,
                         self._listClaims,
+                        self._listLinks,
                         self._reqClaim,
                         self._showProofRequest,
                         self._acceptInvitationLink,
@@ -382,12 +388,15 @@ class SovrinCli(PlenumCli):
             self._agent.client = client
         return client
 
+    def registerAgentListeners(self, agent):
+        agent.registerEventListener(EVENT_NOTIFY_MSG, self._printMsg)
+        agent.registerEventListener(EVENT_POST_ACCEPT_INVITE,
+                                          self._printSuggestionPostAcceptLink)
+        agent.registerEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
+                                          self._handleNotConnectedToAnyEnv)
+
     @property
     def agent(self) -> WalletedAgent:
-        # Assuming that creation of agent requires connection to Sovrin
-        # if not self.activeEnv:
-        #     self._printNotConnectedEnvMessage()
-        #     return None
         if self._agent is None:
             _, port = genHa()
             self._agent = WalletedAgent(name=randomString(6),
@@ -395,11 +404,7 @@ class SovrinCli(PlenumCli):
                                         client=self.activeClient if self.activeEnv else None,
                                         wallet=self.activeWallet,
                                         port=port)
-            self._agent.registerEventListener(EVENT_NOTIFY_MSG, self._printMsg)
-            self._agent.registerEventListener(EVENT_POST_ACCEPT_INVITE,
-                                              self._printSuggestionPostAcceptLink)
-            self._agent.registerEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
-                                              self._handleNotConnectedToAnyEnv)
+            self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
         return self._agent
 
@@ -1219,7 +1224,7 @@ class SovrinCli(PlenumCli):
     def _sendProof(self, matchedVars):
         if matchedVars.get('send_proof') == sendProofCmd.id:
             claimName = SovrinCli.removeSpecialChars(
-                matchedVars.get('claim_name').strip())  # TODO this should be proof_request_name, not claim_name
+                matchedVars.get('proof_name').strip())
             linkName = SovrinCli.removeSpecialChars(
                 matchedVars.get('link_name').strip())
 
@@ -1236,19 +1241,23 @@ class SovrinCli(PlenumCli):
             return True
 
     def _sendProofRequest(self, matchedVars):
-        if matchedVars.get('send_proof_req') == 'send proof request':
-            proofName = SovrinCli.removeSpecialChars(matchedVars.get('proof_name').strip())
-            target = SovrinCli.removeSpecialChars(matchedVars.get('target').strip())
+        if matchedVars.get('send_proof_req') == 'send proof-request':
+            proofRequestName = SovrinCli.removeSpecialChars(
+                matchedVars.get('proof_request_name').strip())
+            target = SovrinCli.removeSpecialChars(
+                matchedVars.get('target').strip())
 
-            li, proofReq = self._getOneLinkAndClaimReq(proofName, target)
+            li = self._getOneLinkForFurtherProcessing(target)
 
-            if not li or not proofReq:
-                return False
-
-            self.logger.debug("Building proof using {} for {}".
-                              format(proofReq, li))
-
-            self.agent.sendProofReq(li, proofReq)
+            if li:
+                result = self.agent.sendProofReq(li, proofRequestName)
+                if result != ERR_NO_PROOF_REQUEST_SCHEMA_FOUND:
+                    self.print('Sent proof request "{}" to {}'
+                               .format(proofRequestName, target))
+                else:
+                    self.print(ERR_NO_PROOF_REQUEST_SCHEMA_FOUND)
+            else:
+                self.print('No link found with name {}'.format(target))
 
             return True
 
@@ -1405,6 +1414,14 @@ class SovrinCli(PlenumCli):
             if li:
                 # TODO sync if needed, send msg to agent
                 self._printAvailClaims(li)
+            return True
+
+    def _listLinks(self, matchedVars):
+        if matchedVars.get('list_links') == listLinksCmd.id:
+            links = self.activeWallet.getLinkNames()
+            for link in links:
+                self.print(link)
+
             return True
 
     def _printAvailClaims(self, link):
@@ -1754,6 +1771,7 @@ class SovrinCli(PlenumCli):
         mappings['acceptInvitationLink'] = acceptLinkCmd
         mappings['showClaim'] = showClaimCmd
         mappings['listClaims'] = listClaimsCmd
+        mappings['listLinks'] = listLinksCmd
         mappings['reqClaim'] = reqClaimCmd
         mappings['showProofRequest'] = showProofRequestCmd
         mappings['acceptInvitationLink'] = acceptLinkCmd

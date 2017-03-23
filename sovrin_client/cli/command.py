@@ -127,6 +127,13 @@ listClaimsCmd = Command(
     usage="list claims <link-name>",
     examples="list claims faber")
 
+listLinksCmd = Command(
+    id='list links',
+    title='List available links in active wallet',
+    usage='list links',
+    examples='list links'
+)
+
 reqClaimCmd = Command(
     id="request claim",
     title="Request given claim",

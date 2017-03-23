@@ -98,6 +98,8 @@ SHOW_CLAIM_REG_EX = '(\s*(?P<show_claim>show \s+ claim) ' \
 LIST_CLAIMS_REG_EX = '(\s*(?P<list_claims>list \s+ claims) ' \
                      '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
+LIST_LINKS_REG_EX = '(\s*(?P<list_links>list \s+ links))'
+
 REQUEST_CLAIM_REG_EX = '(\s*(?P<req_claim>request \s+ claim) ' \
                        '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
                        '\s*)'
@@ -116,12 +118,12 @@ SET_ATTRIBUTE_REG_EX = '(\s*(?P<set_attr>set) ' \
                        '\s*)'
 
 SEND_PROOF_REG_EX = '(\s*(?P<send_proof>send \s+ proof) ' \
-                    '\s+ (?P<claim_name>[A-Za-z0-9-." ]+) ' \
-                    '\s+ to (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
+                    '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
+                    '\s+ to \s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'
 
-SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proofreq) ' \
-                        '\s+ (?P<proof_name>[A-Za-z0-9-." ]+) ' \
-                        '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
+SEND_PROOF_REQ_REG_EX = '(\s*(?P<send_proof_req>send \s+ proof-request) ' \
+                    '\s+ (?P<proof_request_name>[A-Za-z0-9-." ]+) ' \
+                    '\s+ to (?P<target>[A-Za-z0-9-." ]+) \s*)'
 
 SEND_NODE_REG_EX = "(\s* (?P<send_node>send\s+{node}) " \
                    "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+/]+) " \
@@ -157,6 +159,7 @@ SYNC_LINK_FORMATTED_REG_EX = getPipedRegEx(SYNC_LINK_REG_EX)
 ACCEPT_LINK_FORMATTED_REG_EX = getPipedRegEx(ACCEPT_LINK_REG_EX)
 SHOW_CLAIM_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REG_EX)
 LIST_CLAIMS_FORMATTED_REG_EX = getPipedRegEx(LIST_CLAIMS_REG_EX)
+LIST_LINKS_FORMATTED_REG_EX = getPipedRegEx(LIST_LINKS_REG_EX)
 REQUEST_CLAIM_FORMATTED_REG_EX = getPipedRegEx(REQUEST_CLAIM_REG_EX)
 # SHOW_CLAIM_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_CLAIM_REQ_REG_EX)
 SHOW_PROOF_REQ_FORMATTED_REG_EX = getPipedRegEx(SHOW_PROOF_REQ_REG_EX)

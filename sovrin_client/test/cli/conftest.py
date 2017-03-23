@@ -812,7 +812,7 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
-            "Verification key: <same as local identifier>",
+            "Verification key: ~",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",

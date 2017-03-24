@@ -243,8 +243,8 @@ def test_end_to_end(tconf):
         print(issuer_pub_key)
         print(revocation_pub_key)
 
-        run_async(bank_agent.set_available_claim(alices_id_in_banks_system, schema_id))
-        run_async(bank_agent.set_available_claim(bobs_id_in_banks_system, schema_id))
+        run_async(bank_agent._set_available_claim_by_internal_id(alices_id_in_banks_system, schema_id))
+        run_async(bank_agent._set_available_claim_by_internal_id(bobs_id_in_banks_system, schema_id))
 
         alice_wallet = Wallet()
         alice_agent = RefAgent(name="Alice",

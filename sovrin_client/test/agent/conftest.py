@@ -23,7 +23,6 @@ from plenum.common.looper import Looper
 from plenum.common.util import randomString
 from plenum.common.eventually import eventually
 from plenum.test.helper import assertFunc
-from sovrin_client.agent.agent import runAgent
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
@@ -31,7 +30,7 @@ from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
-    buildAcmeWallet, buildThriftWallet
+    buildAcmeWallet, buildThriftWallet, startAgent
 from sovrin_client.test.agent.thrift import create_thrift
 from sovrin_node.test.helper import addAttributeAndCheck
 from sovrin_client.test.helper import createNym, TestClient
@@ -182,16 +181,6 @@ def faberAdded(nodeSet,
                emptyLooper,
                faberAgent):
     return addAgentAndEndpoint(emptyLooper, faberAgent, steward, stewardWallet)
-
-
-def startAgent(looper, agent, wallet, bootstrap=None):
-    agent = agent
-    wallet.pendSyncRequests()
-    prepared = wallet.preparePending()
-    agent.client.submitReqs(*prepared)
-
-    runAgent(agent, looper, bootstrap=bootstrap)
-    return agent, wallet
 
 
 @pytest.fixture(scope="module")

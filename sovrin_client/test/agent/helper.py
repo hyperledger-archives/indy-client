@@ -5,7 +5,7 @@ from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
-from sovrin_client.agent.agent import runBootstrap
+from sovrin_client.agent.agent import runBootstrap, runAgent
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
@@ -88,3 +88,13 @@ def runAgentCli(name, agentCreator, looper=None, bootstrap=True):
     else:
         with Looper(debug=False) as looper:
             run(looper)
+
+
+def startAgent(looper, agent, wallet, bootstrap=None):
+    agent = agent
+    wallet.pendSyncRequests()
+    prepared = wallet.preparePending()
+    agent.client.submitReqs(*prepared)
+
+    runAgent(agent, looper, bootstrap=bootstrap)
+    return agent, wallet

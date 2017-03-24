@@ -1,4 +1,41 @@
-def processInvAccept(wallet, msg):
-    pass
+import os
+
+from plenum.common.signer_simple import SimpleSigner
+from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_common.config_util import getConfig
 
 
+def updateAndGetNextClaimVersionNumber(basedirpath, fileName):
+    claimVersionFilePath = '{}/{}'.format(basedirpath, fileName)
+    # get version number from file
+    claimVersionNumber = 0.01
+    if os.path.isfile(claimVersionFilePath):
+        with open(claimVersionFilePath, mode='r+') as file:
+            claimVersionNumber = float(file.read()) + 0.001
+            file.seek(0)
+            # increment version and update file
+            file.write(str(claimVersionNumber))
+            file.truncate()
+    else:
+        with open(claimVersionFilePath, mode='w') as file:
+            file.write(str(claimVersionNumber))
+    return claimVersionNumber
+
+
+def build_wallet_core(wallet_name, seed_file):
+    config = getConfig()
+    baseDir = os.path.expanduser(config.baseDir)
+
+    seedFilePath = '{}/{}'.format(baseDir, seed_file)
+    seed = wallet_name + '0'*(32 - len(wallet_name))
+
+    # if seed file is available, read seed from it
+    if os.path.isfile(seedFilePath):
+        with open(seedFilePath, mode='r+') as file:
+            seed = file.read().strip(' \t\n\r')
+    wallet = Wallet(wallet_name)
+
+    seed = bytes(seed, encoding='utf-8')
+    wallet.addIdentifier(signer=SimpleSigner(seed=seed))
+
+    return wallet

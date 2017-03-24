@@ -670,8 +670,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             #                       "    Already accepted",
             #                       link.verkey, frm)
         else:
-            # DEPR!
-            # self.addClaimsAvailableAfterInviteAccept(link)
             logger.debug(
                 "not added to the ledger, so add nym to the ledger "
                 "and then will send available claims")

@@ -39,7 +39,8 @@ def testAnonCredsPrimaryOnly(issuer, prover, verifier, attrRepo, primes1, looper
         await issuer.genKeys(schemaId, **primes1)
 
         # 3. Issue accumulator
-        await issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
+        #TODO: Not implemented yet
+        #await issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
 
         # 4. set attributes for user1
         attrs = GVT.attribs(name='Alex', age=28, height=175, sex='male')

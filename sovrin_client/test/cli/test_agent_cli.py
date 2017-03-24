@@ -25,10 +25,10 @@ def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLo
 
 
 @pytest.fixture(scope='module')
-def acmeAgentCli(agentCliBuilder, acmeAgentPort):
+def acmeAgentCli(agentCliBuilder, acmeAgentPort, tdir):
     yield from agentCliBuilder(
         name='Acme-Agent',
-        agentCreator=lambda: create_acme(port=acmeAgentPort)
+        agentCreator=lambda: create_acme(port=acmeAgentPort, base_dir_path=tdir)
     )('Acme-Agent')
 
 

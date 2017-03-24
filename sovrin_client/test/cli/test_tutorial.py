@@ -970,16 +970,31 @@ def assertReqAvailClaims(be, do, userCli, agentMap,
        within=3)
 
 
+# TODO: This test is failing on this branch as the available claims are tied
+# with internal id, which would be same for whosoever uses the same invitation
+# file (which has the nonce, and hence their internal id would be same),
+# so either this test's expectation is wrong OR we'll have to fix the issue.
 def testBobReqAvailClaimsFromAgents(
         be, do, bobCli, loadInviteOut, faberMap, acmeMap, thriftMap,
         connectedToTest, syncedInviteAcceptedWithClaimsOut,
         unsycedAcceptedInviteWithoutClaimOut):
     userCli = bobCli
+
+    # When new user/cli requests available claims from Faber,
+    # Transcript claim should be send as available claims
     assertReqAvailClaims(be, do, userCli, faberMap, connectedToTest,
                          loadInviteOut, syncedInviteAcceptedWithClaimsOut)
+
+    # When new user/cli requests available claims from Acme,
+    # No claims should be sent as available claims. 'Job-Certificate' claim
+    # should be only available when agent has received 'Job-Application'
+    # proof request and it is verified.
     acmeMap.update({"claims": "No available claims found"})
     assertReqAvailClaims(be, do, userCli, acmeMap, connectedToTest,
                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
+
+    # When new user/cli requests available claims from Thrift,
+    # No claims should be sent as available claims.
     thriftMap.update({"claims": "No available claims found"})
     assertReqAvailClaims(be, do, userCli, thriftMap, connectedToTest,
                           loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)

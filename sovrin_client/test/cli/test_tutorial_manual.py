@@ -13,11 +13,10 @@ from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.test.agent.acme import AcmeAgent, create_acme, bootstrap_acme
-# from sovrin_client.test.agent.faber import FaberAgent
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
     buildThriftWallet
-from sovrin_client.test.agent.thrift import ThriftAgent, create_thrift, bootstrap_thrift
+from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift
 from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
@@ -25,7 +24,6 @@ from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationProofSent, \
     jobCertClaimRequested, bankBasicProofSent, bankKYCProofSent, \
     setPromptAndKeyring
-from sovrin_client.test.helper import TestClient
 
 concerningLogLevels = [logging.WARNING,
                        logging.ERROR,
@@ -110,13 +108,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     ]
 
     for create_agent_fuc, agentName, agentPort, buildAgentWalletFunc, bootstrap_func in agentParams:
-        # agentCls.get_passed_args = lambda _: (agentPort,)
         agent = create_agent_fuc(name=agentName, wallet=buildAgentWalletFunc(),
                                  base_dir_path=tdir, port=agentPort)
         RunnableAgent.run_agent(agent, bootstrap=bootstrap_func(agent), looper=philCLI.looper)
-        # TestWalletedAgent.run_agent(
-        #     agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
-        #     philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':

@@ -22,7 +22,7 @@ class AcmeAgent(WalletedAgent):
             for schema in await self.issuer.wallet.getAllSchemas():
 
                 if schema.name == 'Job-Certificate':
-                    await self.set_available_claim(link.remoteIdentifier,
+                    await self._set_available_claim_by_internal_id(link.internalId,
                                                    ID(schemaKey=schema.getKey(),
                                                       schemaId=schema.seqId))
 
@@ -99,7 +99,23 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=None):
 
     return agent
 
+
 async def bootstrap_acme(agent):
+    agent._proofRequestsSchema = {
+        "Job-Application-v0.2": {
+            "name": "Job-Application",
+            "version": "0.2",
+            "attributes": {
+                "first_name": "string",
+                "last_name": "string",
+                "phone_number": "string",
+                "degree": "string",
+                "status": "string",
+                "ssn": "string"
+            },
+            "verifiableAttributes": ["degree", "status", "ssn"]
+        }
+    }
     await bootstrap_schema(agent,
                            'Job-Certificate',
                            'Job-Certificate',

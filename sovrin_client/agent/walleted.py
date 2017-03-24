@@ -14,7 +14,6 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
 from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, \
     TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
-from plenum.common.types import Identifier
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
     isMaxCheckTimeExpired, convertTimeBasedReqIdToMillis
@@ -103,10 +102,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         self._invites = {}  # type: Dict[Nonce, InternalId]
         self._attribDefs = {}  # type: Dict[str, AttribDef]
-        self.defined_claims = []  # type: List[Dict[str, Any]]
-        # DEPR!
-        # self.available_claims = {}  # type: Dict[Identifier, List[ID]]
+        self.defined_claims = []  # type: List[Dict[str, Any]
+
         self.available_claims_by_internal_id = {}  # type: Dict[InternalId, Set[ID]]
+
+        # dict for proof request schema Dict[str, Dict[str, any]]
+        self._proofRequestsSchema = None
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
@@ -152,21 +153,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def _get_available_claim_list_by_internal_id(self, internal_id):
         return self.available_claims_by_internal_id.get(internal_id, set())
 
-    def _set_available_claim_by_schema_dict(self, identifier, sd):
-        try:
-            self.available_claims[identifier].add(sd)
-        except KeyError:
-            self.available_claims[identifier] = set(sd)
-
-    async def set_available_claim(self, identifier, schema_id):
-        sd = await self.schema_dict_from_id(schema_id)
-        self._set_available_claim_by_schema_dict(identifier, sd)
-
     def get_available_claim_list(self, link):
         li = self.wallet.getLinkBy(remote=link.remoteIdentifier)
+        # TODO: Need to return set instead of list, but if we return set,
+        # stack communication fails as set is not json serializable,
+        # need to work on that.
         if li is None:
-            return set()
-        return self._get_available_claim_list_by_internal_id(li.internalId)
+            return list()
+        return list(self._get_available_claim_list_by_internal_id(li.internalId))
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
         invalidSigResp = {

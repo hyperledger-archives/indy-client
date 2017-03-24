@@ -62,7 +62,8 @@ class AgentProver:
             proverId=link.invitationNonce,
             reqNonRevoc=False)
 
-        # TODO link.invitationNonce should not be used here. It has served its purpose by this point. Claim Requests do not need a nonce.
+        # TODO link.invitationNonce should not be used here.
+        # It has served its purpose by this point. Claim Requests do not need a nonce.
         op = {
             NONCE: link.invitationNonce,
             TYPE: CLAIM_REQUEST,

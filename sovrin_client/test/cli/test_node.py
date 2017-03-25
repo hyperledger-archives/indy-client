@@ -2,13 +2,16 @@ from copy import copy
 
 import pytest
 
-from plenum.common.eventually import eventually
+from stp_core.crypto.util import randomSeed
+from stp_core.loop.eventually import eventually
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
 from plenum.common.types import CLIENT_STACK_SUFFIX
-from plenum.common.util import randomSeed, randomString
+from plenum.common.util import randomString
 from plenum.test.cli.helper import exitFromCli
 from stp_core.network.port_dispenser import genHa
+
+from sovrin_client.test.cli.test_tutorial import philCli
 
 
 def getNewNodeData():
@@ -96,6 +99,7 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
     be(newStewardCli)
     sendNodeCmd(do)
     newNodeData = vals["newNodeData"]
+
     def checkClientConnected(client):
         name = newNodeData[ALIAS]+CLIENT_STACK_SUFFIX
         assert name in client.nodeReg

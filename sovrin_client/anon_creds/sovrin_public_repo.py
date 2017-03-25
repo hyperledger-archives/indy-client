@@ -1,7 +1,7 @@
 import json
 
 from ledger.util import F
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet
 from plenum.common.log import getlogger
 from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \

@@ -27,7 +27,7 @@ from sovrin_common.persistence.identity_graph import getEdgeByTxnType, IdentityG
 from sovrin_common.txn import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
     SPONSOR, NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
     GET_ATTR
-from stp_core.raet.rstack import SimpleRStack
+from stp_raet.rstack import SimpleRStack
 from stp_core.types import HA
 
 logger = getlogger()

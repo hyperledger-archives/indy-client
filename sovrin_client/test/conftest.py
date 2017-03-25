@@ -1,5 +1,5 @@
-from plenum.common.eventually import eventually
-from plenum.common.raet import initLocalKeep
+from stp_core.loop.eventually import eventually
+from stp_raet.util import initLocalKeep
 from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
 from plenum.test.node_catchup.helper import \

@@ -5,12 +5,12 @@ from raet.road.estating import RemoteEstate
 from zmq.utils import z85
 
 from plenum.common.log import getlogger
-from plenum.common.raet import getHaFromLocalEstate
+from stp_raet.util import getHaFromLocalEstate
 from plenum.common.util import randomString, friendlyToRaw
 from stp_core.crypto.util import randomSeed
-from stp_core.raet.rstack import SimpleRStack
+from stp_raet.rstack import SimpleRStack
 from stp_core.types import HA
-from stp_core.zmq.zstack import SimpleZStack
+from stp_zmq.zstack import SimpleZStack
 
 logger = getlogger()
 

@@ -5,7 +5,7 @@ import base58
 import libnacl.public
 import pytest
 
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import ENC, DATA, REPLY, TXN_TIME

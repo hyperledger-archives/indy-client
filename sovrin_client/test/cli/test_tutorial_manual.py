@@ -3,11 +3,11 @@ import logging
 import re
 
 import pytest
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.txn import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from sovrin_common.setup_util import Setup
 from sovrin_common.txn import ENDPOINT
 

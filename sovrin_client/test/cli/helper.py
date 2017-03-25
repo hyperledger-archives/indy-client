@@ -3,7 +3,7 @@ import os
 import re
 from _sha256 import sha256
 
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.txn import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \

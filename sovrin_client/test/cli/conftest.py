@@ -7,9 +7,9 @@ from typing import List
 import pytest
 
 import plenum
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
-from plenum.common.raet import initLocalKeep
+from stp_raet.util import initLocalKeep
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.helper import createNym, buildStewardClient
@@ -27,7 +27,11 @@ from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
     getPoolTxnData, newCLI, getCliBuilder, P
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    acmeIsRunning as runningAcme, thriftIsRunning as runningThrift
+    acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
+    faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
+    faberAgentPort, acmeAgentPort, thriftAgentPort, faberAgent, acmeAgent, \
+    thriftAgent
+
 
 config = getConfig()
 

@@ -2,7 +2,7 @@ import argparse
 import sys
 
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 
 from sovrin_client.agent.endpoint import Endpoint, ZEndpoint

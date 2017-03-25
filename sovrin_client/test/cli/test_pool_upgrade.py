@@ -2,7 +2,7 @@ from copy import copy
 
 import pytest
 
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.txn import VERSION
 from sovrin_common.txn import ACTION, CANCEL, JUSTIFICATION
 from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \

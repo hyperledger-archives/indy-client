@@ -1,4 +1,4 @@
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 
 from anoncreds.protocol.types import SchemaKey, ID
 

@@ -1,4 +1,4 @@
-from plenum.common.crypto import ed25519PkToCurve25519
+from stp_core.crypto.util import ed25519PkToCurve25519
 from plenum.common.util import friendlyToRaw, rawToFriendly
 
 

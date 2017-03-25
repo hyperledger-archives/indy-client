@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException

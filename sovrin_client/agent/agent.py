@@ -5,12 +5,12 @@ from typing import Tuple
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from plenum.common.error import fault
-from plenum.common.exceptions import RemoteNotFound
+from stp_core.network.exceptions import RemoteNotFound
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.startable import Status
-from plenum.common.types import Identifier
+from stp_core.types import Identifier
 from plenum.common.util import randomString
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching

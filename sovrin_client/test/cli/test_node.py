@@ -4,10 +4,10 @@ import pytest
 from plenum.common.eventually import eventually
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS, CLIENT_STACK_SUFFIX
+from plenum.common.constants import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, \
+    ALIAS, CLIENT_STACK_SUFFIX, SERVICES, VALIDATOR
 from plenum.common.util import randomSeed, randomString
 from plenum.test.cli.helper import exitFromCli
-from sovrin_client.test.cli.conftest import philCli
 from sovrin_common.roles import Roles
 
 
@@ -22,7 +22,8 @@ def getNewNodeData():
         NODE_PORT: nodePort,
         CLIENT_IP: clientIp,
         CLIENT_PORT: clientPort,
-        ALIAS: randomString(6)
+        ALIAS: randomString(6),
+        SERVICES: [VALIDATOR]
     }
 
     return {
@@ -51,20 +52,20 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli,
            expect=connectedToTest)
 
     global vals
-    vals = copy(vals)
-    vals['target'] = vals['newStewardIdr']
-    vals['newStewardSeed'] = vals['newStewardSeed'].decode()
+    v = copy(vals)
+    v['target'] = v['newStewardIdr']
+    v['newStewardSeed'] = v['newStewardSeed'].decode()
 
     do('send NYM dest={{newStewardIdr}} role={role}'.format(role=Roles.STEWARD.name),
        within=3,
-       expect=nymAddedOut, mapper=vals)
+       expect=nymAddedOut, mapper=v)
 
     be(newStewardCLI)
 
     do('new key with seed {newStewardSeed}', expect=[
         'Identifier for key is {newStewardIdr}',
         'Current identifier set to {newStewardIdr}'],
-       mapper=vals)
+       mapper=v)
 
     if not newStewardCLI._isConnectedToAnyEnv():
         do('connect test', within=3,
@@ -73,8 +74,8 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli,
     return newStewardCLI
 
 
-def sendNodeCmd(do, newNodeData=None, expMsgs=None):
-    mapper = newNodeData or vals
+def doNodeCmd(do, nodeData=None, expMsgs=None):
+    mapper = nodeData or vals
     expect = expMsgs or ['Node request completed']
     do('send NODE dest={newNodeIdr} data={newNodeData}',
        within=8, expect=expect, mapper=mapper)
@@ -101,7 +102,7 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTe
            expect=connectedToTest)
 
     be(newStewardCli)
-    sendNodeCmd(do)
+    doNodeCmd(do)
     newNodeData = vals["newNodeData"]
 
     def checkClientConnected(client):
@@ -123,6 +124,7 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTe
     poolNodesStarted.looper.run(eventually(checkNodeConnected,
                                            list(poolNodesStarted.nodes.values()),
                                            timeout=5))
+    return vals
 
 
 def testAddNewNode(newNodeAdded):
@@ -132,7 +134,7 @@ def testAddNewNode(newNodeAdded):
 def testConsecutiveAddSameNodeWithoutAnyChange(be, do, newStewardCli,
                                                newNodeAdded):
     be(newStewardCli)
-    sendNodeCmd(do, expMsgs=['node already has the same data as requested'])
+    doNodeCmd(do, expMsgs=['node already has the same data as requested'])
     exitFromCli(do)
 
 
@@ -144,8 +146,8 @@ def testConsecutiveAddSameNodeWithNodeAndClientPortSame(be, do, newStewardCli,
     vals['newNodeData'][NODE_PORT] = nodePort
     vals['newNodeData'][CLIENT_IP] = nodeIp
     vals['newNodeData'][CLIENT_PORT] = nodePort
-    sendNodeCmd(do, newNodeData=vals,
-                expMsgs=["node and client ha can't be same"])
+    doNodeCmd(do, nodeData=vals,
+              expMsgs=["node and client ha can't be same"])
     exitFromCli(do)
 
 
@@ -158,7 +160,7 @@ def testConsecutiveAddSameNodeWithNonAliasChange(be, do, newStewardCli,
     vals['newNodeData'][NODE_PORT] = nodePort
     vals['newNodeData'][CLIENT_IP] = nodeIp
     vals['newNodeData'][CLIENT_PORT] = clientPort
-    sendNodeCmd(do, newNodeData=vals)
+    doNodeCmd(do, nodeData=vals)
     exitFromCli(do)
 
 
@@ -166,6 +168,6 @@ def testConsecutiveAddSameNodeWithOnlyAliasChange(be, do,
                                                   newStewardCli, newNodeAdded):
     be(newStewardCli)
     vals['newNodeData'][ALIAS] = randomString(6)
-    sendNodeCmd(do, newNodeData=vals,
-                expMsgs=['existing data has conflicts with request data'])
+    doNodeCmd(do, nodeData=vals,
+              expMsgs=['existing data has conflicts with request data'])
     exitFromCli(do)

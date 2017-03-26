@@ -60,6 +60,9 @@ class Wallet(PWallet, TrustAnchoring):
         self._prepared = {}  # type: Dict[(Identifier, int), Request]
         self.lastKnownSeqs = {}  # type: Dict[str, int]
 
+        # dict for proof request schema Dict[str, Dict[str, any]]
+        self._proofRequestsSchema = None
+
         self.replyHandler = {
             ATTRIB: self._attribReply,
             GET_ATTR: self._getAttrReply,
@@ -347,3 +350,6 @@ class Wallet(PWallet, TrustAnchoring):
         # TODO, Question: Should it consider self owned identities too or
         # should it just have identities that are retrieved from the DL
         return self.knownIds.get(idr)
+
+    def getLinkNames(self):
+        return list(self._links.keys())

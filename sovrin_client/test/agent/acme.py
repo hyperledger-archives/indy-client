@@ -78,6 +78,22 @@ class AcmeAgent(BaseAgent):
                 salary_bracket="between $50,000 to $70,000")
         }
 
+        self._proofRequestsSchema = {
+            "Job-Application-v0.2": {
+                "name": "Job-Application",
+                "version": "0.2",
+                "attributes": {
+                    "first_name": "string",
+                    "last_name": "string",
+                    "phone_number": "string",
+                    "degree": "string",
+                    "status": "string",
+                    "ssn": "string"
+                },
+                "verifiableAttributes": ["degree", "status", "ssn"]
+            }
+        }
+
     def getAttrDefs(self):
         return [self._attrDefJobCert, self._attrDefJobApp]
 

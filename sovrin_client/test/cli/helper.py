@@ -192,7 +192,8 @@ def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None, unique_name=None, logFileName=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None,
+           logFileName=None, cliClass=TestCLI, name=None, agentCreator=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -209,13 +210,15 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
     from sovrin_node.test.helper import TestNode
-    return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
+    return newPlenumCLI(looper, tempDir, cliClass=cliClass,
                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-                        unique_name=unique_name, logFileName=logFileName)
+                        unique_name=unique_name, logFileName=logFileName,
+                        name=name, agentCreator=agentCreator)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  logFileName=None, multiPoolNodes=None):
+                  logFileName=None, multiPoolNodes=None, cliClass=TestCLI,
+                  name=None, agentCreator=None):
     def _(space,
           looper=None,
           unique_name=None):
@@ -228,7 +231,10 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                        domainDir=tdirWithDomainTxns,
                        multiPoolNodes=multiPoolNodes,
                        unique_name=unique_name or space,
-                       logFileName=logFileName)
+                       logFileName=logFileName,
+                       cliClass=cliClass,
+                       name=name,
+                       agentCreator=agentCreator)
             return c
         if looper:
             yield new()

@@ -211,12 +211,6 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
     return _
 
 
-# marker class for regex pattern
-class P(str):
-    def match(self, other):
-        return re.match('^{}$'.format(self), other)
-
-
 def check_wallet(cli,
                  totalLinks=None,
                  totalAvailableClaims=None,

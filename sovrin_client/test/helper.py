@@ -1,6 +1,8 @@
 import inspect
+import re
 import os
 import shutil
+from collections import namedtuple
 from pathlib import Path
 from typing import Union, Tuple
 
@@ -8,24 +10,21 @@ import pyorient
 
 from config.config import cmod
 from plenum.common.log import getlogger
-from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
 from plenum.common.types import f, Identifier, HA
+from plenum.common.util import randomString
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.common.eventually import eventually
-from plenum.test.helper import initDirWithGenesisTxns
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import spyable
-from plenum.test.cli.helper import newCLI as newPlenumCLI
 
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
-from sovrin_common.constants import Environment
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client
@@ -108,50 +107,6 @@ def buildStewardClient(looper, tdir, stewardWallet):
     looper.run(s.ensureConnectedToNodes())
     makePendingTxnsRequest(s, stewardWallet)
     return s
-
-
-# def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-#            domainDir=None, multiPoolNodes=None, unique_name=None):
-#     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
-#     if poolDir or domainDir:
-#         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
-#
-#     if multiPoolNodes:
-#         conf.ENVS = {}
-#         for pool in multiPoolNodes:
-#             conf.poolTransactionsFile = "pool_transactions_{}".format(pool.name)
-#             conf.domainTransactionsFile = "transactions_{}".format(pool.name)
-#             conf.ENVS[pool.name] = \
-#                 Environment("pool_transactions_{}".format(pool.name),
-#                                 "transactions_{}".format(pool.name))
-#             initDirWithGenesisTxns(
-#                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
-#                 os.path.join(pool.tdirWithDomainTxns, pool.name))
-#
-#     from sovrin_node.test.helper import TestNode
-#     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-#                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-#                         unique_name=unique_name)
-#
-#
-# def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-#                   multiPoolNodes=None):
-#     def _(subdir, looper=None, unique_name=None):
-#         def new():
-#             return newCLI(looper,
-#                           tdir,
-#                           subDirectory=subdir,
-#                           conf=tconf,
-#                           poolDir=tdirWithPoolTxns,
-#                           domainDir=tdirWithDomainTxns,
-#                           multiPoolNodes=multiPoolNodes,
-#                           unique_name=unique_name)
-#         if looper:
-#             yield new()
-#         else:
-#             with Looper(debug=False) as looper:
-#                 yield new()
-#     return _
 
 
 def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
@@ -324,3 +279,147 @@ def peer_path(filename):
             caller = s[i].filename
             break
     return Path(caller).parent.joinpath(filename)
+
+
+def _within_hint(match, ctx):
+    w = match.group(1)
+    ctx.cmd_within = float(w) if w else None
+
+
+def _ignore_extra_lines(match, ctx):
+    ctx.ignore_extra_lines = True
+
+CommandHints = namedtuple('CommandHints', 'pattern, callback')
+command_hints = [
+    CommandHints(r'\s*within\s*:\s*(\d*\.?\d*)', _within_hint),
+    CommandHints(r'\s*ignore\s*extra\s*lines\s*', _ignore_extra_lines),
+]
+
+
+# marker class for regex pattern
+class P(str):
+    def match(self, other):
+        return re.match('^{}$'.format(self), other)
+
+
+class RunnerContext:
+    def __init__(self):
+        self.clis = {}
+        self.output = []
+        self.cmd_within = None
+        self.line_no = 0
+
+
+class ScriptRunner:
+    def __init__(self, CliBuilder, looper, be, do, expect):
+        self._cli_builder = CliBuilder
+        self._looper = looper
+        self._be = be
+        self._do = do
+        self._expect = expect
+
+        # contexts allows one ScriptRunner maintain state for multiple scripts
+        self._contexts = {}
+        self._cur_context_name = None
+
+        Router = namedtuple('Router', 'pattern, ends_output, handler')
+
+        self.routers = [
+            Router(re.compile(r'\s*#(.*)'), False, self._handleComment),
+            Router(re.compile(r'\s*(\S*)?\s*>\s*(.*?)\s*(?:<--(.*?))?\s*'), True, self._handleCommand),
+            Router(re.compile(r'\s*~\s*(be|start)\s+(.*)'), True, self._handleBe)]
+
+    # noinspection PyAttributeOutsideInit
+
+    def cur_ctx(self):
+        try:
+            return self._contexts[self._cur_context_name]
+        except KeyError:
+            self._contexts[self._cur_context_name] = RunnerContext()
+        return self._contexts[self._cur_context_name]
+
+    def run(self, filename, context=None):
+        # by default, use a new context for each run
+        self._cur_context_name = context if context else randomString()
+
+        contents = Path(filename).read_text()
+
+        for line in contents.lstrip().splitlines():
+            self.cur_ctx().line_no += 1
+            for r in self.routers:
+                m = r.pattern.fullmatch(line)
+                if m:
+                    if r.ends_output:
+                        self._checkOutput()
+                    r.handler(m)
+                    break
+            else:
+                self.cur_ctx().output.append(line)
+
+        self._checkOutput()
+
+    def _be_str(self, cli_str, create_if_no_exist=False):
+        if cli_str not in self.cur_ctx().clis:
+            if not create_if_no_exist:
+                raise RuntimeError("{} does not exist; 'start' it first".
+                                   format(cli_str))
+            self.cur_ctx().clis[cli_str] = next(
+                self._cli_builder(cli_str,
+                                  looper=self._looper,
+                                  unique_name=cli_str + '-' +
+                                              self._cur_context_name))
+        self._be(self.cur_ctx().clis[cli_str])
+
+    def _handleBe(self, match):
+        self._be_str(match.group(2), True)
+
+    def _handleComment(self, match):
+        c = match.group(1).strip()
+        if c == 'break':
+            pass
+
+    def _handleCommand(self, match):
+        cli_str = match.group(1)
+        if cli_str:
+            self._be_str(cli_str)
+
+        cmd = match.group(2)
+
+        hint_str = match.group(3)
+        if hint_str:
+            hints = hint_str.strip().split(',')
+            for hint in hints:
+                hint = hint.strip()
+                for hint_handler in command_hints:
+                    m = re.match(hint_handler.pattern, hint)
+                    if m:
+                        hint_handler.callback(m, self.cur_ctx())
+                        break
+                else:
+                    raise RuntimeError("no handler found for hint '{}' at "
+                                       "line no {}".
+                                       format(hint, self.cur_ctx().line_no))
+
+        self._do(cmd)
+
+    def _checkOutput(self):
+        if self.cur_ctx().output:
+            new = []
+            reout = re.compile(r'(.*)<--\s*regex\s*')
+            for o in self.cur_ctx().output:
+                m = reout.fullmatch(o)
+                if m:
+                    new.append(P(m.group(1).rstrip()))
+                else:
+                    new.append(o)
+
+            ignore_extra_lines = False
+            if hasattr(self.cur_ctx(), 'ignore_extra_lines'):
+                ignore_extra_lines = self.cur_ctx().ignore_extra_lines
+            self._expect(new,
+                         within=self.cur_ctx().cmd_within,
+                         line_no=self.cur_ctx().line_no,
+                         ignore_extra_lines=ignore_extra_lines)
+            self.cur_ctx().output = []
+            self.cur_ctx().cmd_within = None
+            self.cur_ctx().ignore_extra_lines = False

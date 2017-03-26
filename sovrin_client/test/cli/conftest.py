@@ -27,7 +27,7 @@ from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_node.test.conftest import domainTxnOrderedFields
-from sovrin_client.test.helper import createNym, buildStewardClient
+from sovrin_client.test.helper import createNym, buildStewardClient, P
 
 plenum.common.util.loggingConfigured = False
 
@@ -36,7 +36,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, doByCtx
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent
+    getPoolTxnData, newCLI, getCliBuilder, prompt_is, addAgent
 
 config = getConfig()
 

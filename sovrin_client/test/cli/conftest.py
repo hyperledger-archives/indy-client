@@ -75,8 +75,8 @@ def newKeyPairCreated(cli):
 
 
 @pytest.fixture(scope="module")
-def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf, cliTempLogger):
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                          logFileName=cliTempLogger)
 
 
@@ -1148,13 +1148,13 @@ def savedKeyringRestored():
 # TODO: Need to refactor following three fixture to reuse code
 @pytest.yield_fixture(scope="module")
 def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                         tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                          cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("susan")
 
     def reset():
@@ -1167,13 +1167,13 @@ def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
-                        tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                        tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                         cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("alice")
 
     def reset():
@@ -1186,13 +1186,13 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
-                       tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                       tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                        cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("earl")
 
     def reset():
@@ -1204,8 +1204,8 @@ def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 
 @pytest.yield_fixture(scope="module")
-def trusteeCLI(CliBuilder):
-    yield from CliBuilder("newTrustee")
+def trusteeCLI(CliBuilder, poolTxnTrusteeNames):
+    yield from CliBuilder(poolTxnTrusteeNames[0])
 
 
 @pytest.fixture(scope="module")

@@ -8,6 +8,7 @@ import pytest
 from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
+from plenum.common.log import getlogger
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
@@ -23,6 +24,12 @@ from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
+from sovrin_common.txn_util import getTxnOrderedFields
+from ledger.compact_merkle_tree import CompactMerkleTree
+from ledger.ledger import Ledger
+from ledger.serializers.compact_serializer import CompactSerializer
+
+logger = getlogger()
 
 
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -158,6 +165,30 @@ def prompt_is(prompt):
             "expected prompt: {}, actual prompt: {}".\
                 format(prompt, cli.currPromptText)
     return x
+
+
+def addTxnToFile(dir, file, txns, fields=getTxnOrderedFields()):
+    ledger = Ledger(CompactMerkleTree(),
+                    dataDir=dir,
+                    serializer=CompactSerializer(fields=fields),
+                    fileName=file)
+    for txn in txns:
+        ledger.add(txn)
+
+
+def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):
+    added = 0
+    if trusteeList and len(trusteeList) and trusteeData:
+        txns=[]
+        for trusteeToAdd in trusteeList:
+            try:
+                trusteeData = next((data for data in trusteeData if data[0] == trusteeToAdd))
+                name, seed, txn = trusteeData
+                txns.append(txn)
+            except StopIteration as e:
+                logger.debug('{} not found in trusteeData'.format(trusteeToAdd))
+        addTxnToFile(txnDir, txnFileName, txns)
+    return added
 
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,

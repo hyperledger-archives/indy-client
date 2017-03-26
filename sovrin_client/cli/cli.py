@@ -59,7 +59,7 @@ from sovrin_common.exceptions import InvalidLinkException, LinkAlreadyExists, \
 from sovrin_common.identity import Identity
 from sovrin_common.constants import TARGET_NYM, ROLE, TXN_TYPE, NYM, REF, \
     ACTION, SHA256, TIMEOUT, SCHEDULE, \
-    START, JUSTIFICATION, NULL
+    START, JUSTIFICATION
 from sovrin_common.roles import Roles
 from sovrin_common.transactions import SovrinTransactions
 from sovrin_common.txn_util import getTxnOrderedFields

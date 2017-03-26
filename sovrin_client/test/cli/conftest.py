@@ -36,7 +36,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, doByCtx
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent
 
 config = getConfig()
 
@@ -1290,19 +1290,6 @@ def philCli(be, do, philCLI):
        mapper=mapper)
 
     return philCLI
-
-
-def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
-    be(userCli)
-    if not userCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectExpMsgs)
-
-    do('send NYM dest={{target}} role={role}'.format(
-        role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddExpMsgs, mapper=mapper)
-    return philCli
 
 
 @pytest.fixture(scope="module")

@@ -164,6 +164,7 @@ def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
                         base_dir_path=tdirWithPoolTxns,
                         port=faberAgentPort)
 
+
 @pytest.fixture(scope="module")
 def faberBootstrap(faberAgent):
     return bootstrap_faber(faberAgent)

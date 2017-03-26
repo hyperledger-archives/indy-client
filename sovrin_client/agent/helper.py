@@ -1,8 +1,13 @@
 import os
 
 from plenum.common.signer_simple import SimpleSigner
+from sovrin_client.agent.agent import runAgent
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
+
+
+def getClaimVersionFileName(agentName):
+    return agentName.replace(" ", "-").lower() + "-schema-version.txt"
 
 
 def updateAndGetNextClaimVersionNumber(basedirpath, fileName):
@@ -39,3 +44,18 @@ def build_wallet_core(wallet_name, seed_file):
     wallet.addIdentifier(signer=SimpleSigner(seed=seed))
 
     return wallet
+
+
+def run_agent(looper, wallet, agent):
+
+    def run():
+        _agent = agent
+        wallet.pendSyncRequests()
+        prepared = wallet.preparePending()
+        _agent.client.submitReqs(*prepared)
+
+        runAgent(_agent, looper)
+
+        return _agent, wallet
+
+    return run

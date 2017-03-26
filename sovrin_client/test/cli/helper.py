@@ -20,6 +20,7 @@ from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
+from sovrin_common.roles import Roles
 
 
 @spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -260,3 +261,16 @@ def wallet_state(totalLinks=0,
                  totalSchemas=0,
                  totalClaimsRcvd=0):
     return locals()
+
+
+def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
+    be(userCli)
+    if not userCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectExpMsgs)
+
+    do('send NYM dest={{target}} role={role}'.format(
+        role=Roles.TRUST_ANCHOR.name),
+       within=3,
+       expect=nymAddExpMsgs, mapper=mapper)
+    return userCli

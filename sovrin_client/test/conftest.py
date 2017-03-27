@@ -15,10 +15,6 @@ strict_types.defaultShouldCheck = True
 
 import pytest
 
-from ledger.compact_merkle_tree import CompactMerkleTree
-from ledger.ledger import Ledger
-from ledger.serializers.compact_serializer import CompactSerializer
-
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
@@ -30,7 +26,7 @@ from sovrin_common.constants import NYM, TRUST_ANCHOR
 from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
 from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.config_util import getConfig
-from sovrin_client.test.cli.helper import newCLI
+from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
 from sovrin_node.test.helper import TestNode, \
     makePendingTxnsRequest, buildStewardClient
 from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
@@ -89,14 +85,17 @@ def poolTxnTrusteeNames():
 
 @pytest.fixture(scope="module")
 def trusteeData(poolTxnTrusteeNames, updatedPoolTxnData):
-    name = poolTxnTrusteeNames[0]
-    seed = updatedPoolTxnData["seeds"][name]
-    return name, seed.encode()
+    ret = []
+    for name in poolTxnTrusteeNames:
+        seed = updatedPoolTxnData["seeds"][name]
+        txn = next((txn for txn in updatedPoolTxnData["txns"] if txn[ALIAS] == name), None)
+        ret.append((name, seed.encode(), txn))
+    return ret
 
 
 @pytest.fixture(scope="module")
 def trusteeWallet(trusteeData):
-    name, sigseed = trusteeData
+    name, sigseed, txn = trusteeData[0]
     wallet = Wallet('trustee')
     signer = SimpleSigner(seed=sigseed)
     wallet.addIdentifier(signer=signer)
@@ -168,14 +167,15 @@ def testClientClass():
 
 
 @pytest.fixture(scope="module")
-def updatedDomainTxnFile(tdir, tdirWithDomainTxns, genesisTxns,
+def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames, trusteeData, tconf):
+    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData, tdirWithDomainTxns, tconf.domainTransactionsFile)
+    return tdirWithDomainTxns
+
+
+@pytest.fixture(scope="module")
+def updatedDomainTxnFile(tdir, tdirWithDomainTxnsUpdated, genesisTxns,
                          domainTxnOrderedFields, tconf):
-    ledger = Ledger(CompactMerkleTree(),
-                    dataDir=tdir,
-                    serializer=CompactSerializer(fields=domainTxnOrderedFields),
-                    fileName=tconf.domainTransactionsFile)
-    for txn in genesisTxns:
-        ledger.add(txn)
+    addTxnToFile(tdir, tconf.domainTransactionsFile, genesisTxns, domainTxnOrderedFields)
 
 
 @pytest.fixture(scope="module")

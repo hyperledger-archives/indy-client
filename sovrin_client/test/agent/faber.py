@@ -63,7 +63,7 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=None):
                        status="dropped")
 
     backend.add_record(4,
-                       student_name="Craig Richards",
+                       student_name="Bob Richards",
                        ssn="151-44-5876",
                        degree="MBA, Finance",
                        year="2015",

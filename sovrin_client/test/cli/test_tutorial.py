@@ -982,19 +982,28 @@ def testBobReqAvailClaimsFromAgents(
 
     # When new user/cli requests available claims from Faber,
     # Transcript claim should be send as available claims
-    assertReqAvailClaims(be, do, userCli, faberMap, connectedToTest,
+    bob_faber_map = dict(faberMap)
+    bob_faber_map.update({'invite':'sample/faber-bob-link-invite.sovrin',
+                         'nonce': '710b78be79f29fc81335abaa4ee1c5e8'})
+    assertReqAvailClaims(be, do, userCli, bob_faber_map, connectedToTest,
                          loadInviteOut, syncedInviteAcceptedWithClaimsOut)
 
     # When new user/cli requests available claims from Acme,
     # No claims should be sent as available claims. 'Job-Certificate' claim
     # should be only available when agent has received 'Job-Application'
     # proof request and it is verified.
-    acmeMap.update({"claims": "No available claims found"})
-    assertReqAvailClaims(be, do, userCli, acmeMap, connectedToTest,
+    bob_acme_map = dict(acmeMap)
+    bob_acme_map.update({"claims": "No available claims found",
+                         'invite':'sample/acme-bob-link-invite.sovrin',
+                         'nonce': '810b78be79f29fc81335abaa4ee1c5e8'})
+    assertReqAvailClaims(be, do, userCli, bob_acme_map, connectedToTest,
                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
 
     # When new user/cli requests available claims from Thrift,
     # No claims should be sent as available claims.
-    thriftMap.update({"claims": "No available claims found"})
-    assertReqAvailClaims(be, do, userCli, thriftMap, connectedToTest,
+    bob_thrift_map = dict(thriftMap)
+    bob_thrift_map.update({"claims": "No available claims found",
+                         'invite':'sample/thrift-bob-link-invite.sovrin',
+                         'nonce': 'ousezru20ic4yz3j074trcgthwlsnfsef'})
+    assertReqAvailClaims(be, do, userCli, bob_thrift_map, connectedToTest,
                           loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)

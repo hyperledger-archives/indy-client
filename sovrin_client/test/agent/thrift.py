@@ -32,7 +32,8 @@ def create_thrift(name=None, wallet=None, base_dir_path=None, port=None):
                        port=port)
 
     agent._invites = {
-        "77fbf9dc8c8e6acde33de98c6d747b28c": 1
+        "77fbf9dc8c8e6acde33de98c6d747b28c": 1,
+        "ousezru20ic4yz3j074trcgthwlsnfsef": 2
     }
 
     return agent

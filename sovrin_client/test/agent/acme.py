@@ -89,7 +89,7 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=None):
                        salary_bracket="between $40,000 to $80,000")
 
     backend.add_record(4,
-                       first_name="Craig",
+                       first_name="Bob",
                        last_name="Richards",
                        employee_status="On Contract",
                        experience="3 years",

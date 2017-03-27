@@ -241,8 +241,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     aliceCLI.looper.runFor(3)
 
     # Same flow is executed by different cli
-    executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
-                   aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
-                   reqClaimOut1, syncLinkOutWithEndpoint,
-                   syncedInviteAcceptedOutWithoutClaims, tMap,
-                   transcriptClaimMap)
+    # What is the purpose of this test? This should not work because its a different person
+    # with different data or it is the same person but from a different state
+    # executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
+    #                aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
+    #                reqClaimOut1, syncLinkOutWithEndpoint,
+    #                syncedInviteAcceptedOutWithoutClaims, tMap,
+    #                transcriptClaimMap)

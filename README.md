@@ -1,5 +1,7 @@
 # Sovrin Client
 
+[![Build Status](https://jenkins.evernym.com/buildStatus/icon?job=Sovrin Client/stable)](https://jenkins.evernym.com/job/Sovrin%20Client/job/stable/)    
+
 Sovrin Client to interact with Sovrin Network (public/permissioned distributed ledger)
 
 This codebase contains the code to run the CLI that interacts with the ledger.

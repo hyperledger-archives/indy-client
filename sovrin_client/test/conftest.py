@@ -14,6 +14,7 @@ from sovrin_common import strict_types
 strict_types.defaultShouldCheck = True
 
 import pytest
+from copy import deepcopy
 
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
@@ -62,8 +63,13 @@ def tconf(conf, tdir):
 
 
 @pytest.fixture(scope="module")
-def updatedPoolTxnData(poolTxnData):
-    data = poolTxnData
+def poolTxnDataClone(poolTxnData):
+    return deepcopy(poolTxnData)
+
+
+@pytest.fixture(scope="module")
+def updatedPoolTxnData(poolTxnDataClone):
+    data = poolTxnDataClone
     trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
     t = {

@@ -174,6 +174,7 @@ def addTxnToFile(dir, file, txns, fields=getTxnOrderedFields()):
                     fileName=file)
     for txn in txns:
         ledger.add(txn)
+    ledger.stop()
 
 
 def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):

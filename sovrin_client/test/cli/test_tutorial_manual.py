@@ -5,10 +5,11 @@ import re
 import pytest
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.roles import Roles
 from sovrin_common.setup_util import Setup
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.agent.agent import createAndRunAgent
 from sovrin_client.test.agent.acme import AcmeAgent
 from sovrin_client.test.agent.faber import FaberAgent
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
@@ -18,7 +19,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
-    aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
+    aliceRequestedTranscriptClaim, jobApplicationProofSent, \
     jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
@@ -82,7 +83,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                     ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
                     ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
-        do('send NYM dest={target} role=SPONSOR',
+        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
            within=5, expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
@@ -105,8 +106,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
         agentCls.getPassedArgs = lambda _: (agentPort,)
-        createAndRunAgent(agentCls, agentName, buildAgentWalletFunc(), tdir,
-                          agentPort, philCLI.looper, TestClient)
+        TestWalletedAgent.createAndRunAgent(
+            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+            philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':
@@ -193,7 +195,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('set phone_number to 123-45-6789')
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
-        jobApplicationClaimSent(be, do, userCLI, aMap, None, None, None)
+        jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,

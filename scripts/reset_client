@@ -1,42 +1,24 @@
 #! /usr/bin/env python3
 
-import shutil
 import os
 
+from sovrin_client.script_helper import performSovrinBaseDirCleanup
 from sovrin_common.config_util import getConfig
 
-keep = [
-    'pool_transactions_sandbox',
-    'sovrin_config.py',
-    'sample',
-    'pool_transactions_local',
-    'pool_transactions_live'
-]
 config = getConfig()
-basedir = os.path.expanduser(config.baseDir)
+baseDir = os.path.expanduser(config.baseDir)
 
+print("\nIMPORTANT: This will clean up sovrin base directory: {}".format(baseDir))
+userAnswer = "no"
+validAns = "YeS"
+try:
+    userAnswer = input("\nAre you sure, type {} to continue: ".format(validAns))
+except KeyboardInterrupt:
+    pass
 
-def downloadPoolTxnFiles():
-    import urllib3
-    urllib3.disable_warnings()
-    http = urllib3.PoolManager()
-    urls = {
-        "pool_transactions_live" :"https://raw.githubusercontent.com/sovrin-foundation/sovrin-client/master/data/pool_transactions_live",
-        "pool_transactions_sandbox": "https://raw.githubusercontent.com/sovrin-foundation/sovrin-client/master/data/pool_transactions_sandbox"
-    }
-    for k, url in urls.items():
-        response = http.request('GET', url)
-        path = os.path.join(basedir, k)
-        with open(path, 'wb') as f:
-            f.write(response.data)
-        response.release_conn()
+if userAnswer == validAns:
+    performSovrinBaseDirCleanup(baseDir)
+    print("\nSovrin base directory cleaned up.\n")
+else:
+    print("\nOk, no cleanup performed.\n")
 
-for filename in os.listdir(basedir):
-    filepath = os.path.join(basedir, filename)
-    if filename not in keep:
-        if os.path.isdir(filepath):
-            shutil.rmtree(filepath)
-        else:
-            os.remove(filepath)
-
-downloadPoolTxnFiles()

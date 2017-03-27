@@ -8,11 +8,12 @@ import pytest
 from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
+from plenum.common.log import getlogger
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
+from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
-    VALIDATOR
+    VALIDATOR, STEWARD
 from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     checkAllNodesStarted, newCLI as newPlenumCLI
@@ -21,9 +22,14 @@ from plenum.test.testable import Spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
-from sovrin_common.txn import NYM
-from sovrin_common.txn import STEWARD
+from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
+from sovrin_common.txn_util import getTxnOrderedFields
+from ledger.compact_merkle_tree import CompactMerkleTree
+from ledger.ledger import Ledger
+from ledger.serializers.compact_serializer import CompactSerializer
+
+logger = getlogger()
 
 
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -155,12 +161,40 @@ def getPoolTxnData(nodeAndClientInfoFilePath, poolId, newPoolTxnNodeNames):
 
 def prompt_is(prompt):
     def x(cli):
-        assert cli.currPromptText == prompt
+        assert cli.currPromptText == prompt, \
+            "expected prompt: {}, actual prompt: {}".\
+                format(prompt, cli.currPromptText)
     return x
 
 
+def addTxnToFile(dir, file, txns, fields=getTxnOrderedFields()):
+    ledger = Ledger(CompactMerkleTree(),
+                    dataDir=dir,
+                    serializer=CompactSerializer(fields=fields),
+                    fileName=file)
+    for txn in txns:
+        ledger.add(txn)
+    ledger.stop()
+
+
+def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):
+    added = 0
+    if trusteeList and len(trusteeList) and trusteeData:
+        txns=[]
+        for trusteeToAdd in trusteeList:
+            try:
+                trusteeData = next((data for data in trusteeData if data[0] == trusteeToAdd))
+                name, seed, txn = trusteeData
+                txns.append(txn)
+            except StopIteration as e:
+                logger.debug('{} not found in trusteeData'.format(trusteeToAdd))
+        addTxnToFile(txnDir, txnFileName, txns)
+    return added
+
+
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-           domainDir=None, multiPoolNodes=None, unique_name=None, logFileName=None):
+           domainDir=None, multiPoolNodes=None, unique_name=None,
+           logFileName=None, cliClass=TestCLI, name=None, agentCreator=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -177,13 +211,15 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
     from sovrin_node.test.helper import TestNode
-    return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
+    return newPlenumCLI(looper, tempDir, cliClass=cliClass,
                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-                        unique_name=unique_name, logFileName=logFileName)
+                        unique_name=unique_name, logFileName=logFileName,
+                        name=name, agentCreator=agentCreator)
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-                  logFileName=None, multiPoolNodes=None):
+                  logFileName=None, multiPoolNodes=None, cliClass=TestCLI,
+                  name=None, agentCreator=None):
     def _(space,
           looper=None,
           unique_name=None):
@@ -196,7 +232,10 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                        domainDir=tdirWithDomainTxns,
                        multiPoolNodes=multiPoolNodes,
                        unique_name=unique_name or space,
-                       logFileName=logFileName)
+                       logFileName=logFileName,
+                       cliClass=cliClass,
+                       name=name,
+                       agentCreator=agentCreator)
             return c
         if looper:
             yield new()
@@ -219,30 +258,40 @@ def check_wallet(cli,
                  totalClaimsRcvd=None,
                  within=None):
     async def check():
-        assert (totalLinks is None or
-                totalLinks == len(cli.activeWallet._links))
+        actualLinks = len(cli.activeWallet._links)
+        assert (totalLinks is None or (totalLinks == actualLinks)),\
+            'links expected to be {} but is {}'.format(totalLinks, actualLinks)
 
         tac = 0
         for li in cli.activeWallet._links.values():
             tac += len(li.availableClaims)
 
         assert (totalAvailableClaims is None or
-                totalAvailableClaims == tac)
+                totalAvailableClaims == tac), \
+            'available claims {} must be equal to {}'.\
+                format(tac, totalAvailableClaims)
 
-        assert (totalSchemas is None or
-                totalSchemas == len(await cli.agent.prover.wallet.getAllSchemas()))
+        if cli.agent.prover is None:
+            assert (totalSchemas + totalClaimsRcvd) == 0
+        else:
+            w = cli.agent.prover.wallet
+            actualSchemas = len(await w.getAllSchemas())
+            assert (totalSchemas is None or
+                    totalSchemas == actualSchemas),\
+                'schemas expected to be {} but is {}'.\
+                    format(totalSchemas, actualSchemas)
 
-        assert (totalClaimsRcvd is None or
-                totalClaimsRcvd == len((await cli.agent.prover.wallet.getAllClaims()).keys()))
+            assert (totalClaimsRcvd is None or
+                    totalClaimsRcvd == len((await w.getAllClaims()).keys()))
 
     if within:
         cli.looper.run(eventually(check, timeout=within))
     else:
-        check()
+        cli.looper.run(check)
 
 
-def wallet_starting_state(totalLinks=0,
-                          totalAvailableClaims=0,
-                          totalSchemas=0,
-                          totalClaimsRcvd=0):
+def wallet_state(totalLinks=0,
+                 totalAvailableClaims=0,
+                 totalSchemas=0,
+                 totalClaimsRcvd=0):
     return locals()

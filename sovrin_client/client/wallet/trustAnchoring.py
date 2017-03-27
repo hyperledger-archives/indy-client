@@ -1,26 +1,24 @@
 from typing import Dict
 
-from plenum.common.txn import STEWARD
 from plenum.common.types import Identifier
-from sovrin_common.auth import Authoriser
 
 from sovrin_common.identity import Identity
 
 
-class Sponsoring:
+class TrustAnchoring:
     """
-    Mixin to add sponsoring behaviors to a Wallet
+    Mixin to add trust anchoring behaviors to a Wallet
     """
 
     def __init__(self):
-        self._sponsored = {}  # type: Dict[Identifier, Identity]
+        self._trustAnchored = {}  # type: Dict[Identifier, Identity]
 
     def createIdInWallet(self, idy: Identity):
-        if idy.identifier in self._sponsored:
-            del self._sponsored[idy.identifier]
-        self._sponsored[idy.identifier] = idy
+        if idy.identifier in self._trustAnchored:
+            del self._trustAnchored[idy.identifier]
+        self._trustAnchored[idy.identifier] = idy
 
-    def addSponsoredIdentity(self, idy: Identity):
+    def addTrustAnchoredIdentity(self, idy: Identity):
         self.createIdInWallet(idy)
         self._sendIdReq(idy)
 
@@ -32,13 +30,13 @@ class Sponsoring:
             self.pendRequest(req, idy.identifier)
         return len(self._pending)
 
-    def updateSponsoredIdentity(self, idy):
-        storedId = self._sponsored.get(idy.identifier)
+    def updateTrustAnchoredIdentity(self, idy):
+        storedId = self._trustAnchored.get(idy.identifier)
         if storedId:
             storedId.seqNo = None
         else:
             self.createIdInWallet(idy)
         self._sendIdReq(idy)
 
-    def getSponsoredIdentity(self, idr):
-        return self._sponsored.get(idr)
+    def getTrustAnchoredIdentity(self, idr):
+        return self._trustAnchored.get(idr)

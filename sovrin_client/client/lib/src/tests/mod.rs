@@ -26,8 +26,8 @@ macro_rules! ximpl {
 fn new_nym_succeeds() {
     // We might just do one simple create scenario and call it good. Alternatively, we could get
     // exhaustive here, creating variations of this test to exercise scenarios where the actor
-    // in question is a sponsor, a steward, or a trustee, permuted by values in the "role" param,
-    // which can be USER, SPONSOR, STEWARD, TRUSTEE. The ledger will already handle all the
+    // in question is a trust anchor, a steward, or a trustee, permuted by values in the "role" param,
+    // which can be USER, TRUST_ANCHOR, STEWARD, TRUSTEE. The ledger will already handle all the
     // permutations--we only need to test them at this layer if something in the client handles
     // them differently.
     ximpl!()
@@ -37,8 +37,8 @@ fn new_nym_succeeds() {
 fn updated_nym_succeeds() {
     // We might just do one simple create scenario and call it good. Alternatively, we could get
     // exhaustive here, creating variations of this test to exercise scenarios where the actor
-    // in question is a sponsor, a steward, or a trustee, permuted by values in the "role" param,
-    // which can be USER, SPONSOR, STEWARD, TRUSTEE. The ledger will already handle all the
+    // in question is a trust anchor, a steward, or a trustee, permuted by values in the "role" param,
+    // which can be USER, TRUST_ANCHOR, STEWARD, TRUSTEE. The ledger will already handle all the
     // permutations--we only need to test them at this layer if something in the client handles
     // them differently.
     ximpl!()

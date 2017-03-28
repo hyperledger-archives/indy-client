@@ -460,3 +460,14 @@ def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
                        dest=userIdA,
                        ledgerStore=LedgerStore.RAW)
     addAttributeAndCheck(looper, userClientA, userWalletA, attrib)
+
+
+def testAttrWithNoDestAdded(nodeSet, looper, userClientA, userWalletA,
+                               userIdA, attributeData):
+    attr1 = json.dumps({'age': 24})
+    attrib = Attribute(name='test4 attribute',
+                       origin=userIdA,
+                       value=attr1,
+                       dest=None,
+                       ledgerStore=LedgerStore.RAW)
+    addAttributeAndCheck(looper, userClientA, userWalletA, attrib)

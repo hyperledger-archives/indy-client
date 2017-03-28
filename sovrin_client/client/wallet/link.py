@@ -207,3 +207,17 @@ class Link:
         if required and len(_) == 0:
             raise NotFound
         return _[0] if _ else None
+
+    def find_proof_requests(self, name=None, version=None):
+        return [pr for pr in self.proofRequests
+                if (not name or name == pr.name) and
+                (not version or version == pr.version)]
+
+    def find_proof_request(self, name=None, version=None,
+                           max_one=True, required=True):
+        _ = self.find_proof_requests(name, version)
+        assert not max_one or len(_) <= 1, \
+            'more than one matching available claim found'
+        if required and len(_) == 0:
+            raise NotFound
+        return _[0] if _ else None

@@ -44,10 +44,10 @@ def newStewardCLI(CliBuilder):
 
 
 @pytest.fixture(scope="module")
-def newStewardCli(be, do, poolNodesStarted, philCli,
+def newStewardCli(be, do, poolNodesStarted, trusteeCli,
                   connectedToTest, nymAddedOut, newStewardCLI):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
+    be(trusteeCli)
+    if not trusteeCli._isConnectedToAnyEnv():
         do('connect test', within=3,
            expect=connectedToTest)
 
@@ -94,7 +94,13 @@ def tconf(tconf, request):
 
 
 @pytest.fixture(scope="module")
-def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
+def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTest):
+    be(philCli)
+
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
     be(newStewardCli)
     doNodeCmd(do)
     newNodeData = vals["newNodeData"]

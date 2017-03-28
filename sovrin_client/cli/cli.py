@@ -1223,12 +1223,12 @@ class SovrinCli(PlenumCli):
 
     def _sendProof(self, matchedVars):
         if matchedVars.get('send_proof') == sendProofCmd.id:
-            claimName = SovrinCli.removeSpecialChars(
+            proofName = SovrinCli.removeSpecialChars(
                 matchedVars.get('proof_name').strip())
             linkName = SovrinCli.removeSpecialChars(
                 matchedVars.get('link_name').strip())
 
-            li, proofReq = self._findProofRequest(claimName, linkName)
+            li, proofReq = self._findProofRequest(proofName, linkName)
 
             if not li or not proofReq:
                 return False

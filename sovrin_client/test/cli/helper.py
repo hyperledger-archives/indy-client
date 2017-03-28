@@ -1,10 +1,14 @@
 import json
 import os
 import re
-from hashlib import sha256
+from _sha256 import sha256
 
+import pytest
+
+from plenum.cli.cli import Exit
 from plenum.common.eventually import eventually
 from plenum.common.looper import Looper
+from plenum.common.log import getlogger
 from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
@@ -20,7 +24,13 @@ from sovrin_client.client.wallet.link import Link
 from sovrin_common.constants import Environment
 from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
+from sovrin_common.txn_util import getTxnOrderedFields
+from ledger.compact_merkle_tree import CompactMerkleTree
+from ledger.ledger import Ledger
+from ledger.serializers.compact_serializer import CompactSerializer
 from sovrin_common.roles import Roles
+
+logger = getlogger()
 
 
 @spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
@@ -158,6 +168,31 @@ def prompt_is(prompt):
     return x
 
 
+def addTxnToFile(dir, file, txns, fields=getTxnOrderedFields()):
+    ledger = Ledger(CompactMerkleTree(),
+                    dataDir=dir,
+                    serializer=CompactSerializer(fields=fields),
+                    fileName=file)
+    for txn in txns:
+        ledger.add(txn)
+    ledger.stop()
+
+
+def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):
+    added = 0
+    if trusteeList and len(trusteeList) and trusteeData:
+        txns=[]
+        for trusteeToAdd in trusteeList:
+            try:
+                trusteeData = next((data for data in trusteeData if data[0] == trusteeToAdd))
+                name, seed, txn = trusteeData
+                txns.append(txn)
+            except StopIteration as e:
+                logger.debug('{} not found in trusteeData'.format(trusteeToAdd))
+        addTxnToFile(txnDir, txnFileName, txns)
+    return added
+
+
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
            domainDir=None, multiPoolNodes=None, unique_name=None,
            logFileName=None, cliClass=TestCLI, name=None, agentCreator=None):
@@ -209,6 +244,12 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
             with Looper(debug=False) as looper:
                 yield new()
     return _
+
+
+# marker class for regex pattern
+class P(str):
+    def match(self, other):
+        return re.match('^{}$'.format(self), other)
 
 
 def check_wallet(cli,

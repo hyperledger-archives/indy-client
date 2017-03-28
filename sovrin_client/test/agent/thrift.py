@@ -21,9 +21,10 @@ class ThriftAgent(WalletedAgent):
                                       self.wallet.defaultId, frm)
 
 
-def create_thrift(name=None, wallet=None, base_dir_path=None, port=None):
+def create_thrift(name=None, wallet=None, base_dir_path=None, port=7777, client=None):
 
-    client = create_client(base_dir_path=None, client_class=TestClient)
+    if client is None:
+        client = create_client(base_dir_path=None, client_class=TestClient)
 
     agent = ThriftAgent(name=name or 'Thrift Bank',
                        basedirpath=base_dir_path,

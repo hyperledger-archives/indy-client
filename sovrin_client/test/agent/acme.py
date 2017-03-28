@@ -30,15 +30,15 @@ class AcmeAgent(WalletedAgent):
                     self.sendNewAvailableClaimsData(claims, frm, link)
 
 
-def create_acme(name=None, wallet=None, base_dir_path=None, port=None):
-
-    client = create_client(base_dir_path=None, client_class=TestClient)
+def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=None):
+    if client is None:
+        client = create_client(base_dir_path=None, client_class=TestClient)
 
     agent = AcmeAgent(name=name or "Acme Corp",
-                       basedirpath=base_dir_path,
-                       client=client,
-                       wallet=wallet or buildAcmeWallet(),
-                       port=port)
+                      basedirpath=base_dir_path,
+                      client=client,
+                      wallet=wallet or buildAcmeWallet(),
+                      port=port)
 
     # maps invitation nonces to internal ids
     agent._invites = {

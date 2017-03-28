@@ -1,6 +1,7 @@
 from plenum.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
+from sovrin_client.client.client import Client
 from sovrin_client.test.agent.helper import bootstrap_schema
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
@@ -13,9 +14,10 @@ from sovrin_client.test.helper import TestClient
 logger = getlogger()
 
 
-def create_faber(name=None, wallet=None, base_dir_path=None, port=None):
+def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=None):
 
-    client = create_client(base_dir_path=None, client_class=TestClient)
+    if client is None:
+        client = create_client(base_dir_path=None, client_class=TestClient)
 
     agent = WalletedAgent(name=name or "Faber College",
                        basedirpath=base_dir_path,

@@ -14,7 +14,7 @@ from stp_core.types import Identifier
 from plenum.common.util import randomString
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
-from sovrin_client.agent.endpoint import ZEndpoint, Endpoint
+from sovrin_client.agent.endpoint import ZEndpoint, REndpoint
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -177,7 +177,7 @@ class Agent(Motor, AgentNet):
         if isinstance(self.endpoint, ZEndpoint):
             assert pubkey
             self.endpoint.connectTo(ha, verkey, pubkey)
-        elif isinstance(self.endpoint, Endpoint):
+        elif isinstance(self.endpoint, REndpoint):
             self.endpoint.connectTo(ha)
         else:
             RuntimeError('Non supported Endpoint type used')

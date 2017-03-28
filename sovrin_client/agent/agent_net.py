@@ -1,4 +1,4 @@
-from sovrin_client.agent.endpoint import Endpoint, ZEndpoint
+from sovrin_client.agent.endpoint import REndpoint, ZEndpoint
 
 
 class AgentNet:
@@ -20,9 +20,9 @@ class AgentNet:
                                           seed=seed,
                                           onlyListener=onlyListener)
             else:
-                self.endpoint = Endpoint(port=port,
-                                         msgHandler=msgHandler,
-                                         name=name,
-                                         basedirpath=basedirpath)
+                self.endpoint = REndpoint(port=port,
+                                          msgHandler=msgHandler,
+                                          name=name,
+                                          basedirpath=basedirpath)
         else:
             self.endpoint = None

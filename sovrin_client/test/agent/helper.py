@@ -5,7 +5,7 @@ from plenum.common.signer_simple import SimpleSigner
 from stp_core.loop.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 
-from sovrin_client.agent.endpoint import Endpoint, ZEndpoint
+from sovrin_client.agent.endpoint import REndpoint, ZEndpoint
 from sovrin_client.client.wallet.wallet import Wallet
 
 
@@ -24,7 +24,7 @@ def ensureAgentsConnected(looper, agent1, agent2):
             assert e2.publicKey in e1.remotesByKeys or e2.publicKey in e1.peersWithoutRemotes
             looper.run(eventually(_, e1, e2, CONNECTED, timeout=10))
 
-    elif isinstance(e1, Endpoint) and isinstance(e2, Endpoint):
+    elif isinstance(e1, REndpoint) and isinstance(e2, REndpoint):
         looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,
                               timeout=10))
         looper.run(eventually(checkRemoteExists, e2, e1.name, CONNECTED,

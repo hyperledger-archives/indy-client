@@ -1,5 +1,7 @@
 from typing import Callable, Any, List
 
+from plenum import config
+from plenum.common.message_processor import MessageProcessor
 from raet.raeting import AutoMode
 from raet.road.estating import RemoteEstate
 from zmq.utils import z85
@@ -15,7 +17,7 @@ from stp_zmq.zstack import SimpleZStack
 logger = getlogger()
 
 
-class EndpointCore:
+class EndpointCore(MessageProcessor):
     # TODO: Rename method
     def baseMsgHandler(self, msg):
         logger.debug("Got {}".format(msg))
@@ -43,7 +45,7 @@ class EndpointCore:
             self.transmitToClient(msg, nm)
 
 
-class Endpoint(SimpleRStack, EndpointCore):
+class REndpoint(SimpleRStack, EndpointCore):
     def __init__(self, port: int, msgHandler: Callable,
                  name: str=None, basedirpath: str=None):
         if name and basedirpath:
@@ -56,7 +58,8 @@ class Endpoint(SimpleRStack, EndpointCore):
             "ha": HA("0.0.0.0", port),
             "main": True,
             "auto": AutoMode.always,
-            "mutable": "mutable"
+            "mutable": "mutable",
+            "messageTimeout": config.RAETMessageTimeout
         }
         if basedirpath:
             stackParams["basedirpath"] = basedirpath
@@ -66,13 +69,10 @@ class Endpoint(SimpleRStack, EndpointCore):
         self.msgHandler = msgHandler
 
     def connectTo(self, ha):
-        remote = self.findInRemotesByHA(ha)
-        if not remote:
-            remote = RemoteEstate(stack=self, ha=ha)
-            self.addRemote(remote)
-            # updates the store time so the join timer is accurate
-            self.updateStamp()
-            self.join(uid=remote.uid, cascade=True, timeout=30)
+        if not self.isConnectedTo(ha=ha):
+            self.connect(ha=ha)
+        else:
+            logger.debug('{} already connected {}'.format(self, ha))
 
 
 class ZEndpoint(SimpleZStack, EndpointCore):
@@ -94,7 +94,7 @@ class ZEndpoint(SimpleZStack, EndpointCore):
         self.msgHandler = msgHandler
 
     def connectTo(self, ha, verkey, pubkey):
-        if not self.findInRemotesByHA(ha):
+        if not self.isConnectedTo(ha=ha):
             assert pubkey, 'Need public key to connect to {}'.format(ha)
             zvk = z85.encode(friendlyToRaw(verkey)) if verkey else None
             zpk = z85.encode(friendlyToRaw(pubkey))

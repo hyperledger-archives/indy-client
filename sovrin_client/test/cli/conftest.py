@@ -9,7 +9,6 @@ import pytest
 import plenum
 from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
-from stp_raet.util import initLocalKeep
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.helper import createNym, buildStewardClient
@@ -812,14 +811,8 @@ def philCLI(CliBuilder):
 def poolCLI(poolCLI_baby, poolTxnData, poolTxnNodeNames, conf):
     seeds = poolTxnData["seeds"]
     for nName in poolTxnNodeNames:
-        if conf.UseZStack:
-            initNodeKeysForBothStacks(nName, poolCLI_baby.basedirpath,
+       initNodeKeysForBothStacks(nName, poolCLI_baby.basedirpath,
                                       seeds[nName], override=True)
-        else:
-            initLocalKeep(nName,
-                          poolCLI_baby.basedirpath,
-                          seeds[nName],
-                          override=True)
     return poolCLI_baby
 
 

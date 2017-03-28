@@ -1,5 +1,5 @@
 from plenum.common.signer_did import DidSigner
-from sovrin_client.agent.endpoint import Endpoint
+from sovrin_client.agent.endpoint import REndpoint
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.strict_types import strict_types
 from stp_core.network.port_dispenser import genHa
@@ -369,10 +369,10 @@ def checkAcceptInvitation(emptyLooper,
         #                        format(internalId))
         # TODO: Get link from invitee wallet to check.
         assert link.remoteIdentifier == inviteeAcceptanceId
-        if isinstance(inviteeAgent.endpoint, Endpoint):
+        if isinstance(inviteeAgent.endpoint, REndpoint):
             assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
 
-    emptyLooper.run(eventually(chk))
+    emptyLooper.run(eventually(chk, timeout=10))
 
 
 def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,

@@ -730,9 +730,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         logger.debug("{} accepting invitation from {} with id {}".
                      format(self.name, link.name, link.localIdentifier))
-        self.logger.info('Invitation accepted with nonce {} from id {}'
-                              .format(link.invitationNonce,
-                                      link.localIdentifier))
+        self.logger.info('Accepting invitation with nonce {} from id {}'
+                         .format(link.invitationNonce, link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)
 
     def _handleSyncResp(self, link, additionalCallback):

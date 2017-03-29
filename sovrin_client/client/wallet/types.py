@@ -38,10 +38,13 @@ class ProofRequest:
                 ['{}'.format(v)
                  for v in self.verifiableAttributes])) + '\n'
 
-    def __str__(self):
-        fixedInfo = \
-            'Status: Requested' + '\n' \
-                                  'Name: ' + self.name + '\n' \
-                                                         'Version: ' + self.version + '\n'
+    @property
+    def fixedInfo(self):
+        return 'Status: Requested' + '\n' \
+                'Name: ' + self.name + '\n' \
+                'Version: ' + self.version + '\n'
 
-        return fixedInfo + self.attributeValues + self.verifiableAttributeValues
+    def __str__(self):
+        return self.fixedInfo + self.attributeValues + self.verifiableAttributeValues
+
+

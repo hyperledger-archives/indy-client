@@ -6,12 +6,14 @@ from typing import Tuple
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from plenum.common.error import fault
 from stp_core.network.exceptions import RemoteNotFound
+from plenum.common.exceptions import RemoteNotFound, NoConsensusYet
 from plenum.common.log import getlogger
 from plenum.common.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.startable import Status
 from stp_core.types import Identifier
-from plenum.common.util import randomString
+from plenum.common.types import Identifier, HA
+from plenum.common.util import randomString, checkPortAvailable
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
 from sovrin_client.agent.endpoint import ZEndpoint, REndpoint
@@ -41,6 +43,10 @@ class Agent(Motor, AgentNet):
                  loop=None,
                  config=None,
                  endpointArgs=None):
+
+        self.endpoint = None
+        if port:
+            checkPortAvailable(HA("0.0.0.0", port))
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
@@ -92,6 +98,11 @@ class Agent(Motor, AgentNet):
         return c
 
     def start(self, loop):
+        AgentNet.__init__(self,
+                          name=self._name.replace(" ", ""),
+                          port=self._port,
+                          basedirpath=self.basedirpath,
+                          msgHandler=self.handleEndpointMessage)
         super().start(loop)
         if self.client:
             self.client.start(loop)
@@ -207,11 +218,13 @@ class WalletedAgent(Walleted, Agent, Caching):
                  agentLogger=None,
                  config=None,
                  endpointArgs=None):
+
         self._wallet = wallet or Wallet(name)
         Agent.__init__(self, name, basedirpath, client, port, loop=loop,
                        config=config, endpointArgs=endpointArgs)
+
         self._attrRepo = attrRepo or AttributeRepoInMemory()
-        Walleted.__init__(self, agentLogger=(agentLogger or None))
+        Walleted.__init__(self)
         if self.client:
             self._initIssuerProverVerifier()
 
@@ -252,6 +265,8 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
 
 
 def runAgent(agent, looper=None, bootstrap=True):
+    assert agent
+
     def doRun(looper):
         looper.add(agent)
         logger.debug("Running {} now (port: {})".format(agent.name, agent.port))
@@ -266,26 +281,10 @@ def runAgent(agent, looper=None, bootstrap=True):
             looper.run()
 
 
-def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
-                      port=None, looper=None, clientClass=Client, bootstrap=True):
-    loop = looper.loop if looper else None
-    agent = createAgent(agentClass, name, wallet, basedirpath, port, loop,
-                        clientClass)
-    runAgent(agent, looper, bootstrap)
-    return agent
-
-
-def isSchemaFound(schema, ranViaScript):
-    if not schema:
-        msg = "Schema not found, check if Sovrin is running and " \
-              "agent's identifier is added"
-        msgHalfLength = int(len(msg)/2)
-        errorLine = "-" * msgHalfLength + "ERROR" + "-" * msgHalfLength
-        print("\n" + errorLine)
-        print("Schema not found, check if Sovrin is running and "
-              "agent's identifier is added")
-        print(errorLine + "\n")
-        if ranViaScript:
-            exit(1)
-        else:
-            raise Exception
+async def runBootstrap(bootstrapFunc):
+    try:
+        await bootstrapFunc()
+    except TimeoutError as exc:
+        raise NoConsensusYet("consensus is not yet achieved, "
+                             "check if sovrin is running and "
+                             "client is able to connect to it") from exc

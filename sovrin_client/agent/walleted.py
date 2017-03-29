@@ -5,14 +5,14 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
-from typing import Dict, Union, NamedTuple, List
+from typing import Dict, Union, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
-from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
-    TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES, PUBKEY
+from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
+    TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
     isMaxCheckTimeExpired, convertTimeBasedReqIdToMillis
@@ -33,7 +33,7 @@ from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
@@ -41,7 +41,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
     NotConnectedToNetwork, LinkNotReady
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
 
@@ -61,8 +61,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def __init__(self,
                  issuer: Issuer = None,
                  prover: Prover = None,
-                 verifier: Verifier = None,
-                 agentLogger=None):
+                 verifier: Verifier = None):
 
         AgentIssuer.__init__(self, issuer)
         AgentProver.__init__(self, prover)
@@ -85,6 +84,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             PROOF: self.verifyProof,
             PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF_REQUEST: self.handleProofRequest,
 
             PONG: self._handlePong,
             INVITE_ACCEPTED: self._handleAcceptInviteResponse,
@@ -92,7 +92,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             NEW_AVAILABLE_CLAIMS: self._handleNewAvailableClaimsDataResponse
         }
-        self.agentLogger = agentLogger or logger
+        self.logger = logger
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
@@ -126,7 +126,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         link.verifiedClaimProofs.append(claimName)
         await self.postClaimVerif(claimName, link, frm)
 
-    def getAvailableClaimList(self, requesterId):
+    def getAvailableClaimList(self, link):
         raise NotImplementedError
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
@@ -165,6 +165,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # this looks ok for test code, but not production code
             link = Link(str(internalId),
                         self.wallet.defaultId,
+                        self.wallet.getVerkey(),
                         invitationNonce=nonce,
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
@@ -479,7 +480,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise SignatureRejected
         else:
             if typ == ACCEPT_INVITE:
-                self.agentLogger.info('\nSignature accepted.')
+                self.logger.info('\nSignature accepted.')
             return True
 
     def _getLinkByTarget(self, target) -> Link:
@@ -541,7 +542,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         idy = Identity(identifier, verkey=verkey)
         link.targetVerkey = verkey
         try:
-            pendingCount = self.wallet.addSponsoredIdentity(idy)
+            pendingCount = self.wallet.addTrustAnchoredIdentity(idy)
             logger.debug("pending request count {}".format(pendingCount))
             alreadyAdded = False
         except Exception as e:
@@ -555,7 +556,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         def sendClaimList(reply=None, error=None):
             logger.debug("sending available claims to {}".format(identifier))
             resp = self.createInviteAcceptedMsg(
-                self.getAvailableClaimList(link.localIdentifier),
+                self.getAvailableClaimList(link),
                 alreadyAccepted=alreadyAdded)
             self.signAndSend(resp, link.localIdentifier, frm,
                              origReqId=body.get(f.REQ_ID.nm))
@@ -564,7 +565,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             sendClaimList()
             logger.debug("already accepted, "
                          "so directly sending available claims")
-            self.agentLogger.info('Already added identifier [{}] in sovrin'
+            self.logger.info('Already added identifier [{}] in sovrin'
                                   .format(identifier))
             # self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
             #                       "    Already accepted",
@@ -580,7 +581,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # how to provide separate logging for each agent
             # anyhow this class should be implemented by each agent
             # so we might not even need to add it as a separate logic
-            self.agentLogger.info('Creating identifier [{}] in sovrin'
+            self.logger.info('Creating identifier [{}] in sovrin'
                                   .format(identifier))
             self._sendToSovrinAndDo(reqs[0], clbk=sendClaimList)
 
@@ -724,6 +725,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             signer = DidSigner()
             self.wallet.addIdentifier(signer=signer)
             link.localIdentifier = signer.identifier
+            link.localVerkey = signer.verkey
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender
@@ -732,9 +734,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         logger.debug("{} accepting invitation from {} with id {}".
                      format(self.name, link.name, link.localIdentifier))
-        self.agentLogger.info('Invitation accepted with nonce {} from id {}'
-                              .format(link.invitationNonce,
-                                      link.localIdentifier))
+        self.logger.info('Accepting invitation with nonce {} from id {}'
+                         .format(link.invitationNonce, link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)
 
     # def _handleSyncNymResp(self, link, additionalCallback):

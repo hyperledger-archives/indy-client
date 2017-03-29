@@ -2,24 +2,28 @@ import json
 
 from ledger.util import F
 from stp_core.loop.eventually import eventually
-from plenum.common.exceptions import NoConsensusYet
+from plenum.common.exceptions import NoConsensusYet, OperationError
 from plenum.common.log import getlogger
-from plenum.common.txn import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
-    ORIGIN
+from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, \
+    VERSION, TYPE, ORIGIN, GET_SCHEMA, SCHEMA, ATTR_NAMES, GET_ISSUER_KEY, \
+    REF, ISSUER_KEY, PRIMARY, REVOCATION
 
 from anoncreds.protocol.repo.public_repo import PublicRepo
 from anoncreds.protocol.types import Schema, ID, PublicKey, \
     RevocationPublicKey, AccumulatorPublicKey, \
     Accumulator, TailsType, TimestampType
-from sovrin_common.txn import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
-    GET_ISSUER_KEY, REF, ISSUER_KEY, PRIMARY, REVOCATION
 from sovrin_common.types import Request
 
 
 def _ensureReqCompleted(reqKey, client, clbk):
     reply, err = client.replyIfConsensus(*reqKey)
+
+    if err:
+        raise OperationError(err)
+
     if reply is None:
         raise NoConsensusYet('not completed')
+
     return clbk(reply, err)
 
 
@@ -53,11 +57,7 @@ class SovrinPublicRepo(PublicRepo):
                 VERSION: id.schemaKey.version,
             }
         }
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendGetReq(op)
         return Schema(name=data[NAME],
                                version=data[VERSION],
                                schemaType=data[TYPE],
@@ -72,14 +72,7 @@ class SovrinPublicRepo(PublicRepo):
             ORIGIN: id.schemaKey.issuerId
         }
 
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
-
-        if not data:
-            return None
+        data, seqNo = await self._sendGetReq(op)
 
         data = data[DATA][PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
@@ -92,11 +85,7 @@ class SovrinPublicRepo(PublicRepo):
             ORIGIN: id.schemaKey.issuerId
         }
 
-        try:
-            data, seqNo = await self._sendGetReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendGetReq(op)
 
         if not data:
             return None
@@ -128,11 +117,7 @@ class SovrinPublicRepo(PublicRepo):
             }
         }
 
-        try:
-            data, seqNo = await self._sendSubmitReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendSubmitReq(op)
 
         if not seqNo:
             return None
@@ -151,11 +136,7 @@ class SovrinPublicRepo(PublicRepo):
             DATA: {PRIMARY: pkData, REVOCATION: pkRData}
         }
 
-        try:
-            data, seqNo = await self._sendSubmitReq(op)
-        except TimeoutError:
-            logger.error('Operation timed out {}'.format(op))
-            return None
+        data, seqNo = await self._sendSubmitReq(op)
 
         if not seqNo:
             return None

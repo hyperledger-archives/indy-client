@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Dict, Any
 
-from plenum.common.txn import NAME, VERSION, ORIGIN
+from plenum.common.constants import NAME, VERSION, ORIGIN
 from plenum.common.types import f
 
 from anoncreds.protocol.issuer import Issuer
@@ -19,9 +19,8 @@ class AgentIssuer:
     async def processReqAvailClaims(self, msg):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
-        acs = self.getAvailableClaimList(link.localIdentifier)
         data = {
-            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link.localIdentifier)
+            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link)
         }
         resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
         self.signAndSend(resp, link.localIdentifier, frm)

@@ -8,10 +8,11 @@ from plenum.common.txn import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
 from stp_core.loop.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.roles import Roles
 from sovrin_common.setup_util import Setup
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.agent.agent import createAndRunAgent
 from sovrin_client.test.agent.acme import AcmeAgent
 from sovrin_client.test.agent.faber import FaberAgent
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
@@ -21,7 +22,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
-    aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
+    aliceRequestedTranscriptClaim, jobApplicationProofSent, \
     jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
@@ -77,6 +78,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     faberAgentPort = 5555
     acmeAgentPort = 6666
     thriftAgentPort = 7777
+
     faberHa = "{}:{}".format(agentIpAddress, faberAgentPort)
     acmeHa = "{}:{}".format(agentIpAddress, acmeAgentPort)
     thriftHa = "{}:{}".format(agentIpAddress, thriftAgentPort)
@@ -114,8 +116,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
         agentCls.getPassedArgs = lambda _: (agentPort,)
-        createAndRunAgent(agentCls, agentName, buildAgentWalletFunc(), tdir,
-                          agentPort, philCLI.looper, TestClient)
+        TestWalletedAgent.createAndRunAgent(
+            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+            philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':
@@ -202,7 +205,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('set phone_number to 123-45-6789')
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
-        jobApplicationClaimSent(be, do, userCLI, aMap, None, None, None)
+        jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,

@@ -3,10 +3,10 @@ import json
 from typing import Any, Optional
 
 from ledger.stores.directory_store import DirectoryStore
-from plenum.common.txn import ORIGIN, TARGET_NYM, NAME, RAW, ENC, HASH
+from plenum.common.constants import ORIGIN, TARGET_NYM, NAME, RAW, ENC, HASH
 
-from sovrin_common.txn import SKEY, ENC_TYPE
-from sovrin.persistence.attribute_store import AttributeStore
+from sovrin_common.constants import SKEY, ENC_TYPE
+from sovrin_client.persistence.attribute_store import AttributeStore
 
 
 class AttributeStoreFile(AttributeStore):

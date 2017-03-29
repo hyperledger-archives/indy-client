@@ -4,13 +4,13 @@ import pytest
 
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.test.cli.conftest import nymAddedOut
-
+from sovrin_common.roles import Roles
 
 vals = {
     'newTrusteeIdr': SimpleSigner().identifier,
     'newTGBIdr': SimpleSigner().identifier,
     'newStewardIdr': SimpleSigner().identifier,
-    'newSponsorIdr': SimpleSigner().identifier,
+    'newTrustAnchorIdr': SimpleSigner().identifier,
 }
 
 
@@ -20,7 +20,7 @@ def anotherTrusteeAdded(be, do, trusteeCli, nymAddedOut):
     vals = copy(vals)
     vals['target'] = vals['newTrusteeIdr']
     be(trusteeCli)
-    do('send NYM dest={newTrusteeIdr} role=TRUSTEE',
+    do('send NYM dest={{newTrusteeIdr}} role={role}'.format(role=Roles.TRUSTEE.name),
        within=5,
        expect=nymAddedOut, mapper=vals)
 
@@ -31,7 +31,7 @@ def tbgAdded(be, do, trusteeCli, nymAddedOut):
     vals = copy(vals)
     vals['target'] = vals['newTGBIdr']
     be(trusteeCli)
-    do('send NYM dest={newTGBIdr} role=TGB',
+    do('send NYM dest={{newTGBIdr}} role={role}'.format(role=Roles.TGB.name),
        within=5,
        expect=nymAddedOut, mapper=vals)
 
@@ -42,25 +42,25 @@ def stewardAdded(be, do, trusteeCli, nymAddedOut):
     vals = copy(vals)
     vals['target'] = vals['newStewardIdr']
     be(trusteeCli)
-    do('send NYM dest={newStewardIdr} role=STEWARD',
+    do('send NYM dest={{newStewardIdr}} role={role}'.format(role=Roles.STEWARD.name),
        within=5,
        expect=nymAddedOut, mapper=vals)
 
 
 @pytest.fixture(scope="module")
-def sponsorAdded(be, do, trusteeCli, nymAddedOut):
+def trustAnchorAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     vals = copy(vals)
-    vals['target'] = vals['newSponsorIdr']
+    vals['target'] = vals['newTrustAnchorIdr']
     be(trusteeCli)
-    do('send NYM dest={newSponsorIdr} role=SPONSOR',
+    do('send NYM dest={{newTrustAnchorIdr}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
        within=5,
        expect=nymAddedOut, mapper=vals)
 
 
-def testTrusteeSuspendingSponsor(be, do, trusteeCli, sponsorAdded, nymAddedOut):
+def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded, nymAddedOut):
     be(trusteeCli)
-    do('send NYM dest={newSponsorIdr} role=',
+    do('send NYM dest={newTrustAnchorIdr} role=',
        within=5,
        expect=nymAddedOut, mapper=vals)
 

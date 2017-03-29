@@ -1,10 +1,12 @@
 import json
 
-from plenum.common.txn import VERKEY, DATA, NODE, TYPE
+from plenum.common.constants import VERKEY, DATA, NODE, TYPE
 from plenum.test.cli.helper import checkCmdValid
 
-from sovrin_common.txn import STEWARD, NYM
-from sovrin_common.txn import TARGET_NYM, ROLE
+from sovrin_common.constants import NYM
+from sovrin_common.constants import TARGET_NYM, ROLE
+from sovrin_common.roles import Roles
+from sovrin_common.transactions import SovrinTransactions
 
 
 def executeAndCheckGenTxn(cli, cmd, typ, nym, role=None, data=None):
@@ -14,6 +16,7 @@ def executeAndCheckGenTxn(cli, cmd, typ, nym, role=None, data=None):
     dataCorrect = False if data else True
     typeCorrect = False if typ else True
 
+    role = Roles[role].value if role else role
     for txn in cli.genesisTransactions:
         if txn.get(TARGET_NYM) == nym:
             nymCorrect = True
@@ -28,26 +31,26 @@ def executeAndCheckGenTxn(cli, cmd, typ, nym, role=None, data=None):
     assert "Genesis transaction added" in cli.lastCmdOutput
 
 
-def prepareCmdAndCheckGenTxn(cli, typ, nym, role=None, data=None):
-    cmd = "add genesis transaction {} dest={}".format(typ, nym)
+def prepareCmdAndCheckGenTxn(cli, typ: SovrinTransactions, nym, role=None, data=None):
+    cmd = "add genesis transaction {} dest={}".format(typ.name, nym)
     if role:
         cmd += " role={}".format(role)
     if data:
         cmd += " with data {}".format(data)
-    executeAndCheckGenTxn(cli, cmd, typ, nym, role, data)
+    executeAndCheckGenTxn(cli, cmd, typ.value, nym, role, data)
 
 
 def testAddGenTxnBasic(cli):
     nym = "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML"
     role = None
-    typ = NYM
+    typ = SovrinTransactions.NYM
     prepareCmdAndCheckGenTxn(cli, typ, nym, role)
 
 
 def testAddGenTxnWithRole(cli):
     nym = "2ru5PcgeQzxF7QZYwQgDkG2K13PRqyigVw99zMYg8eML"
-    role = STEWARD
-    typ = NYM
+    role = Roles.STEWARD.name
+    typ = SovrinTransactions.NYM
     prepareCmdAndCheckGenTxn(cli, typ, nym, role)
 
 

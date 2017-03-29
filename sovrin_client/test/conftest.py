@@ -60,16 +60,11 @@ def tconf(conf, tdir):
     conf.baseDir = tdir
     conf.MinSepBetweenNodeUpgrades = 5
     return conf
-
-
-@pytest.fixture(scope="module")
-def poolTxnDataClone(poolTxnData):
-    return deepcopy(poolTxnData)
-
+    
 
 @pytest.fixture(scope="module")
-def updatedPoolTxnData(poolTxnDataClone):
-    data = poolTxnDataClone
+def updatedPoolTxnData(poolTxnData):
+    data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
     t = {

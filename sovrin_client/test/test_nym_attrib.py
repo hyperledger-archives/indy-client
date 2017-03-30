@@ -241,7 +241,8 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     req = trustAnchorWallet.preparePending()[0]
     _, key = trustAnchorWallet._prepared.pop((req.identifier, req.reqId))
     req.reqId = lastReqId
-    req.signature = trustAnchorWallet.signMsg(msg=req.getSigningState(),
+
+    req.signature = trustAnchorWallet.signMsg(msg=req.signingState,
                                               identifier=req.identifier)
     trustAnchorWallet._prepared[req.identifier, req.reqId] = req, key
     trustAnchor.submitReqs(req)

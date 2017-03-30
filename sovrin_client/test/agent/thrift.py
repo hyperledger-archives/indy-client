@@ -25,8 +25,7 @@ class ThriftAgent(BaseAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Thrift Bank', basedirpath, client, wallet,
-                         portParam or port, loop=loop, config=config,
-                         endpointArgs=self.getEndpointArgs(wallet))
+                         port=portParam or port, loop=loop)
 
         # maps invitation nonces to internal ids
         self._invites = {

@@ -27,8 +27,7 @@ class FaberAgent(BaseAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop, config=config,
-                         endpointArgs=self.getEndpointArgs(wallet))
+                         portParam or port, loop=loop)
 
         # maps invitation nonces to internal ids
         self._invites = {

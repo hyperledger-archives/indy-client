@@ -28,6 +28,7 @@ from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
 from sovrin_common.strict_types import strict_types, decClassMethods
 from stp_core.network.port_dispenser import genHa
+from plenum.common.util import randomString
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
@@ -102,7 +103,11 @@ class Agent(Motor, AgentNet):
                           name=self._name.replace(" ", ""),
                           port=self._port,
                           basedirpath=self.basedirpath,
-                          msgHandler=self.handleEndpointMessage)
+                          msgHandler=self.handleEndpointMessage,
+                          config = self.config)
+
+
+
         super().start(loop)
         if self.client:
             self.client.start(loop)
@@ -253,6 +258,7 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
         _, port = genHa()
 
     _, clientPort = genHa()
+
     client = clientClass(randomString(6),
                          ha=("0.0.0.0", clientPort),
                          basedirpath=basedirpath)

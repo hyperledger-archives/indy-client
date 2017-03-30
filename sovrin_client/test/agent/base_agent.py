@@ -59,7 +59,7 @@ class BaseAgent(TestWalletedAgent):
         return self.name.replace(" ","-").lower() + "-schema-version.txt"
 
     def updateClaimVersionFile(self, fileName,):
-        claimVersionFilePath = '{}/{}'.format(self._basedirpath, fileName)
+        claimVersionFilePath = '{}/{}'.format(self.basedirpath, fileName)
         # get version number from file
         if os.path.isfile(claimVersionFilePath):
             try:

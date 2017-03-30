@@ -13,22 +13,19 @@ $ sovrin "new nodes all"
 
 """
 
-# Do not remove this import
-import plenum.cli.ensure_logging_not_setup
-
 import logging
 import os
 import sys
-
-logging.root.handlers = []
-logger = logging.getLogger()
-logger.propagate = False
-logger.disabled = True
 
 # NOTE: Loading of plugin should happen as early as possible
 # So put all other required imports after loadPlugins function call below
 from plenum.common.plugin_helper import loadPlugins
 from sovrin_common.config_util import getConfig
+
+logging.root.handlers = []
+logger = logging.getLogger()
+logger.propagate = False
+logger.disabled = True
 
 config = getConfig()
 baseDir = config.baseDir

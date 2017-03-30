@@ -1,13 +1,13 @@
 from typing import Any, Sequence, List
 
-from plenum.common.txn import TXN_ID
-from plenum.common.txn import TXN_TYPE, TXN_TIME
+from plenum.common.constants import TXN_ID
+from plenum.common.constants import TXN_TYPE, TXN_TIME
 from plenum.common.types import f
 from plenum.common.util import checkIfMoreThanFSameItems, getMaxFailures, \
     updateFieldsWithSeqNo
 from plenum.persistence.orientdb_store import OrientDbStore
 
-from sovrin_common.txn import getTxnOrderedFields
+from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.types import Request
 from sovrin_client.persistence.client_req_rep_store import ClientReqRepStore
 

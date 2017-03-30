@@ -5,13 +5,13 @@ import json
 import time
 from abc import abstractmethod
 from datetime import datetime
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 from base58 import b58decode
 from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
-from plenum.common.txn import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
+from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
     TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
@@ -29,22 +29,24 @@ from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FI
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
-from sovrin_client.agent.msg_constants import ACCEPT_INVITE, REQUEST_CLAIM, \
-    CLAIM_PROOF, \
-    AVAIL_CLAIM_LIST, CLAIM, CLAIM_PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
-    REF_REQUEST_ID
+from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
+    PROOF, \
+    AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
+    REF_REQUEST_ID, REQ_AVAIL_CLAIMS, INVITE_ACCEPTED, PROOF_REQUEST
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
-from sovrin_client.client.wallet.link import Link, constant, ClaimProofRequest
+from sovrin_client.client.wallet.link import Link, constant
+from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
     NotConnectedToNetwork, LinkNotReady
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
+
 
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     """
@@ -58,8 +60,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def __init__(self,
                  issuer: Issuer = None,
                  prover: Prover = None,
-                 verifier: Verifier = None,
-                 agentLogger=None):
+                 verifier: Verifier = None):
 
         AgentIssuer.__init__(self, issuer)
         AgentProver.__init__(self, prover)
@@ -75,19 +76,22 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             PING: self._handlePing,
             ACCEPT_INVITE: self._handleAcceptance,
+            REQ_AVAIL_CLAIMS: self.processReqAvailClaims,
 
-            REQUEST_CLAIM: self.processReqClaim,
+            CLAIM_REQUEST: self.processReqClaim,
             CLAIM: self.handleReqClaimResponse,
 
-            CLAIM_PROOF: self.verifyClaimProof,
-            CLAIM_PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF: self.verifyProof,
+            PROOF_STATUS: self.handleProofStatusResponse,
+            PROOF_REQUEST: self.handleProofRequest,
 
             PONG: self._handlePong,
-            AVAIL_CLAIM_LIST: self._handleAcceptInviteResponse,
+            INVITE_ACCEPTED: self._handleAcceptInviteResponse,
+            AVAIL_CLAIM_LIST: self._handleAvailableClaimsResponse,
 
             NEW_AVAILABLE_CLAIMS: self._handleNewAvailableClaimsDataResponse
         }
-        self.agentLogger = agentLogger or logger
+        self.logger = logger
 
     def syncClient(self):
         obs = self._wallet.handleIncomingReply
@@ -108,8 +112,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     @property
     def lockedMsgs(self):
         # Msgs for which signature verification is required
-        return ACCEPT_INVITE, REQUEST_CLAIM, CLAIM_PROOF, \
-               CLAIM, AVAIL_CLAIM_LIST, EVENT, PONG
+        return ACCEPT_INVITE, CLAIM_REQUEST, PROOF, \
+               CLAIM, AVAIL_CLAIM_LIST, EVENT, PONG, REQ_AVAIL_CLAIMS
 
     async def postClaimVerif(self, claimName, link, frm):
         raise NotImplementedError
@@ -121,7 +125,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         link.verifiedClaimProofs.append(claimName)
         await self.postClaimVerif(claimName, link, frm)
 
-    def getAvailableClaimList(self):
+    def getAvailableClaimList(self, link):
         raise NotImplementedError
 
     def getErrorResponse(self, reqBody, errorMsg="Error"):
@@ -160,6 +164,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             # this looks ok for test code, but not production code
             link = Link(str(internalId),
                         self.wallet.defaultId,
+                        self.wallet.getVerkey(),
                         invitationNonce=nonce,
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
@@ -184,10 +189,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
             # TODO ensure status is appropriate with code like the following
             # if link.linkStatus != constant.LINK_STATUS_ACCEPTED:
-            #     raise LinkNotReady('link status is {}'.format(link.linkStatus))
+            # raise LinkNotReady('link status is {}'.format(link.linkStatus))
 
             if not link.localIdentifier:
-                raise LinkNotReady('local identifier not set up yet')
+                raise LinkNotReady('link is not yet established, '
+                                   'send/accept invitation first')
             signingIdr = link.localIdentifier
             params = dict(ha=ha)
         else:
@@ -217,14 +223,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return msg
 
     @classmethod
-    def createAvailClaimListMsg(cls, claimLists, alreadyAccepted=False):
+    def createInviteAcceptedMsg(cls, claimLists, alreadyAccepted=False):
         data = {
             CLAIMS_LIST_FIELD: claimLists
         }
         if alreadyAccepted:
             data[ALREADY_ACCEPTED_FIELD] = alreadyAccepted
 
-        return cls.getCommonMsg(AVAIL_CLAIM_LIST, data)
+        return cls.getCommonMsg(INVITE_ACCEPTED, data)
 
     @classmethod
     def createNewAvailableClaimsMsg(cls, claimLists):
@@ -370,13 +376,28 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 self.notifyMsgListener("No matching link found")
 
     @staticmethod
-    def _getNewAvailableClaims(li, rcvdAvailableClaims):
-        receivedClaims = [(cl[NAME], cl[VERSION], li.remoteIdentifier)
-                              for cl in rcvdAvailableClaims]
+    def _getNewAvailableClaims(li, rcvdAvailableClaims) -> List[AvailableClaim]:
+        receivedClaims = [AvailableClaim(cl[NAME],
+                                         cl[VERSION],
+                                         li.remoteIdentifier)
+                          for cl in rcvdAvailableClaims]
         existingAvailableClaims = set(li.availableClaims)
         newReceivedClaims = set(receivedClaims)
         return list(newReceivedClaims - existingAvailableClaims)
 
+    def _handleAvailableClaimsResponse(self, msg):
+        body, _ = msg
+        identifier = body.get(IDENTIFIER)
+        li = self._getLinkByTarget(getCryptonym(identifier))
+        if li:
+            rcvdAvailableClaims = body[DATA][CLAIMS_LIST_FIELD]
+            if len(rcvdAvailableClaims) > 0:
+                self.notifyMsgListener("    Available Claim(s): {}".
+                    format(",".join(
+                    [rc.get(NAME) for rc in rcvdAvailableClaims])))
+            else:
+                self.notifyMsgListener("    Available Claim(s): "
+                                       "No available claims found")
 
     def _handleAcceptInviteResponse(self, msg):
         body, _ = msg
@@ -400,17 +421,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     li.availableClaims.extend(newAvailableClaims)
                     self.notifyMsgListener("    Available Claim(s): {}".
                         format(",".join(
-                        [n for n, _, _ in newAvailableClaims])))
+                        [rc.get(NAME) for rc in rcvdAvailableClaims])))
                 try:
                     self._checkIfLinkIdentifierWrittenToSovrin(li,
                                                            newAvailableClaims)
                 except NotConnectedToAny:
                     self.notifyEventListeners(
                         EVENT_NOT_CONNECTED_TO_ANY_ENV,
-                        msg="Can not check if identifier is written to "
-                            "Sovrin or not.")
-
-
+                        msg="Cannot check if identifier is written to Sovrin.")
         else:
             self.notifyMsgListener("No matching link found")
 
@@ -458,7 +476,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise SignatureRejected
         else:
             if typ == ACCEPT_INVITE:
-                self.agentLogger.info('\nSignature accepted.')
+                self.logger.info('\nSignature accepted.')
             return True
 
     def _getLinkByTarget(self, target) -> Link:
@@ -473,11 +491,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     li.localIdentifier:
                 self.notifyMsgListener(
                     "    Confirmed identifier written to Sovrin.")
-                availableClaimNames = [n for n, _, _ in availableClaims]
-                self.notifyEventListeners(
-                    EVENT_POST_ACCEPT_INVITE,
-                    availableClaimNames=availableClaimNames,
-                    claimProofReqsCount=len(li.claimProofRequests))
+                self.notifyEventListeners(EVENT_POST_ACCEPT_INVITE, link=li)
             else:
                 self.notifyMsgListener(
                     "    Identifier is not yet written to Sovrin")
@@ -524,7 +538,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         idy = Identity(identifier, verkey=verkey)
         link.targetVerkey = verkey
         try:
-            pendingCount = self.wallet.addSponsoredIdentity(idy)
+            pendingCount = self.wallet.addTrustAnchoredIdentity(idy)
             logger.debug("pending request count {}".format(pendingCount))
             alreadyAdded = False
         except Exception as e:
@@ -536,9 +550,10 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 raise e
 
         def sendClaimList(reply=None, error=None):
-            logger.debug("sent to sovrin {}".format(identifier))
-            resp = self.createAvailClaimListMsg(
-                self.getAvailableClaimList(), alreadyAccepted=alreadyAdded)
+            logger.debug("sending available claims to {}".format(identifier))
+            resp = self.createInviteAcceptedMsg(
+                self.getAvailableClaimList(link),
+                alreadyAccepted=alreadyAdded)
             self.signAndSend(resp, link.localIdentifier, frm,
                              origReqId=body.get(f.REQ_ID.nm))
 
@@ -546,7 +561,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             sendClaimList()
             logger.debug("already accepted, "
                          "so directly sending available claims")
-            self.agentLogger.info('Already added identifier [{}] in sovrin'
+            self.logger.info('Already added identifier [{}] in sovrin'
                                   .format(identifier))
             # self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
             #                       "    Already accepted",
@@ -558,11 +573,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             reqs = self.wallet.preparePending()
             # Assuming there was only one pending request
             logger.debug("sending to sovrin {}".format(reqs[0]))
-            # Specifically for bulldog POC, need to think through
+            # Need to think through
             # how to provide separate logging for each agent
             # anyhow this class should be implemented by each agent
             # so we might not even need to add it as a separate logic
-            self.agentLogger.info('Creating identifier [{}] in sovrin'
+            self.logger.info('Creating identifier [{}] in sovrin'
                                   .format(identifier))
             self._sendToSovrinAndDo(reqs[0], clbk=sendClaimList)
 
@@ -612,13 +627,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         linkInvitationName = linkInvitation[NAME]
         remoteEndPoint = linkInvitation.get("endpoint", None)
         linkNonce = linkInvitation[NONCE]
-        claimProofRequestsJson = invitationData.get("claim-requests", None)
+        proofRequestsJson = invitationData.get("proof-requests", None)
 
-        claimProofRequests = []
-        if claimProofRequestsJson:
-            for cr in claimProofRequestsJson:
-                claimProofRequests.append(
-                    ClaimProofRequest(cr[NAME], cr[VERSION], cr[ATTRIBUTES],
+        proofRequests = []
+        if proofRequestsJson:
+            for cr in proofRequestsJson:
+                proofRequests.append(
+                    ProofRequest(cr[NAME], cr[VERSION], cr[ATTRIBUTES],
                                       cr[VERIFIABLE_ATTRIBUTES]))
 
         self.notifyMsgListener("1 link invitation found for {}.".
@@ -626,14 +641,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         self.notifyMsgListener("Creating Link for {}.".
                                format(linkInvitationName))
-        # TODO: Would we always have a trust anchor corresponding ot a link?
+        # TODO: Would we always have a trust anchor corresponding to a link?
 
         li = Link(name=linkInvitationName,
                   trustAnchor=linkInvitationName,
                   remoteIdentifier=remoteIdentifier,
                   remoteEndPoint=remoteEndPoint,
                   invitationNonce=linkNonce,
-                  claimProofRequests=claimProofRequests)
+                  proofRequests=proofRequests)
 
         self.wallet.addLink(li)
         return li
@@ -658,32 +673,32 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         linkInvitation = invitationData.get('link-invitation')
         linkName = linkInvitation['name']
         link = self.wallet.getLink(linkName)
-        invitationClaimProofRequests = invitationData.get('claim-requests',
+        invitationProofRequests = invitationData.get('proof-requests',
                                                           None)
-        if invitationClaimProofRequests:
-            for icr in invitationClaimProofRequests:
+        if invitationProofRequests:
+            for icr in invitationProofRequests:
                 # match is found if name and version are same
-                matchedClaimProofRequest = next(
-                    (cr for cr in link.claimProofRequests
+                matchedProofRequest = next(
+                    (cr for cr in link.proofRequests
                      if (cr.name == icr[NAME] and cr.version == icr[VERSION])),
                     None
                 )
 
-                # if link.claimProofRequests contains any claim request
-                if matchedClaimProofRequest:
+                # if link.requestedProofs contains any claim request
+                if matchedProofRequest:
                     # merge 'attributes' and 'verifiableAttributes'
-                    matchedClaimProofRequest.attributes = {
-                        **matchedClaimProofRequest.attributes,
+                    matchedProofRequest.attributes = {
+                        **matchedProofRequest.attributes,
                         **icr[ATTRIBUTES]
                     }
-                    matchedClaimProofRequest.verifiableAttributes = list(
-                        set(matchedClaimProofRequest.verifiableAttributes)
+                    matchedProofRequest.verifiableAttributes = list(
+                        set(matchedProofRequest.verifiableAttributes)
                         .union(icr[VERIFIABLE_ATTRIBUTES])
                     )
                 else:
-                    # otherwise append claim proof request to link
-                    link.claimProofRequests.append(
-                        ClaimProofRequest(
+                    # otherwise append proof request to link
+                    link.proofRequests.append(
+                        ProofRequest(
                             icr[NAME], icr[VERSION], icr[ATTRIBUTES],
                             icr[VERIFIABLE_ATTRIBUTES]
                         )
@@ -706,6 +721,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             signer = DidSigner()
             self.wallet.addIdentifier(signer=signer)
             link.localIdentifier = signer.identifier
+            link.localVerkey = signer.verkey
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender
@@ -714,7 +730,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         logger.debug("{} accepting invitation from {} with id {}".
                      format(self.name, link.name, link.localIdentifier))
-        self.agentLogger.info('Invitation accepted with nonce {} from id {}'
+        self.logger.info('Invitation accepted with nonce {} from id {}'
                               .format(link.invitationNonce,
                                       link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)

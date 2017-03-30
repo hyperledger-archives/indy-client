@@ -5,26 +5,25 @@
 // be serious about implementation; we do NOT want to ignore these for more than a few days.
 #![allow(dead_code)]
 #![allow(unused_variables)]
-#![allow(unused_imports)]
 
 
 // To make it easy to use C data types, import the libc crate.
 extern crate libc;
 
 
-use libc::{c_int, size_t, c_char};
-use std::ffi::{CStr, CString};
-use std::mem;
-use std::ptr;
+use libc::{c_char};
+use std::ffi::{CString};
 
 #[macro_use]
 mod internal;
 
 mod tests;
 mod constants;
+mod strutil;
 
 use constants::*;
 use internal::*;
+//use strutil::*;
 
 
 /// Create a client handle that manages state such as a connection to the ledger, propagated errors,
@@ -60,10 +59,10 @@ pub extern fn release_client(client_id: i32) -> i32 {
 /// @param verkey: the verkey for the new DID. Optional; if empty/null, defaults to same value as dest.
 /// @param xref: if dest is an alias, this is the DID it refers to. Otherwise, ignored.
 /// @param data: Optional. The alias for the DID.
-/// @param role: Optional. One of "USER", "SPONSOR", "STEWARD", "TRUSTEE", or null/empty.
+/// @param role: Optional. One of "USER", "TRUST_ANCHOR", "STEWARD", "TRUSTEE", or null/empty.
 ///     Assigns a role to the DID, or removes all roles (and thus all privileges for writing) if
 ///     null empty. (The latter can only be one by a trustee.)
-/// Only a steward can create new sponsors; only other trustees can create a new trustee.
+/// Only a steward can create new trust anchors; only other trustees can create a new trustee.
 #[no_mangle]
 pub extern fn set_did(client_id: i32, did: *const c_char, verkey: *const c_char, xref: *const c_char, data: *const c_char, role: *const c_char) -> i32 {
     check_client_with_num_as_error!(client_id);

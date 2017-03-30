@@ -1,14 +1,16 @@
 import argparse
-import sys
 import os
+import sys
 
-from plenum.common.signer_simple import SimpleSigner
 from plenum.common.eventually import eventually
+from plenum.common.looper import Looper
+from plenum.common.signer_simple import SimpleSigner
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
-
+from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
-from sovrin_client.test.agent.bulldog_helper import bulldogLogger
+
+config = getConfig()
 
 
 def connectAgents(agent1, agent2):
@@ -59,21 +61,28 @@ def buildThriftWallet():
     return buildAgentWallet("ThriftBank", b'Thrift00000000000000000000000000')
 
 
-def buildBulldogWallet():
-    config = getConfig()
-    baseDir = os.path.expanduser(config.baseDir)
-    seedFileName = 'bulldog-seed'
-    seedFilePath = '{}/{}'.format(baseDir, seedFileName)
-    seed = 'Bulldog0000000000000000000000000'
+def bootstrapAgentCli(name, agentCreator, looper, bootstrap):
+    curDir = os.getcwd()
+    logFilePath = os.path.join(curDir, config.logFilePath)
+    cli = AgentCli(name='{}-Agent'.format(name),
+                   agentCreator=agentCreator,
+                   looper=looper,
+                   basedirpath=config.baseDir,
+                   logFileName=logFilePath)
+    if bootstrap:
+        looper.run(cli.agent.bootstrap())
 
-    # if seed file is available, read seed from it
-    if os.path.isfile(seedFilePath):
-        try:
-            with open(seedFilePath, mode='r+') as file:
-                seed = file.read().strip(' \t\n\r')
-        except OSError as e:
-            bulldogLogger.warn('Error occurred while reading seed file:'
-                               'error:{}'.format(e))
-            raise e
+    return cli
 
-    return buildAgentWallet('Bulldog', bytes(seed, encoding='utf-8'))
+
+def runAgentCli(name, agentCreator, looper=None, bootstrap=True):
+    def run(looper):
+        agentCli = bootstrapAgentCli(name, agentCreator, looper, bootstrap)
+        commands = sys.argv[1:]
+        looper.run(agentCli.shell(*commands))
+
+    if looper:
+        run(looper)
+    else:
+        with Looper(debug=False) as looper:
+            run(looper)

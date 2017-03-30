@@ -1,6 +1,7 @@
 import datetime
 import json
 import operator
+from collections import OrderedDict
 from collections import deque
 from typing import Dict, List
 from typing import Optional
@@ -9,19 +10,19 @@ from ledger.util import F
 from plenum.client.wallet import Wallet as PWallet
 from plenum.common.did_method import DidMethods
 from plenum.common.log import getlogger
-from plenum.common.txn import TXN_TYPE, TARGET_NYM, DATA, \
+from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
     IDENTIFIER, NYM, ROLE, VERKEY, NODE
 from plenum.common.types import Identifier, f
 
 from sovrin_client.client.wallet.attribute import Attribute, AttributeKey
 from sovrin_client.client.wallet.link import Link
 from sovrin_client.client.wallet.node import Node
-from sovrin_client.client.wallet.sponsoring import Sponsoring
+from sovrin_client.client.wallet.trustAnchoring import TrustAnchoring
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
+from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
 
 ENCODING = "utf-8"
 
@@ -29,7 +30,7 @@ logger = getlogger()
 
 
 # TODO: Maybe we should have a thinner wallet which should not have ProverWallet
-class Wallet(PWallet, Sponsoring):
+class Wallet(PWallet, TrustAnchoring):
     clientNotPresentMsg = "The wallet does not have a client associated with it"
 
     def __init__(self,
@@ -38,7 +39,7 @@ class Wallet(PWallet, Sponsoring):
         PWallet.__init__(self,
                          name,
                          supportedDidMethods or DefaultDidMethods)
-        Sponsoring.__init__(self)
+        TrustAnchoring.__init__(self)
         self._attributes = {}  # type: Dict[(str, Identifier,
         # Optional[Identifier]), Attribute]
 
@@ -46,7 +47,9 @@ class Wallet(PWallet, Sponsoring):
         self._nodes = {}
         self._upgrades = {}
 
-        self._links = {}  # type: Dict[str, Link]
+        self._links = OrderedDict()  # type: Dict[str, Link]
+        # Note, ordered dict to make iteration deterministic
+
         self.knownIds = {}  # type: Dict[str, Identifier]
 
         # transactions not yet submitted
@@ -56,6 +59,9 @@ class Wallet(PWallet, Sponsoring):
         # pending transactions that have been prepared (probably submitted)
         self._prepared = {}  # type: Dict[(Identifier, int), Request]
         self.lastKnownSeqs = {}  # type: Dict[str, int]
+
+        # dict for proof request schema Dict[str, Dict[str, any]]
+        self._proofRequestsSchema = None
 
         self.replyHandler = {
             ATTRIB: self._attribReply,
@@ -89,15 +95,25 @@ class Wallet(PWallet, Sponsoring):
                     matchingLinkAndAvailableClaim.append((li, cl))
         return matchingLinkAndAvailableClaim
 
-    def getMatchingLinksWithClaimReq(self, claimReqName, linkName=None):
-        matchingLinkAndClaimReq = []
+    def findAllProofRequests(self, claimReqName, linkName=None):
+        matches = []
         for k, li in self._links.items():
-            for cpr in li.claimProofRequests:
+            for cpr in li.proofRequests:
                 if Wallet._isMatchingName(claimReqName, cpr.name):
                     if linkName is None or Wallet._isMatchingName(linkName,
                                                                   li.name):
-                        matchingLinkAndClaimReq.append((li, cpr))
-        return matchingLinkAndClaimReq
+                        matches.append((li, cpr))
+        return matches
+
+    def getMatchingLinksWithProofReq(self, proofReqName, linkName=None):
+        matchingLinkAndProofReq = []
+        for k, li in self._links.items():
+            for cpr in li.proofRequests:
+                if Wallet._isMatchingName(proofReqName, cpr.name):
+                    if linkName is None or Wallet._isMatchingName(linkName,
+                                                                  li.name):
+                        matchingLinkAndProofReq.append((li, cpr))
+        return matchingLinkAndProofReq
 
     def addAttribute(self, attrib: Attribute):
         """
@@ -242,11 +258,11 @@ class Wallet(PWallet, Sponsoring):
 
     def _nymReply(self, result, preparedReq):
         target = result[TARGET_NYM]
-        idy = self._sponsored.get(target)
+        idy = self._trustAnchored.get(target)
         if idy:
             idy.seqNo = result[F.seqNo.name]
         else:
-            logger.warn("Target {} not found in sponsored".format(target))
+            logger.warn("Target {} not found in trust anchored".format(target))
 
     def _nodeReply(self, result, preparedReq):
         _, nodeKey = preparedReq
@@ -266,7 +282,7 @@ class Wallet(PWallet, Sponsoring):
             idy = self.knownIds.get(nym)
             if idy:
                 idy.role = data.get(ROLE)
-                idy.sponsor = data.get(f.IDENTIFIER.nm)
+                idy.trustAnchor = data.get(f.IDENTIFIER.nm)
                 idy.last_synced = datetime.datetime.utcnow()
                 idy.verkey = data.get(VERKEY)
                 # TODO: THE GET_NYM reply should contain the sequence number of
@@ -334,3 +350,6 @@ class Wallet(PWallet, Sponsoring):
         # TODO, Question: Should it consider self owned identities too or
         # should it just have identities that are retrieved from the DL
         return self.knownIds.get(idr)
+
+    def getLinkNames(self):
+        return list(self._links.keys())

@@ -56,48 +56,6 @@ def philCli(be, do, philCLI):
     return philCLI
 
 
-@pytest.fixture(scope="module")
-def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                     nymAddedOut, faberMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=faberMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                    nymAddedOut, acmeMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=acmeMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                      nymAddedOut, thriftMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=thriftMap)
-    return philCli
-
-
 def checkIfInvalidAttribIsRejected(do, map):
     data = json.loads(map.get('invalidEndpointAttr'))
     endpoint = data.get(ENDPOINT).get('ha')

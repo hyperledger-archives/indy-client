@@ -5,7 +5,7 @@ from stp_core.loop.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
@@ -36,6 +36,7 @@ def getSampleLinkInvitation():
     }
 
 
+
 @pytest.fixture(scope="module")
 def philCli(be, do, philCLI):
     be(philCLI)
@@ -53,48 +54,6 @@ def philCli(be, do, philCLI):
        mapper=mapper)
 
     return philCLI
-
-
-@pytest.fixture(scope="module")
-def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                     nymAddedOut, faberMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=faberMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                    nymAddedOut, acmeMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=acmeMap)
-    return philCli
-
-
-@pytest.fixture(scope="module")
-def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
-                      nymAddedOut, thriftMap):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectedToTest)
-
-    do('send NYM dest={target} role=SPONSOR',
-       within=3,
-       expect=nymAddedOut, mapper=thriftMap)
-    return philCli
 
 
 def checkIfInvalidAttribIsRejected(do, map):
@@ -146,43 +105,33 @@ def checkIfInvalidEndpointIsRejected(do, map):
            mapper=map)
 
 
-@pytest.fixture(scope="module")
-def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
-                           faberMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, faberMap)
-    checkIfValidEndpointIsAccepted(do, faberMap, attrAddedOut)
+def agentWithEndpointAdded(be, do, stewardCli, agentMap, attrAddedOut):
+    be(stewardCli)
+    checkIfInvalidEndpointIsRejected(do, agentMap)
+    checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
     do('send ATTRIB dest={target} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
-       mapper=faberMap)
-    return philCli
+       mapper=agentMap)
+    return stewardCli
+
+
+@pytest.fixture(scope="module")
+def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
+                           faberMap, attrAddedOut):
+    agentWithEndpointAdded(be, do, philCli, faberMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, acmeMap)
-    checkIfValidEndpointIsAccepted(do, acmeMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=acmeMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, acmeMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
 def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
-    be(philCli)
-    checkIfInvalidEndpointIsRejected(do, thriftMap)
-    checkIfValidEndpointIsAccepted(do, thriftMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
-       within=3,
-       expect=attrAddedOut,
-       mapper=thriftMap)
-    return philCli
+    agentWithEndpointAdded(be, do, philCli, thriftMap, attrAddedOut)
 
 
 def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
@@ -254,6 +203,13 @@ def susanCli(preRequisite, be, do, susanCLI, newKeyringOut, susanMap):
     be(susanCLI)
     setPromptAndKeyring(do, "Susan", newKeyringOut, susanMap)
     return susanCLI
+
+
+@pytest.fixture(scope="module")
+def bobCli(preRequisite, be, do, bobCLI, newKeyringOut, bobMap):
+    be(bobCLI)
+    setPromptAndKeyring(do, "Bob", newKeyringOut, bobMap)
+    return bobCLI
 
 
 def testNotConnected(be, do, aliceCli, notConnectedStatus):
@@ -463,6 +419,10 @@ def acceptInvitation(be, do, userCli, agentMap, expect):
            "Observer threw an exception",
            "Identifier is not yet written to Sovrin"]
        )
+    li = userCli.agent.wallet.getLinkByNonce(agentMap['nonce'])
+    assert li
+    agentMap['identifier'] = li.localIdentifier
+    agentMap['verkey'] = li.localVerkey
 
 
 @pytest.fixture(scope="module")
@@ -808,7 +768,7 @@ def sendProof(be, do, userCli, agentMap, newAvailableClaims, extraMsgs=None):
 
 
 @pytest.fixture(scope="module")
-def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
+def jobApplicationProofSent(be, do, aliceCli, acmeMap,
                             aliceAcceptedAcmeJobInvitation,
                             aliceRequestedTranscriptClaim,
                             aliceSelfAttestsAttributes):
@@ -817,7 +777,7 @@ def jobApplicationClaimSent(be, do, aliceCli, acmeMap,
     assert totalAvailableClaimsBefore + 1 == getTotalAvailableClaims(aliceCli)
 
 
-def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
+def testAliceSendClaimProofToAcme(jobApplicationProofSent):
     pass
 
 
@@ -826,7 +786,7 @@ def testAliceSendClaimProofToAcme(jobApplicationClaimSent):
 # building and sending proofs from more than one claim
 
 def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
-                                   jobApplicationClaimSent,
+                                   jobApplicationProofSent,
                                    showAcceptedLinkWithAvailableClaimsOut):
     be(aliceCli)
     mapping = {}
@@ -840,7 +800,7 @@ def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
 
 def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
                          showJobCertClaimOut,
-                         jobApplicationClaimSent):
+                         jobApplicationProofSent):
     be(aliceCli)
     totalSchemasBefore = getTotalSchemas(aliceCli)
     do("show claim {name}",
@@ -853,7 +813,7 @@ def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
 @pytest.fixture(scope="module")
 def jobCertClaimRequested(be, do, aliceCli, preRequisite,
                         jobCertificateClaimMap, reqClaimOut1,
-                        jobApplicationClaimSent):
+                        jobApplicationProofSent):
 
     def removeSchema():
         inviter = jobCertificateClaimMap["inviter"]
@@ -930,6 +890,26 @@ def testAliceAcceptsThriftLoanApplication(aliceAcceptedThriftLoanApplication):
     pass
 
 
+def testAliceShowProofIncludeSingleClaim(
+        aliceAcceptedThriftLoanApplication, be, do, aliceCli, thriftMap,
+        showNameProofRequestOut, jobApplicationProofRequestMap,
+        jobCertClaimAttrValueMap):
+    mapping = {}
+    mapping.update(thriftMap)
+    mapping.update(jobApplicationProofRequestMap)
+    mapping.update(jobCertClaimAttrValueMap)
+    mapping['proof-req-to-match'] = 'Name-Proof'
+    mapping['proof-request-version'] = '0.1'
+    mapping.update({
+        "set-attr-first_name": "Alice",
+        "set-attr-last_name": "Garcia",
+    })
+    do("show proof request {proof-req-to-match}",
+       expect=showNameProofRequestOut,
+       mapper=mapping,
+       within=3)
+
+
 @pytest.fixture(scope="module")
 def bankBasicClaimSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
@@ -994,5 +974,43 @@ def testAliceReqAvailClaimsFromAcme(
     be(aliceCli)
     do('request available claims from {inviter}',
        mapper=acmeMap,
+       expect=["Available Claim(s): Job-Certificate"],
+       within=3)
+
+
+def testAliceReqAvailClaimsFromThrift(
+        be, do, aliceCli, bankKYCProofSent, thriftMap):
+    be(aliceCli)
+    do('request available claims from {inviter}',
+       mapper=thriftMap,
        expect=["Available Claim(s): No available claims found"],
        within=3)
+
+
+def assertReqAvailClaims(be, do, userCli, agentMap,
+                         connectedToTestExpMsgs, inviteLoadedExpMsgs,
+                         invitedAcceptedExpMsgs):
+    be(userCli)
+    connectIfNotAlreadyConnected(do, connectedToTestExpMsgs, userCli, agentMap)
+    do('load {invite}', expect=inviteLoadedExpMsgs, mapper=agentMap)
+    acceptInvitation(be, do, userCli, agentMap,
+                     invitedAcceptedExpMsgs)
+    do('request available claims from {inviter}',
+       mapper=agentMap,
+       expect=["Available Claim(s): {claims}"],
+       within=3)
+
+
+def testBobReqAvailClaimsFromAgents(
+        be, do, bobCli, loadInviteOut, faberMap, acmeMap, thriftMap,
+        connectedToTest, syncedInviteAcceptedWithClaimsOut,
+        unsycedAcceptedInviteWithoutClaimOut):
+    userCli = bobCli
+    assertReqAvailClaims(be, do, userCli, faberMap, connectedToTest,
+                         loadInviteOut, syncedInviteAcceptedWithClaimsOut)
+    acmeMap.update({"claims": "No available claims found"})
+    assertReqAvailClaims(be, do, userCli, acmeMap, connectedToTest,
+                         loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
+    thriftMap.update({"claims": "No available claims found"})
+    assertReqAvailClaims(be, do, userCli, thriftMap, connectedToTest,
+                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)

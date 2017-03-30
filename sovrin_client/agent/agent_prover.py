@@ -2,8 +2,8 @@ import asyncio
 from typing import Any
 from collections import OrderedDict
 
-from plenum.common.txn import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
-    DATA
+from plenum.common.constants import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
+    DATA, VERIFIABLE_ATTRIBUTES, ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getCryptonym
 
@@ -15,7 +15,6 @@ from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD,
     REQ_AVAIL_CLAIMS
 from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.link import Link
-from sovrin_common.exceptions import LinkNotReady
 from sovrin_common.util import getNonceForProof
 from sovrin_common.exceptions import LinkNotReady
 
@@ -41,6 +40,7 @@ class AgentProver:
             self.signAndSend(msg=op, linkName=link.name)
         except LinkNotReady as ex:
             self.notifyMsgListener(str(ex))
+
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
@@ -69,24 +69,32 @@ class AgentProver:
 
         self.signAndSend(msg=op, linkName=link.name)
 
-    def sendProofReq(self, link: Link, schemaKey):
-        if self.loop.is_running():
-            self.loop.call_soon(asyncio.ensure_future,
-                                self.sendProofReqAsync(link, schemaKey))
+    def handleProofRequest(self, msg):
+        body, _ = msg
+        link = self._getLinkByTarget(getCryptonym(body.get(IDENTIFIER)))
+        proofReqName = body.get(NAME)
+        proofReqExist = False
+
+        for request in link.proofRequests:
+            if request.name == proofReqName:
+                proofReqExist = True
+                break
+
+        self.notifyMsgListener('    Proof request {} received from {}.\n'
+                               .format(proofReqName, link.name))
+
+        if not proofReqExist:
+            link.proofRequests.append(
+                ProofRequest(
+                    name=proofReqName,
+                    version=body.get(VERSION),
+                    attributes=body.get(ATTRIBUTES),
+                    verifiableAttributes=body.get(VERIFIABLE_ATTRIBUTES)
+                )
+            )
         else:
-            self.loop.run_until_complete(
-                self.sendProofReqAsync(link, schemaKey))
-
-    async def sendProofReqAsync(self, link: Link, schemaKey):
-        # Proof request will have been loaded from a file.
-        # Does that mean it is in the wallet? Doesn't seem quite
-        # correct; in the future, a proof request would be generated
-        # from a schema and sent, all in a single step, rather than
-        # stored up like something pending. But anyway,
-        # we need to load the request into memory, then call
-        # signAndSend().
-
-        self.signAndSend(msg="{\"proof_request\":\"needs to be loaded\"}", linkName=link.name)
+            self.notifyMsgListener('    Proof request {} already exist.\n'
+                                   .format(proofReqName))
 
     async def handleReqClaimResponse(self, msg):
         body, _ = msg
@@ -181,3 +189,20 @@ class AgentProver:
             if attributes.intersection(issuedAttrs.keys()):
                 matchingLinkAndRcvdClaim.append((li, cl, issuedAttrs))
         return matchingLinkAndRcvdClaim
+
+    async def getClaimsUsedForAttrs(self, attributes):
+        allMatchingClaims = await self.getMatchingLinksWithReceivedClaimAsync()
+        alreadySatisfiedKeys = {}
+        claimsToUse = []
+        alreadyAddedClaims = []
+
+        for li, cl, issuedAttrs in allMatchingClaims:
+            issuedClaimKeys = issuedAttrs.keys()
+            for key in attributes.keys():
+                if key not in alreadySatisfiedKeys and key in issuedClaimKeys:
+                    if li not in alreadyAddedClaims:
+                        claimsToUse.append((li, cl, issuedAttrs))
+                    alreadySatisfiedKeys[key] = True
+                    alreadyAddedClaims.append(li)
+
+        return claimsToUse

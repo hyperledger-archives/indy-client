@@ -6,12 +6,12 @@ import pyorient
 
 from config.config import cmod
 from plenum.common.log import getlogger
-from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import REQNACK
-from plenum.common.types import OP_FIELD_NAME, f
-from stp_core.types import HA, Identifier
+from plenum.common.constants import REQNACK, OP_FIELD_NAME
+from plenum.common.types import f, HA
+from stp_core.types import Identifier
+
 from plenum.persistence.orientdb_store import OrientDbStore
 from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
@@ -25,7 +25,7 @@ from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client
-from sovrin_common.txn import NULL
+from sovrin_common.constants import NULL
 
 logger = getlogger()
 
@@ -81,12 +81,12 @@ def createNym(looper, nym, creatorClient, creatorWallet: Wallet, role=None,
     idy = Identity(identifier=nym,
                    verkey=verkey,
                    role=role)
-    creatorWallet.addSponsoredIdentity(idy)
+    creatorWallet.addTrustAnchoredIdentity(idy)
     reqs = creatorWallet.preparePending()
     creatorClient.submitReqs(*reqs)
 
     def check():
-        assert creatorWallet._sponsored[nym].seqNo
+        assert creatorWallet._trustAnchored[nym].seqNo
 
     looper.run(eventually(check, retryWait=1, timeout=10))
 
@@ -221,15 +221,15 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
 
 def makeIdentityRequest(looper, actingClient, actingWallet, idy):
     idr = idy.identifier
-    if actingWallet.getSponsoredIdentity(idr):
-        actingWallet.updateSponsoredIdentity(idy)
+    if actingWallet.getTrustAnchoredIdentity(idr):
+        actingWallet.updateTrustAnchoredIdentity(idy)
     else:
-        actingWallet.addSponsoredIdentity(idy)
+        actingWallet.addTrustAnchoredIdentity(idy)
     reqs = actingWallet.preparePending()
     actingClient.submitReqs(*reqs)
 
     def chk():
-        assert actingWallet.getSponsoredIdentity(idr).seqNo is not None
+        assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
 
     looper.run(eventually(chk, retryWait=1, timeout=5))
     return reqs

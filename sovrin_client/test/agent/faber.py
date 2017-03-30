@@ -1,23 +1,23 @@
-import os
-
 from plenum.common.log import getlogger
-from plenum.common.txn import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
-from sovrin_client.agent.agent import createAgent, runAgent, \
-    isSchemaFound
-from sovrin_client.agent.exception import NonceNotFound
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
+from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
+from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
-from sovrin_client.test.helper import TestClient, primes
+from sovrin_client.test.helper import TestClient
+from sovrin_client.agent.exception import NonceNotFound
+from plenum.common.constants import NAME, VERSION
+from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.test.conftest import primes
+from anoncreds.protocol.types import ID
 
 logger = getlogger()
 
 
-class FaberAgent(TestWalletedAgent):
+class FaberAgent(BaseAgent):
     def __init__(self,
                  basedirpath: str=None,
                  client: Client=None,
@@ -29,13 +29,9 @@ class FaberAgent(TestWalletedAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop, config=config,
-                         endpointArgs=self.getEndpointArgs(wallet))
+                         portParam or port, loop=loop)
 
         self.availableClaims = []
-
-        # mapping between requester identifier and corresponding available claims
-        self.requesterAvailClaims = {}
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -45,7 +41,7 @@ class FaberAgent(TestWalletedAgent):
             "710b78be79f29fc81335abaa4ee1c5e8": 4
         }
 
-        self._attrDef = AttribDef('faber',
+        self._attrDef = AttribDef('Transcript',
                                   [AttribType('student_name', encode=True),
                                    AttribType('ssn', encode=True),
                                    AttribType('degree', encode=True),
@@ -125,11 +121,14 @@ class FaberAgent(TestWalletedAgent):
             await self.initAvailableClaimList()
         return schema
 
-    async def bootstrap(self):
-        ranViaScript = False
-        if __name__ == "__main__":
-            ranViaScript = True
-        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
+    def getAttrDefs(self):
+        return [self._attrDef]
+
+    def getAttrs(self):
+        return self._attrs
+
+    def getSchemaKeysToBeGenerated(self):
+        return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]
 
 
 def createFaber(name=None, wallet=None, basedirpath=None, port=None):
@@ -137,6 +136,8 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
                        wallet or buildFaberWallet(),
                        basedirpath, port, clientClass=TestClient)
 
+
 if __name__ == "__main__":
-    faber = createFaber(port=5555)
-    runAgent(faber)
+    TestWalletedAgent.createAndRunAgent(
+        FaberAgent, "Faber College", wallet=buildFaberWallet(),
+        basedirpath=None, port=5555, looper=None, clientClass=TestClient)

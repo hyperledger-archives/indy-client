@@ -1,4 +1,6 @@
 from plenum.common.keygen_utils import initLocalKeys
+
+
 from stp_core.loop.eventually import eventually
 from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
@@ -13,23 +15,20 @@ from stp_core.network.port_dispenser import genHa
 strict_types.defaultShouldCheck = True
 
 import pytest
-
-from ledger.compact_merkle_tree import CompactMerkleTree
-from ledger.ledger import Ledger
-from ledger.serializers.compact_serializer import CompactSerializer
+from copy import deepcopy
 
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR, TYPE
+from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
+    ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
 from plenum.test.plugin.helper import getPluginPath
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import STEWARD, NYM, SPONSOR, TRUSTEE
-from sovrin_common.txn import TXN_TYPE, TARGET_NYM, TXN_ID, ROLE, \
-    getTxnOrderedFields
+from sovrin_common.constants import NYM, TRUST_ANCHOR
+from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
+from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.config_util import getConfig
-from sovrin_client.test.cli.helper import newCLI
+from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
 from sovrin_node.test.helper import TestNode, \
     makePendingTxnsRequest, buildStewardClient
 from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
@@ -49,7 +48,7 @@ def primes2():
 
 
 # noinspection PyUnresolvedReferences
-from plenum.test.conftest import tdir, counter, nodeReg, up, ready, \
+from plenum.test.conftest import tdir, nodeReg, up, ready, \
     whitelist, concerningLogLevels, logcapture, keySharedNodes, \
     startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
@@ -62,11 +61,11 @@ def tconf(conf, tdir):
     conf.baseDir = tdir
     conf.MinSepBetweenNodeUpgrades = 5
     return conf
-
+    
 
 @pytest.fixture(scope="module")
 def updatedPoolTxnData(poolTxnData):
-    data = poolTxnData
+    data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
     t = {
@@ -88,14 +87,17 @@ def poolTxnTrusteeNames():
 
 @pytest.fixture(scope="module")
 def trusteeData(poolTxnTrusteeNames, updatedPoolTxnData):
-    name = poolTxnTrusteeNames[0]
-    seed = updatedPoolTxnData["seeds"][name]
-    return name, seed.encode()
+    ret = []
+    for name in poolTxnTrusteeNames:
+        seed = updatedPoolTxnData["seeds"][name]
+        txn = next((txn for txn in updatedPoolTxnData["txns"] if txn[ALIAS] == name), None)
+        ret.append((name, seed.encode(), txn))
+    return ret
 
 
 @pytest.fixture(scope="module")
 def trusteeWallet(trusteeData):
-    name, sigseed = trusteeData
+    name, sigseed, txn = trusteeData[0]
     wallet = Wallet('trustee')
     signer = SimpleSigner(seed=sigseed)
     wallet.addIdentifier(signer=signer)
@@ -171,14 +173,15 @@ def testClientClass():
 
 
 @pytest.fixture(scope="module")
-def updatedDomainTxnFile(tdir, tdirWithDomainTxns, genesisTxns,
+def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames, trusteeData, tconf):
+    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData, tdirWithDomainTxns, tconf.domainTransactionsFile)
+    return tdirWithDomainTxns
+
+
+@pytest.fixture(scope="module")
+def updatedDomainTxnFile(tdir, tdirWithDomainTxnsUpdated, genesisTxns,
                          domainTxnOrderedFields, tconf):
-    ledger = Ledger(CompactMerkleTree(),
-                    dataDir=tdir,
-                    serializer=CompactSerializer(fields=domainTxnOrderedFields),
-                    fileName=tconf.domainTransactionsFile)
-    for txn in genesisTxns:
-        ledger.add(txn)
+    addTxnToFile(tdir, tconf.domainTransactionsFile, genesisTxns, domainTxnOrderedFields)
 
 
 @pytest.fixture(scope="module")
@@ -195,7 +198,7 @@ def client1Signer():
 
 
 @pytest.fixture("module")
-def sponsorCli(looper, tdir):
+def trustAnchorCli(looper, tdir):
     return newCLI(looper, tdir)
 
 
@@ -221,44 +224,44 @@ def wallet1(clientAndWallet1):
 
 
 @pytest.fixture(scope="module")
-def sponsorWallet():
-    wallet = Wallet('sponsor')
-    seed = b'sponsors are people too.........'
+def trustAnchorWallet():
+    wallet = Wallet('trustAnchor')
+    seed = b'trust anchors are people too....'
     wallet.addIdentifier(seed=seed)
     return wallet
 
 
 @pytest.fixture(scope="module")
-def sponsor(nodeSet, addedSponsor, sponsorWallet, looper, tdir):
+def trustAnchor(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, tdir):
     s, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
-    s.registerObserver(sponsorWallet.handleIncomingReply)
+    s.registerObserver(trustAnchorWallet.handleIncomingReply)
     looper.add(s)
     looper.run(s.ensureConnectedToNodes())
-    makePendingTxnsRequest(s, sponsorWallet)
+    makePendingTxnsRequest(s, trustAnchorWallet)
     return s
 
 
 @pytest.fixture(scope="module")
-def addedSponsor(nodeSet, steward, stewardWallet, looper,
-                 sponsorWallet):
+def addedTrustAnchor(nodeSet, steward, stewardWallet, looper,
+                 trustAnchorWallet):
     createNym(looper,
-              sponsorWallet.defaultId,
+              trustAnchorWallet.defaultId,
               steward,
               stewardWallet,
-              role=SPONSOR,
-              verkey=sponsorWallet.getVerkey())
-    return sponsorWallet
+              role=TRUST_ANCHOR,
+              verkey=trustAnchorWallet.getVerkey())
+    return trustAnchorWallet
 
 
 @pytest.fixture(scope="module")
-def userWalletA(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userA', useDid=False,
+def userWalletA(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userA', useDid=False,
                    addVerkey=False)
 
 
 @pytest.fixture(scope="module")
-def userWalletB(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userB', useDid=False,
+def userWalletB(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userB', useDid=False,
                    addVerkey=False)
 
 

@@ -7,16 +7,18 @@ from typing import List
 import pytest
 
 import plenum
+from plenum.common.exceptions import BlowUp
 from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.helper import createNym, buildStewardClient
-from sovrin_common.txn import SPONSOR, ENDPOINT
+from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.roles import Roles
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
-plenum.common.util.loggingConfigured = False
+# plenum.common.util.loggingConfigured = False
 
 from plenum.common.looper import Looper
 from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
@@ -24,7 +26,7 @@ from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
@@ -70,30 +72,34 @@ def newKeyPairCreated(cli):
 
 
 @pytest.fixture(scope="module")
-def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
-    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+def CliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf, cliTempLogger):
+    return getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                          logFileName=cliTempLogger)
 
 
+def getDefaultUserMap(name):
+    return {
+        'keyring-name': name,
+    }
+
 @pytest.fixture(scope="module")
 def aliceMap():
-    return {
-        'keyring-name': 'Alice',
-    }
+    return getDefaultUserMap("Alice")
 
 
 @pytest.fixture(scope="module")
 def earlMap():
-    return {
-        'keyring-name': 'Earl',
-    }
+    return getDefaultUserMap("Earl")
+
+
+@pytest.fixture(scope="module")
+def bobMap():
+    return getDefaultUserMap("Bob")
 
 
 @pytest.fixture(scope="module")
 def susanMap():
-    return {
-        'keyring-name': 'Susan',
-    }
+    return getDefaultUserMap("Susan")
 
 
 @pytest.fixture(scope="module")
@@ -118,22 +124,26 @@ def faberMap(agentIpAddress, faberAgentPort):
 def acmeMap(agentIpAddress, acmeAgentPort):
     ha = "{}:{}".format(agentIpAddress, acmeAgentPort)
     return {'inviter': 'Acme Corp',
-            'invite': "sample/acme-job-application.sovrin",
-            'invite-not-exists': "sample/acme-job-application.sovrin.not.exists",
-            'inviter-not-exists': "non-existing-inviter",
-            "target": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
-            "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
             "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1: 11'}}),
-            "proof-requests": "Job-Application",
-            "proof-request-to-show": "Job-Application",
-            "claim-ver-req-to-show": "0.2",
-            "proof-req-to-match": "Job-Application",
-            "claims": "<claim-name>",
-            "rcvd-claim-transcript-provider": "Faber College",
-            "rcvd-claim-transcript-name": "Transcript",
-            "rcvd-claim-transcript-version": "1.2"
+            'invite': 'sample/acme-job-application.sovrin',
+            'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
+            'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
+            'inviter-not-exists': 'non-existing-inviter',
+            'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
+            'proof-requests': 'Job-Application',
+            'proof-request-to-show': 'Job-Application',
+            'claim-ver-req-to-show': '0.2',
+            'proof-req-to-match': 'Job-Application',
+            'claims': '<claim-name>',
+            'rcvd-claim-transcript-provider': 'Faber College',
+            'rcvd-claim-transcript-name': 'Transcript',
+            'rcvd-claim-transcript-version': '1.2',
+            'send-proof-target': '1',
+            'pr-name': 'Job-Application',
+            'pr-schema-version': '0.2'
             }
 
 
@@ -150,6 +160,9 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
             "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1:4A78'}}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
+            "rcvd-claim-job-certificate-name": "Job-Certificate",
+            "rcvd-claim-job-certificate-version": "0.2",
+            "rcvd-claim-job-certificate-provider": "Acme Corp",
             "claim-ver-req-to-show": "0.1"
             }
 
@@ -323,11 +336,26 @@ def showTranscriptProofOut():
         "Claim ({rcvd-claim-transcript-name} "
         "v{rcvd-claim-transcript-version} "
         "from {rcvd-claim-transcript-provider})",
-        "student_name: {attr-student_name}",
-        "ssn: {attr-ssn}",
-        "degree: {attr-degree}",
-        "year: {attr-year}",
-        "status: {attr-status}",
+        "  student_name: {attr-student_name}",
+        "* ssn: {attr-ssn}",
+        "* degree: {attr-degree}",
+        "  year: {attr-year}",
+        "* status: {attr-status}",
+    ]
+
+
+@pytest.fixture(scope="module")
+def showJobCertificateClaimInProofOut():
+    return [
+        "The Proof is constructed from the following claims:",
+        "Claim ({rcvd-claim-job-certificate-name} "
+        "v{rcvd-claim-job-certificate-version} "
+        "from {rcvd-claim-job-certificate-provider})",
+        "* first_name: {attr-first_name}",
+        "* last_name: {attr-last_name}",
+        "  employee_status: {attr-employee_status}",
+        "  experience: {attr-experience}",
+        "  salary_bracket: {attr-salary_bracket}"
     ]
 
 
@@ -342,10 +370,27 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-first_name}: {set-attr-first_name}",
         "{proof-request-attr-last_name}: {set-attr-last_name}",
         "{proof-request-attr-phone_number}: {set-attr-phone_number}",
-        "{proof-request-attr-degree}: {attr-degree}",
-        "{proof-request-attr-status}: {attr-status}",
-        "{proof-request-attr-ssn}: {attr-ssn}"
+        "{proof-request-attr-degree} (V): {attr-degree}",
+        "{proof-request-attr-status} (V): {attr-status}",
+        "{proof-request-attr-ssn} (V): {attr-ssn}"
     ] + showTranscriptProofOut
+
+
+@pytest.fixture(scope="module")
+def showNameProofRequestOut(showJobCertificateClaimInProofOut):
+    return [
+        'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Name: {proof-req-to-match}",
+        "Version: {proof-request-version}",
+        "Status: Requested",
+        "Attributes:",
+        "{proof-request-attr-first_name} (V): {set-attr-first_name}",
+        "{proof-request-attr-last_name} (V): {set-attr-last_name}",
+    ] + showJobCertificateClaimInProofOut + [
+        "Try Next:",
+        "set <attr-name> to <attr-value>",
+        'send proof "{proof-req-to-match}" to "{inviter}"'
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -734,6 +779,8 @@ def showAcceptedLinkOut():
     return [
             "Link",
             "Name: {inviter}",
+            "Identifier: {identifier}",
+            "Verification key: {verkey}",
             "Target: {target}",
             "Target Verification key: <same as target>",
             "Trust anchor: {inviter} (confirmed)",
@@ -747,7 +794,7 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Name: {inviter}",
             "    Identifier: not yet assigned",
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
-            "    Verification key: <same as local identifier>",
+            "    Verification key: <empty>",
             "    Signing key: <hidden>",
             "    Target: {target}",
             "    Target Verification key: <unknown, waiting for sync>",
@@ -769,7 +816,7 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Link",
             "Name: {inviter}",
             "Trust anchor: {inviter} (confirmed)",
-            "Verification key: <same as local identifier>",
+            "Verification key: ~",
             "Signing key: <hidden>",
             "Target: {target}",
             "Target Verification key: <same as target>",
@@ -790,6 +837,11 @@ def poolCLI_baby(CliBuilder):
 @pytest.yield_fixture(scope="module")
 def aliceCLI(CliBuilder):
     yield from CliBuilder("alice")
+
+
+@pytest.yield_fixture(scope="module")
+def bobCLI(CliBuilder):
+    yield from CliBuilder("bob")
 
 
 @pytest.yield_fixture(scope="module")
@@ -1043,7 +1095,7 @@ def faberAdded(poolNodesCreated,
             steward, stewardWallet):
     li = getLinkInvitation("Faber", aliceCLI.activeWallet)
     createNym(looper, li.remoteIdentifier, steward, stewardWallet,
-              role=SPONSOR)
+              role=TRUST_ANCHOR)
 
 
 @pytest.fixture(scope="module")
@@ -1099,13 +1151,13 @@ def savedKeyringRestored():
 # TODO: Need to refactor following three fixture to reuse code
 @pytest.yield_fixture(scope="module")
 def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
-                         tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                         tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                          cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("susan")
 
     def reset():
@@ -1118,13 +1170,13 @@ def cliForMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
-                        tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                        tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                         cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("alice")
 
     def reset():
@@ -1137,13 +1189,13 @@ def aliceMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 @pytest.yield_fixture(scope="module")
 def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
-                       tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                       tdirWithPoolTxns, tdirWithDomainTxnsUpdated, tconf,
                        cliTempLogger):
     oldENVS = tconf.ENVS
     oldPoolTxnFile = tconf.poolTransactionsFile
     oldDomainTxnFile = tconf.domainTransactionsFile
 
-    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
+    yield from getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxnsUpdated,
                              cliTempLogger, multiPoolNodesCreated)("earl")
 
     def reset():
@@ -1155,8 +1207,8 @@ def earlMultiNodePools(request, multiPoolNodesCreated, tdir,
 
 
 @pytest.yield_fixture(scope="module")
-def trusteeCLI(CliBuilder):
-    yield from CliBuilder("newTrustee")
+def trusteeCLI(CliBuilder, poolTxnTrusteeNames):
+    yield from CliBuilder(poolTxnTrusteeNames[0])
 
 
 @pytest.fixture(scope="module")
@@ -1216,3 +1268,54 @@ def poolNodesStarted(be, do, poolCLI):
     do('new node all', within=6, expect = connectedExpect)
     # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI
+
+
+
+@pytest.fixture(scope="module")
+def philCli(be, do, philCLI):
+    be(philCLI)
+    do('prompt Phil', expect=prompt_is('Phil'))
+
+    do('new keyring Phil', expect=['New keyring Phil created',
+                                   'Active keyring set to "Phil"'])
+
+    mapper = {
+        'seed': '11111111111111111111111111111111',
+        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+    do('new key with seed {seed}', expect=['Key created in keyring Phil',
+                                           'Identifier for key is {idr}',
+                                           'Current identifier set to {idr}'],
+       mapper=mapper)
+
+    return philCLI
+
+
+def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
+    be(userCli)
+    if not userCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectExpMsgs)
+
+    do('send NYM dest={{target}} role={role}'.format(
+        role=Roles.TRUST_ANCHOR.name),
+       within=3,
+       expect=nymAddExpMsgs, mapper=mapper)
+    return philCli
+
+
+@pytest.fixture(scope="module")
+def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                     nymAddedOut, faberMap):
+    return addAgent(be, do, philCli, faberMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope="module")
+def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                    nymAddedOut, acmeMap):
+    return addAgent(be, do, philCli, acmeMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope="module")
+def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
+                      nymAddedOut, thriftMap):
+    return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)

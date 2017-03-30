@@ -1,7 +1,11 @@
 import pytest
 
-from plenum.common.exceptions import PortNotAvailable, OperationError, \
-    NoConsensusYet
+# it is fixture - do not remove
+from sovrin_client.test.cli.conftest import acmeAddedByPhil as agentAddedBySponsor
+
+from plenum.common.exceptions import OperationError, NoConsensusYet
+
+from stp_core.network.exceptions import PortNotAvailable
 from stp_core.network.port_dispenser import genHa
 from plenum.common.types import HA
 from plenum.common.util import randomString

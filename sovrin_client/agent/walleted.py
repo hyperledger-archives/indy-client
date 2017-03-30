@@ -44,6 +44,8 @@ from sovrin_common.identity import Identity
 from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
+from plenum.common.constants import PUBKEY
+
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)

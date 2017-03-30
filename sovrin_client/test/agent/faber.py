@@ -10,7 +10,9 @@ from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
 from sovrin_client.agent.exception import NonceNotFound
 from plenum.common.constants import NAME, VERSION
-
+from sovrin_client.agent.agent import createAgent, runAgent
+from sovrin_client.test.conftest import primes
+from anoncreds.protocol.types import ID
 
 logger = getlogger()
 
@@ -28,6 +30,8 @@ class FaberAgent(BaseAgent):
 
         super().__init__('Faber College', basedirpath, client, wallet,
                          portParam or port, loop=loop)
+
+        self.availableClaims = []
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -116,12 +120,6 @@ class FaberAgent(BaseAgent):
             await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
             await self.initAvailableClaimList()
         return schema
-
-    async def bootstrap(self):
-        ranViaScript = False
-        if __name__ == "__main__":
-            ranViaScript = True
-        isSchemaFound(await self.addSchemasToWallet(), ranViaScript)
 
     def getAttrDefs(self):
         return [self._attrDef]

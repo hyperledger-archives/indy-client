@@ -9,7 +9,7 @@ from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
 from sovrin_client.agent.exception import NonceNotFound
-from sovrin_client.agent.constants import NAME, VERSION
+from plenum.common.constants import NAME, VERSION
 
 
 logger = getlogger()

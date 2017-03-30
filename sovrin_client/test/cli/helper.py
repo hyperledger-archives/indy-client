@@ -7,7 +7,7 @@ from stp_core.loop.eventually import eventually
 from plenum.common.looper import Looper
 
 from plenum.common.log import getlogger
-from plenum.common.port_dispenser import genHa
+
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \

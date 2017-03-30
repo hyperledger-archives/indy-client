@@ -4,10 +4,8 @@ import pytest
 
 from stp_core.crypto.util import randomSeed
 from stp_core.loop.eventually import eventually
-from plenum.common.txn import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, ALIAS
-from plenum.common.types import CLIENT_STACK_SUFFIX
+
 from stp_core.network.port_dispenser import genHa
-from plenum.common.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, \
     ALIAS, CLIENT_STACK_SUFFIX, SERVICES, VALIDATOR

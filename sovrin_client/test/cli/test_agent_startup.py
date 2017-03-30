@@ -2,16 +2,14 @@ import pytest
 
 from plenum.common.exceptions import PortNotAvailable, OperationError, \
     NoConsensusYet
-from plenum.common.port_dispenser import genHa
+from stp_core.network.port_dispenser import genHa
 from plenum.common.types import HA
-from plenum.common.util import randomString, checkPortAvailable
-from plenum.test.conftest import tdirWithPoolTxns
-from sovrin_client.test.agent.conftest import emptyLooper, startAgent
+from plenum.common.util import randomString
+from stp_core.network.util import checkPortAvailable
+from sovrin_client.test.agent.conftest import startAgent
 
 from sovrin_client.test.agent.acme import createAcme as createAgent
 from sovrin_client.test.agent.helper import buildAcmeWallet as agentWallet
-from sovrin_client.test.cli.conftest \
-    import acmeAddedByPhil as agentAddedBySponsor
 
 
 agentPort = genHa()[1]

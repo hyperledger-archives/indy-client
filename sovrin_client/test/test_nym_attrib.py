@@ -9,8 +9,10 @@ from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, \
-    OP_FIELD_NAME, ATTRIB, NYM, TARGET_NYM, \
-    TXN_TYPE, ROLE, NONCE, SKEY, TRUST_ANCHOR
+    OP_FIELD_NAME, NYM, TARGET_NYM, \
+    TXN_TYPE, ROLE, NONCE
+from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
+from sovrin_common.constants import SKEY
 from plenum.common.types import f
 from plenum.common.util import adict
 from sovrin_client.client.client import Client

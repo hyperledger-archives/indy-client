@@ -22,7 +22,8 @@ from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.txn import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
+from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, \
+    GET_NYM, POOL_UPGRADE
 from stp_core.types import Identifier
 
 ENCODING = "utf-8"

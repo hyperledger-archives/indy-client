@@ -6,11 +6,12 @@ import pyorient
 
 from config.config import cmod
 from plenum.common.log import getlogger
-from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
-from plenum.common.types import f, Identifier, HA
+from plenum.common.types import f, HA
+from stp_core.types import Identifier
+
 from plenum.persistence.orientdb_store import OrientDbStore
 from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \

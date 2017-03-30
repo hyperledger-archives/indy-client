@@ -5,8 +5,10 @@ from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
 from plenum.common.log import getlogger
 from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, \
-    VERSION, TYPE, ORIGIN, GET_SCHEMA, SCHEMA, ATTR_NAMES, GET_ISSUER_KEY, \
-    REF, ISSUER_KEY, PRIMARY, REVOCATION
+    VERSION, TYPE, ORIGIN
+
+from sovrin_common.constants import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
+    GET_ISSUER_KEY, REF, ISSUER_KEY, PRIMARY, REVOCATION
 
 from anoncreds.protocol.repo.public_repo import PublicRepo
 from anoncreds.protocol.types import Schema, ID, PublicKey, \

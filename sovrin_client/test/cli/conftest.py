@@ -8,7 +8,6 @@ import pytest
 
 import plenum
 from plenum.common.exceptions import BlowUp
-from plenum.common.eventually import eventually
 from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
@@ -19,7 +18,7 @@ from sovrin_common.roles import Roles
 from sovrin_node.test.conftest import domainTxnOrderedFields
 from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
-plenum.common.util.loggingConfigured = False
+# plenum.common.util.loggingConfigured = False
 
 from plenum.common.looper import Looper
 from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \

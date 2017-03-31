@@ -334,11 +334,9 @@ class Wallet(PWallet, TrustAnchoring):
         self.pendRequest(req, key=key)
         return self.preparePending()[0]
 
-    # DEPR
-    # Why shouldn't we fetch link by nonce
-    def getLinkByNonce(self, nonce) -> Optional[Link]:
+    def getLinkByNonce(self, nonce, identifier=None) -> Optional[Link]:
         for _, li in self._links.items():
-            if li.invitationNonce == nonce:
+            if li.invitationNonce == nonce and (not identifier or li.remoteIdentifier == identifier):
                 return li
 
     def getLinkByInternalId(self, internalId) -> Optional[Link]:

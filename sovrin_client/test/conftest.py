@@ -1,3 +1,5 @@
+import warnings
+
 from plenum.common.eventually import eventually
 from plenum.common.port_dispenser import genHa
 from plenum.common.raet import initLocalKeep
@@ -34,6 +36,24 @@ from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
     genTestClient, TestClient, createNym
 
 
+# noinspection PyUnresolvedReferences
+from plenum.test.conftest import tdir, nodeReg, up, ready, \
+    whitelist, concerningLogLevels, logcapture, keySharedNodes, \
+    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
+    poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
+    poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
+    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager, \
+    warncheck, warnfilters as plenum_warnfilters
+
+
+@pytest.fixture(scope="session")
+def warnfilters(plenum_warnfilters):
+    def _():
+        plenum_warnfilters()
+        warnings.filterwarnings('ignore', category=DeprecationWarning, module='plenum\.common\.looper', message="The 'warn' method is deprecated")
+    return _
+
+
 @pytest.fixture(scope="module")
 def primes1():
     P_PRIME1, Q_PRIME1 = primes.get("prime1")
@@ -46,21 +66,12 @@ def primes2():
     return dict(p_prime=P_PRIME2, q_prime=Q_PRIME2)
 
 
-# noinspection PyUnresolvedReferences
-from plenum.test.conftest import tdir, nodeReg, up, ready, \
-    whitelist, concerningLogLevels, logcapture, keySharedNodes, \
-    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
-    poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
-    poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
-    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager
-
-
 @pytest.fixture(scope="module")
 def tconf(conf, tdir):
     conf.baseDir = tdir
     conf.MinSepBetweenNodeUpgrades = 5
     return conf
-    
+
 
 @pytest.fixture(scope="module")
 def updatedPoolTxnData(poolTxnData):

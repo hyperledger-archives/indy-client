@@ -1,9 +1,13 @@
 import json
 import logging
 import re
+import warnings
+from itertools import groupby
 
 import pytest
-from anoncreds.protocol.types import SchemaKey, ID
+from _pytest.recwarn import WarningsRecorder
+
+from anoncreds.protocol.types import SchemaKey, ID, PublicKey
 from plenum.common.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.roles import Roles
@@ -79,9 +83,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     acmeEndpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
     thriftEndpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
 
-    for nym, ep in [('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
-                    ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
-                    ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
+    for nym, ep in [
+        ('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
+        ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
+        ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
         do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
            within=5, expect=nymAddedOut, mapper=m)
@@ -126,7 +131,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema.seqId
 
         issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey
+        assert issuerKey  # TODO isinstance(issuerKey, PublicKey)
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId

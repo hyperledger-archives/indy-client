@@ -1,3 +1,4 @@
+from anoncreds.protocol.types import AttribDef, AttribType
 from plenum.common.log import getlogger
 
 from sovrin_client.agent.agent import createAgent
@@ -29,6 +30,32 @@ class ThriftAgent(BaseAgent):
         self._invites = {
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
+
+        self._attrDef = AttribDef('Thrift',
+                                  [AttribType('title', encode=True),
+                                   AttribType('first_name', encode=True),
+                                   AttribType('last_name', encode=True),
+                                   AttribType('address_1', encode=True),
+                                   AttribType('address_2', encode=True),
+                                   AttribType('address_3', encode=True),
+                                   AttribType('postcode_zip', encode=True),
+                                   AttribType('date_of_birth', encode=True)
+                                   ])
+
+        self._attrs = {
+            1: self._attrDef.attribs(
+                title='Mrs.',
+                first_name='Alicia',
+                last_name='Garcia',
+                address_1='H-301',
+                address_2='Street 1',
+                address_3='UK',
+                postcode_zip='G61 3NR',
+                date_of_birth='December 28, 1990')
+        }
+
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["first_name"]
 
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":

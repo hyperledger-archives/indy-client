@@ -75,6 +75,9 @@ class FaberAgent(BaseAgent):
     def getAttrs(self):
         return self._attrs
 
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["student_name"]
+
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]
 

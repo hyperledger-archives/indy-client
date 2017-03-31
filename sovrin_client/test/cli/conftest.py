@@ -142,7 +142,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'rcvd-claim-transcript-provider': 'Faber College',
             'rcvd-claim-transcript-name': 'Transcript',
             'rcvd-claim-transcript-version': '1.2',
-            'send-proof-target': '1',
+            'send-proof-target': 'Alice',
             'pr-name': 'Job-Application',
             'pr-schema-version': '0.2'
             }

@@ -1271,7 +1271,6 @@ def poolNodesStarted(be, do, poolCLI):
     return poolCLI
 
 
-
 @pytest.fixture(scope="module")
 def philCli(be, do, philCLI):
     be(philCLI)

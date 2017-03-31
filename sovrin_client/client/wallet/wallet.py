@@ -264,7 +264,7 @@ class Wallet(PWallet, TrustAnchoring):
         if idy:
             idy.seqNo = result[F.seqNo.name]
         else:
-            logger.warn("Target {} not found in trust anchored".format(target))
+            logger.warning("Target {} not found in trust anchored".format(target))
 
     def _nodeReply(self, result, preparedReq):
         _, nodeKey = preparedReq

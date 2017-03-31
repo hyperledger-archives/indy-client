@@ -299,7 +299,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     reqFieldName, body)
                 self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
                                           errorMsg, self.wallet.defaultId, frm)
-                logger.warn("{}".format(errorMsg))
+                logger.warning("{}".format(errorMsg))
                 return
 
         typ = body.get(TYPE)

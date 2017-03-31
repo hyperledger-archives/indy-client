@@ -72,18 +72,18 @@ class BaseAgent(TestWalletedAgent):
                     file.write(str(self.claimVersionNumber))
                     file.truncate()
             except OSError as e:
-                self.logger.warn('Error occurred while reading version file: '
+                self.logger.warning('Error occurred while reading version file: '
                                  'error:{}'.format(e))
                 raise e
             except ValueError as e:
-                self.logger.warn('Invalid version number')
+                self.logger.warning('Invalid version number')
                 raise e
         else:
             try:
                 with open(claimVersionFilePath, mode='w') as file:
                     file.write(str(self.claimVersionNumber))
             except OSError as e:
-                self.logger.warn('Error creating version file {}'.format(e))
+                self.logger.warning('Error creating version file {}'.format(e))
                 raise e
 
     def setupLogging(self, filePath):

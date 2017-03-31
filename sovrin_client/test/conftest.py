@@ -51,7 +51,6 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
 def warnfilters(plenum_warnfilters):
     def _():
         plenum_warnfilters()
-        warnings.filterwarnings('ignore', category=DeprecationWarning, module='plenum\.common\.looper', message="The 'warn' method is deprecated")
     return _
 
 

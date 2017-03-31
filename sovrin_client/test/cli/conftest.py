@@ -20,7 +20,7 @@ from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
 # plenum.common.util.loggingConfigured = False
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
     doByCtx
 

@@ -21,7 +21,7 @@ import os
 import pytest
 
 import sample
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.util import randomString
 from stp_core.loop.eventually import eventually
 from plenum.test.helper import assertFunc

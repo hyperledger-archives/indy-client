@@ -4,7 +4,7 @@ import re
 from _sha256 import sha256
 
 from stp_core.loop.eventually import eventually
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 
 from plenum.common.log import getlogger
 

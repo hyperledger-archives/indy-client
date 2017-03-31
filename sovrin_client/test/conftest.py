@@ -17,7 +17,7 @@ strict_types.defaultShouldCheck = True
 import pytest
 from copy import deepcopy
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
     ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID

@@ -7,6 +7,7 @@ from plenum.common.constants import VERSION
 from sovrin_common.constants import ACTION, CANCEL, JUSTIFICATION
 from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \
     checkNoUpgradeScheduled
+from sovrin_node.test.upgrade.conftest import validUpgrade
 
 
 @pytest.fixture(scope='module')

@@ -31,6 +31,12 @@ def runAgent(looper, basedir, port, name=None, agent=None):
     return startAgent(looper, agent, wallet)
 
 
+def stopAgent(looper, name):
+    agent = looper.removeProdable(name=name)
+    if agent:
+        agent.stop()
+
+
 @pytest.fixture(scope="module")
 def agentStarted(emptyLooper, tdirWithPoolTxns):
     runAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
@@ -39,8 +45,9 @@ def agentStarted(emptyLooper, tdirWithPoolTxns):
 def testCreateAgentDoesNotAllocatePort(tdirWithPoolTxns):
     for i in range(2):
         checkPortAvailable(HA("0.0.0.0", agentPort))
-        getNewAgent("Agent0", tdirWithPoolTxns, agentPort, agentWallet())
+        agent = getNewAgent("Agent0", tdirWithPoolTxns, agentPort, agentWallet())
         checkPortAvailable(HA("0.0.0.0", agentPort))
+        agent.stop()
 
 
 def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns):
@@ -48,11 +55,11 @@ def testAgentStartedWithoutPoolStarted(emptyLooper, tdirWithPoolTxns):
     with pytest.raises(NoConsensusYet):
         runAgent(emptyLooper, tdirWithPoolTxns, agentPort,
                  name=newAgentName)
-    emptyLooper.removeProdable(name=newAgentName)
+    stopAgent(emptyLooper, newAgentName)
 
 
 def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
-                                 tdirWithPoolTxns):
+                                        tdirWithPoolTxns):
     newAgentName = "Agent3"
     with pytest.raises(OperationError) as oeinfo:
         runAgent(emptyLooper, tdirWithPoolTxns, agentPort,
@@ -60,7 +67,7 @@ def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
     assert "error occurred during operation: client request invalid: " \
            "UnknownIdentifier('{}',)".format(agentWallet().defaultId) \
            in str(oeinfo)
-    emptyLooper.removeProdable(name=newAgentName)
+    stopAgent(emptyLooper, newAgentName)
 
 
 def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
@@ -68,7 +75,9 @@ def testStartNewAgentOnUsedPort(poolNodesStarted, tdirWithPoolTxns,
                                 agentStarted):
 
     with pytest.raises(PortNotAvailable):
-        runAgent(emptyLooper, tdirWithPoolTxns, agentPort, name="Agent4")
+        runAgent(emptyLooper, tdirWithPoolTxns, agentPort, name='Agent4')
+
+    stopAgent(emptyLooper, 'Agent4')
 
 
 def testStartAgentChecksForPortAvailability(poolNodesStarted, tdirWithPoolTxns,
@@ -82,4 +91,5 @@ def testStartAgentChecksForPortAvailability(poolNodesStarted, tdirWithPoolTxns,
                  name=newAgentName2)
         runAgent(emptyLooper, tdirWithPoolTxns, agentPort,
                  name=newAgentName1, agent=agent)
-    emptyLooper.removeProdable(name=newAgentName2)
+
+    stopAgent(emptyLooper, newAgentName2)

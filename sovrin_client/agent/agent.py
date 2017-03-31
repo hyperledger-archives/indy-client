@@ -8,7 +8,7 @@ from plenum.common.error import fault
 from stp_core.network.exceptions import RemoteNotFound
 from plenum.common.exceptions import NoConsensusYet
 from plenum.common.log import getlogger
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.startable import Status
 from plenum.common.types import HA

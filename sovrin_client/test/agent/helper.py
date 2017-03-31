@@ -4,7 +4,7 @@ import sys
 
 from stp_core.loop.eventually import eventually
 from sovrin_client.agent.endpoint import REndpoint, ZEndpoint
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 from sovrin_client.agent.agent_cli import AgentCli

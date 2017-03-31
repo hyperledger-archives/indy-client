@@ -15,7 +15,7 @@ def testCliExitCommand(be, do, poolNodesStarted, aliceCLI, CliBuilder,
     do('new keyring {}'.format(name), expect=newKeyringOut, mapper=aliceMap)
     do('connect test', within=within, expect=connectedToTest)
     with pytest.raises(Exit):
-        do('exit', within=within)
+        do('exit')
 
     def checkWalletRestore():
         # open cli again

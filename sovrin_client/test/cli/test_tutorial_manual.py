@@ -3,13 +3,13 @@ import logging
 import re
 
 import pytest
-from plenum.common.eventually import eventually
 from anoncreds.protocol.types import SchemaKey, ID
 from plenum.common.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.roles import Roles
 from sovrin_common.setup_util import Setup
-from sovrin_common.txn import ENDPOINT
+from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.agent.agent import createAndRunAgent
 from sovrin_client.test.agent.acme import AcmeAgent
 from sovrin_client.test.agent.faber import FaberAgent
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
@@ -19,8 +19,8 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
-    aliceRequestedTranscriptClaim, jobApplicationClaimSent, \
-    jobCertClaimRequested, bankBasicClaimSent, bankKYCClaimSent, \
+    aliceRequestedTranscriptClaim, jobApplicationProofSent, \
+    jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
 
@@ -51,7 +51,6 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 
 
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
-@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-501')
 def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
                schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
@@ -84,9 +83,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                     ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
                     ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
-        do('send NYM dest={target} role=SPONSOR',
-           within=3, expect=nymAddedOut, mapper=m)
-        do('send ATTRIB dest={target} raw={endpoint}', within=3,
+        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+           within=5, expect=nymAddedOut, mapper=m)
+        do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent
@@ -107,8 +106,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
         agentCls.getPassedArgs = lambda _: (agentPort,)
-        createAndRunAgent(agentCls, agentName, buildAgentWalletFunc(), tdir,
-                          agentPort, philCLI.looper, TestClient)
+        TestWalletedAgent.createAndRunAgent(
+            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+            philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':
@@ -153,7 +153,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
             return await wallet.getPublicKey(schemaId)
 
         async def getClaim(schemaId):
-            return userCLI.agent.prover.wallet.getClaims(schemaId)
+            return await userCLI.agent.prover.wallet.getClaims(schemaId)
 
         # Start User cli
 
@@ -174,8 +174,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None)  # Passing None since its not used
 
         faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
-        faberIssuerKey = userCLI.looper.run(getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
-        userFaberIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
+        faberIssuerKey = userCLI.looper.run(
+            getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
+        userFaberIssuerKey = userCLI.looper.run(
+            getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
         assert faberIssuerKey == userFaberIssuerKey
 
         do('show claim Transcript')
@@ -193,15 +195,17 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('set phone_number to 123-45-6789')
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
-        jobApplicationClaimSent(be, do, userCLI, aMap, None, None, None)
+        jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
         acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
-        acmeIssuerKey = userCLI.looper.run(getPublicKey(acmeAgent.issuer.wallet, acmeSchemaId))
-        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(userCLI.agent.prover.wallet, acmeSchemaId))
+        acmeIssuerKey = userCLI.looper.run(getPublicKey(
+            acmeAgent.issuer.wallet, acmeSchemaId))
+        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+            userCLI.agent.prover.wallet, acmeSchemaId))
         assert acmeIssuerKey == userAcmeIssuerKey
 
         do('show claim Job-Certificate')
@@ -214,14 +218,16 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         # Send claims
         bankBasicClaimSent(be, do, userCLI, tMap, None)
 
-        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, acmeSchemaId))
+        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+            thriftAgent.issuer.wallet, acmeSchemaId))
         assert acmeIssuerKey == thriftAcmeIssuerKey
         passed = False
         try:
-            bankKYCClaimSent(be, do, userCLI, tMap, None)
+            bankKYCProofSent(be, do, userCLI, tMap, None)
             passed = True
         except:
-            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(thriftAgent.issuer.wallet, faberSchemaId))
+            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(
+                thriftAgent.issuer.wallet, faberSchemaId))
             assert faberIssuerKey == thriftFaberIssuerKey
         assert passed
 

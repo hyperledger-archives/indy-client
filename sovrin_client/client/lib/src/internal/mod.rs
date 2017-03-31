@@ -1,8 +1,9 @@
 extern crate libc;
+extern crate time;
 
 
-use libc::{c_int, size_t, c_char};
-use std::ffi::{CStr, CString};
+use libc::{c_char};
+use std::ffi::{CStr};
 use std::panic;
 use std::ptr;
 
@@ -12,10 +13,16 @@ use std::ptr;
 /// by id as the first parameter of each function. This allows us to look up state without
 /// requiring the consumer of the lib to manage it in an object that crosses the lib boundary.
 pub struct Client {
-
+    /// When current request should time out, in nanoseconds since
+    request_timeout_after: SteadyTime,
+    response_callback: fn(client_id: i32, callback_arg: u64, error_num: i32, data: *mut c_char),
+    callback_arg: u64,
+    error_num: i32,
+    data: [u8]
 }
 
 impl Client {
+
     pub fn new(host_and_port: &str) -> Client {
         Client {}
     }
@@ -165,4 +172,82 @@ pub fn encrypt_msg(msg: &[u8], src_priv_key: &[u8], tgt_pub_key: &[u8]) {
     }
 */
 }
+
+/*
+use std::thread;
+use std::net;
+
+fn socket(listen_on: net::SocketAddr) -> net::UdpSocket {
+  let attempt = net::UdpSocket::bind(listen_on);
+  let mut socket;
+  match attempt {
+    Ok(sock) => {
+      println!("Bound socket to {}", listen_on);
+      socket = sock;
+    },
+    Err(err) => panic!("Could not bind: {}", err)
+  }
+  socket
+}
+
+fn read_message(socket: net::UdpSocket) -> Vec<u8> {
+  let mut buf: [u8; 1] = [0; 1];
+  println!("Reading data");
+  let result = socket.recv_from(&mut buf);
+  drop(socket);
+  let mut data;
+  match result {
+    Ok((amt, src)) => {
+      println!("Received data from {}", src);
+      data = Vec::from(&buf[0..amt]);
+    },
+    Err(err) => panic!("Read error: {}", err)
+  }
+  data
+}
+
+pub fn send_message(send_addr: net::SocketAddr, target: net::SocketAddr, data: Vec<u8>) {
+  let socket = socket(send_addr);
+  println!("Sending data");
+  let result = socket.send_to(&data, target);
+  drop(socket);
+  match result {
+    Ok(amt) => println!("Sent {} bytes", amt),
+    Err(err) => panic!("Write error: {}", err)
+  }
+}
+
+pub fn listen(listen_on: net::SocketAddr) -> thread::JoinHandle<Vec<u8>> {
+  let socket = socket(listen_on);
+  let handle = thread::spawn(move || {
+    read_message(socket)
+  });
+  handle
+}
+
+#[cfg(test)]
+mod test {
+  use std::net;
+  use std::thread;
+  use super::*;
+
+  #[test]
+  fn test_udp() {
+    println!("UDP");
+    let ip = net::Ipv4Addr::new(127, 0, 0, 1);
+    let listen_addr = net::SocketAddrV4::new(ip, 8888);
+    let send_addr = net::SocketAddrV4::new(ip, 8889);
+    let future = listen(net::SocketAddr::V4(listen_addr));
+    let message: Vec<u8> = vec![10];
+ // give the thread 3s to open the socket
+    thread::sleep_ms(3000);
+    send_message(net::SocketAddr::V4(send_addr), net::SocketAddr::V4(listen_addr), message);
+    println!("Waiting");
+    let received = future.join().unwrap();
+    println!("Got {} bytes", received.len());
+    assert_eq!(1, received.len());
+    assert_eq!(10, received[0]);
+  }
+}
+*/
 

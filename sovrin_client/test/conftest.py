@@ -1,7 +1,3 @@
-import json
-import os
-
-from config.config import cmod
 from plenum.common.eventually import eventually
 from plenum.common.port_dispenser import genHa
 from plenum.common.raet import initLocalKeep
@@ -9,7 +5,6 @@ from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
 from plenum.test.node_catchup.helper import \
     ensureClientConnectedToNodesAndPoolLedgerSame
-from plenum.test.pool_transactions.helper import addNewStewardAndNode
 from plenum.test.test_node import checkNodesConnected
 from sovrin_client.client.wallet.node import Node
 
@@ -26,33 +21,20 @@ from ledger.serializers.compact_serializer import CompactSerializer
 
 from plenum.common.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.txn import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR, TYPE
+from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
+    ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
 from plenum.test.plugin.helper import getPluginPath
-from plenum.test.conftest import patchPluginManager
 
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.txn import STEWARD, NYM, SPONSOR, TRUSTEE
-from sovrin_common.txn import TXN_TYPE, TARGET_NYM, TXN_ID, ROLE, \
-    getTxnOrderedFields
+from sovrin_common.constants import NYM, TRUST_ANCHOR
+from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
+from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import newCLI
-from sovrin_node.test.helper import genTestClient, createNym, TestNode, \
-    makePendingTxnsRequest, buildStewardClient, TestClient
-from sovrin_client.test.helper import addRole, getClientAddedWithRole
-
-primes = {
-    "prime1":
-        (cmod.integer(
-            157329491389375793912190594961134932804032426403110797476730107804356484516061051345332763141806005838436304922612495876180233509449197495032194146432047460167589034147716097417880503952139805241591622353828629383332869425029086898452227895418829799945650973848983901459733426212735979668835984691928193677469),
-         cmod.integer(
-             151323892648373196579515752826519683836764873607632072057591837216698622729557534035138587276594156320800768525825023728398410073692081011811496168877166664537052088207068061172594879398773872352920912390983199416927388688319207946493810449203702100559271439586753256728900713990097168484829574000438573295723))
-    , "prime2":
-        (cmod.integer(
-            150619677884468353208058156632953891431975271416620955614548039937246769610622017033385394658879484186852231469238992217246264205570458379437126692055331206248530723117202131739966737760399755490935589223401123762051823602343810554978803032803606907761937587101969193241921351011430750970746500680609001799529),
-         cmod.integer(
-             171590857568436644992359347719703764048501078398666061921719064395827496970696879481740311141148273607392657321103691543916274965279072000206208571551864201305434022165176563363954921183576230072812635744629337290242954699427160362586102068962285076213200828451838142959637006048439307273563604553818326766703))
-}
+from sovrin_node.test.helper import TestNode, \
+    makePendingTxnsRequest, buildStewardClient
+from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
+    genTestClient, TestClient, createNym
 
 
 @pytest.fixture(scope="module")
@@ -68,12 +50,12 @@ def primes2():
 
 
 # noinspection PyUnresolvedReferences
-from plenum.test.conftest import tdir, counter, nodeReg, up, ready, \
+from plenum.test.conftest import tdir, nodeReg, up, ready, \
     whitelist, concerningLogLevels, logcapture, keySharedNodes, \
     startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
     poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
-    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf
+    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager
 
 
 @pytest.fixture(scope="module")
@@ -210,7 +192,7 @@ def client1Signer():
 
 
 @pytest.fixture("module")
-def sponsorCli(looper, tdir):
+def trustAnchorCli(looper, tdir):
     return newCLI(looper, tdir)
 
 
@@ -236,44 +218,44 @@ def wallet1(clientAndWallet1):
 
 
 @pytest.fixture(scope="module")
-def sponsorWallet():
-    wallet = Wallet('sponsor')
-    seed = b'sponsors are people too.........'
+def trustAnchorWallet():
+    wallet = Wallet('trustAnchor')
+    seed = b'trust anchors are people too....'
     wallet.addIdentifier(seed=seed)
     return wallet
 
 
 @pytest.fixture(scope="module")
-def sponsor(nodeSet, addedSponsor, sponsorWallet, looper, tdir):
+def trustAnchor(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, tdir):
     s, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
-    s.registerObserver(sponsorWallet.handleIncomingReply)
+    s.registerObserver(trustAnchorWallet.handleIncomingReply)
     looper.add(s)
     looper.run(s.ensureConnectedToNodes())
-    makePendingTxnsRequest(s, sponsorWallet)
+    makePendingTxnsRequest(s, trustAnchorWallet)
     return s
 
 
 @pytest.fixture(scope="module")
-def addedSponsor(nodeSet, steward, stewardWallet, looper,
-                 sponsorWallet):
+def addedTrustAnchor(nodeSet, steward, stewardWallet, looper,
+                 trustAnchorWallet):
     createNym(looper,
-              sponsorWallet.defaultId,
+              trustAnchorWallet.defaultId,
               steward,
               stewardWallet,
-              role=SPONSOR,
-              verkey=sponsorWallet.getVerkey())
-    return sponsorWallet
+              role=TRUST_ANCHOR,
+              verkey=trustAnchorWallet.getVerkey())
+    return trustAnchorWallet
 
 
 @pytest.fixture(scope="module")
-def userWalletA(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userA', useDid=False,
+def userWalletA(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userA', useDid=False,
                    addVerkey=False)
 
 
 @pytest.fixture(scope="module")
-def userWalletB(nodeSet, addedSponsor, sponsorWallet, looper, sponsor):
-    return addRole(looper, sponsor, sponsorWallet, 'userB', useDid=False,
+def userWalletB(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userB', useDid=False,
                    addVerkey=False)
 
 

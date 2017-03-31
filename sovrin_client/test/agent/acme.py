@@ -101,6 +101,9 @@ class AcmeAgent(BaseAgent):
     def getAttrs(self):
         return self._attrs
 
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["first_name"]
+
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Job-Certificate", "0.2",
                           self.wallet.defaultId),

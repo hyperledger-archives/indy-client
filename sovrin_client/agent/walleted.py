@@ -166,11 +166,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def linkFromNonce(self, nonce, remoteIdr, remoteHa=None, remotePubKey=None):
         internalId = self.getInternalIdByInvitedNonce(nonce)
+        linkName = self.getLinkNameByInternalId(internalId)
         link = self.wallet.getLinkByInternalId(internalId)
         if not link:
             # QUESTION: We use wallet.defaultId as the local identifier,
             # this looks ok for test code, but not production code
-            link = Link(str(internalId),
+            link = Link(linkName,
                         self.wallet.defaultId,
                         self.wallet.getVerkey(),
                         invitationNonce=nonce,

@@ -25,7 +25,8 @@ class AcmeAgent(BaseAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
-                         port=portParam or port, loop=loop)
+                         port=portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -94,11 +95,6 @@ class AcmeAgent(BaseAgent):
             }
         }
 
-    def _addAttribute(self, schemaKey, proverId, link):
-        attr = self._attrsJobCert[self.getInternalIdByInvitedNonce(proverId)]
-        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
-                                            userId=proverId,
-                                            attributes=attr)
     def getAttrDefs(self):
         return [self._attrDefJobCert, self._attrDefJobApp]
 

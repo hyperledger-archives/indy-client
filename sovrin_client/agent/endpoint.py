@@ -3,7 +3,6 @@ from typing import Callable, Any, List
 from plenum import config
 from plenum.common.message_processor import MessageProcessor
 from raet.raeting import AutoMode
-from raet.road.estating import RemoteEstate
 from zmq.utils import z85
 
 from plenum.common.log import getlogger

@@ -27,7 +27,8 @@ def ensureAgentsConnected(looper, agent1, agent2):
         def _(e1, e2):
             assert e1.publicKey in e2.remotesByKeys or e1.publicKey in e2.peersWithoutRemotes
             assert e2.publicKey in e1.remotesByKeys or e2.publicKey in e1.peersWithoutRemotes
-            looper.run(eventually(_, e1, e2, CONNECTED, timeout=10))
+
+        looper.run(eventually(_, e1, e2, timeout=10))
 
     elif isinstance(e1, REndpoint) and isinstance(e2, REndpoint):
         looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,

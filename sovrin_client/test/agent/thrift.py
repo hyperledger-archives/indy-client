@@ -25,7 +25,8 @@ class ThriftAgent(BaseAgent):
         portParam, = self.getPassedArgs()
 
         super().__init__('Thrift Bank', basedirpath, client, wallet,
-                         port=portParam or port, loop=loop)
+                         port=portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -36,23 +37,6 @@ class ThriftAgent(BaseAgent):
 
         # mapping between requester identifier and corresponding available claims
         self.requesterAvailClaims = {}
-
-    def getInternalIdByInvitedNonce(self, nonce):
-        if nonce in self._invites:
-            return self._invites[nonce]
-        else:
-            raise NonceNotFound
-
-    def isClaimAvailable(self, link, claimName):
-        return True
-
-    def getAvailableClaimList(self, requesterId):
-        return self.availableClaims + \
-               self.requesterAvailClaims.get(requesterId, [])
-
-
-    def _addAttribute(self, schemaKey, proverId, link):
-        pass
 
     async def postClaimVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":

@@ -53,12 +53,12 @@ class AgentVerifier(Verifier):
         if result:
             for attribute in proofInput.revealedAttrs:
                 # Log attributes that were verified
-                self.agentLogger.info('verified {}: {}'.
-                                      format(attribute,
-                                             revealedAttrs[attribute]))
-            self.agentLogger.info('verified proof contains attributes from '
-                             'claim issued by: {}'.format(", ".join(
-                sorted([sk.issuerId for sk in proof.schemaKeys]))))
+                self.logger.info('verified {}: {}'.
+                                 format(attribute, revealedAttrs[attribute]))
+            self.logger.info('verified proof contains attributes from '
+                             'claim issued by: {}'.
+                             format(", ".join(sorted([sk.issuerId for sk in
+                                                      proof.schemaKeys]))))
             await self._postClaimVerif(claimName, link, frm)
 
     def sendProofReq(self, link: Link, proofReqSchemaKey):

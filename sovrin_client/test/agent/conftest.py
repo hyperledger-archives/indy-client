@@ -161,6 +161,7 @@ def faberAdded(nodeSet, steward, stewardWallet,
                faberAgent):
     addAgent(emptyLooper, faberAgent, steward, stewardWallet)
 
+
 def startAgent(looper, agent, wallet):
     agent = agent
     wallet.pendSyncRequests()
@@ -169,6 +170,7 @@ def startAgent(looper, agent, wallet):
 
     runAgent(agent, looper)
     return agent, wallet
+
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,

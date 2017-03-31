@@ -56,14 +56,7 @@ class Agent(Motor, AgentNet):
 
         self.config = config or getConfig()
         self.basedirpath = basedirpath or os.path.expanduser(self.config.baseDir)
-
-        AgentNet.__init__(self,
-                          name=self._name.replace(" ", ""),
-                          port=port,
-                          basedirpath=basedirpath,
-                          msgHandler=self.handleEndpointMessage,
-                          config=self.config,
-                          endpointArgs=endpointArgs)
+        self.endpointArgs = endpointArgs
 
         # Client used to connect to Sovrin and forward on owner's txns
         self._client = client  # type: Client
@@ -104,7 +97,8 @@ class Agent(Motor, AgentNet):
                           port=self._port,
                           basedirpath=self.basedirpath,
                           msgHandler=self.handleEndpointMessage,
-                          config = self.config)
+                          config = self.config,
+                          endpointArgs=self.endpointArgs)
 
 
 

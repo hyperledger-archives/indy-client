@@ -25,16 +25,18 @@ class BaseAgent(TestWalletedAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None,
+                 endpointArgs=None):
 
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
+        config = config or getConfig()
+        basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
 
         super().__init__(name, basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         portParam or port, loop=loop, config=config,
+                         endpointArgs=endpointArgs)
 
         self.claimVersionNumber = 0.01
 

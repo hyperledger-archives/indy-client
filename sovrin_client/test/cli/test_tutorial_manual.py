@@ -6,6 +6,7 @@ import pytest
 from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
+from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.setup_util import Setup
@@ -91,8 +92,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                     (thriftId, thriftHa, thriftPk)]:
         m = {'target': nym, 'endpoint': json.dumps({ENDPOINT:
                                                     {'ha': ha, PUBKEY: pk}})}
-        do('send NYM dest={target} role=SPONSOR',
-           within=5, expect=nymAddedOut, mapper=m)
+        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+            within=5,
+            expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 

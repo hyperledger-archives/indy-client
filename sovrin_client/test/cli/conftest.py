@@ -141,7 +141,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'rcvd-claim-transcript-provider': 'Faber College',
             'rcvd-claim-transcript-name': 'Transcript',
             'rcvd-claim-transcript-version': '1.2',
-            'send-proof-target': '1',
+            'send-proof-target': 'Alice',
             'pr-name': 'Job-Application',
             'pr-schema-version': '0.2'
             }
@@ -1268,7 +1268,6 @@ def poolNodesStarted(be, do, poolCLI):
     do('new node all', within=6, expect = connectedExpect)
     # do(None, within=4, expect=primarySelectedExpect)
     return poolCLI
-
 
 
 @pytest.fixture(scope="module")

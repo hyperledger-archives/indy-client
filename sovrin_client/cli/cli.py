@@ -63,7 +63,6 @@ from stp_core.crypto.signer import Signer
 from stp_core.crypto.util import cleanSeed
 from stp_core.network.port_dispenser import genHa
 from sovrin_common.roles import Roles
-from sovrin_common.transactions import SovrinTransactions
 from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.util import ensureReqCompleted, getIndex
 from sovrin_client.__metadata__ import __version__
@@ -441,40 +440,23 @@ class SovrinCli(PlenumCli):
                                     otherClientName=otherClientName)
 
     def _getRole(self, matchedVars):
+        """
+        :param matchedVars:
+        :return: NULL or the role's integer value
+        """
         role = matchedVars.get(ROLE)
         if role is not None and role.strip() == '':
-            role = None
-
-        valid = Authoriser.isValidRoleName(role)
-        if valid:
-            role = Authoriser.getRoleFromName(role)
-            valid = Authoriser.isValidRole(role)
-
-        if not valid:
-            self.print("Invalid role. Valid roles are: {}".
-                       format(", ".join(map(lambda r: r.name, Roles))),
-                       Token.Error)
-            return False
-
+            role = NULL
+        else:
+            valid = Authoriser.isValidRoleName(role)
+            if valid:
+                role = Authoriser.getRoleFromName(role)
+            else:
+                self.print("Invalid role. Valid roles are: {}".
+                           format(", ".join(map(lambda r: r.name, Roles))),
+                           Token.Error)
+                return False
         return role
-
-    def _getTxnType(self, txnType):
-        try:
-            type =  SovrinTransactions(txnType)
-            return type.value
-        except ValueError:
-            pass
-
-        try:
-            type = SovrinTransactions[txnType]
-            return type.value
-        except KeyError:
-            pass
-
-        self.print("Invalid transaction type. Valid types are: {}".
-                   format(", ".join(map(lambda r: r.name, SovrinTransactions))),
-                   Token.Error)
-        return None
 
     def _getNym(self, nym):
         identity = Identity(identifier=nym)

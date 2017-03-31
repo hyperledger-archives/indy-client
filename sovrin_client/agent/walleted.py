@@ -189,6 +189,10 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def getInternalIdByInvitedNonce(self, nonce):
         raise NotImplementedError
 
+    @abstractmethod
+    def getLinkNameByInternalId(self, internalId):
+        raise NotImplementedError
+
     def signAndSend(self, msg, signingIdr=None, toRaetStackName=None,
                     linkName=None, origReqId=None):
         if linkName:
@@ -463,7 +467,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def getLinkForMsg(self, msg):
         nonce = msg.get(NONCE)
-        link = self.wallet.getLinkByNonce(nonce)
+        identifier = msg.get(f.IDENTIFIER.nm)
+        link = self.wallet.getLinkByNonce(nonce, identifier)
         if link:
             return link
         else:

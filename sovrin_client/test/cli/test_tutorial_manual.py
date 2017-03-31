@@ -1,11 +1,17 @@
 import json
 import logging
 import re
+import warnings
+from itertools import groupby
 
 import pytest
 from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
+from _pytest.recwarn import WarningsRecorder
+
+from anoncreds.protocol.types import SchemaKey, ID, PublicKey
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
@@ -136,7 +142,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema.seqId
 
         issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey
+        assert issuerKey  # TODO isinstance(issuerKey, PublicKey)
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId

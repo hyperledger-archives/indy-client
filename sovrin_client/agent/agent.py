@@ -37,10 +37,10 @@ logger.setLevel(agentLoggingLevel)
 @decClassMethods(strict_types())
 class Agent(Motor, AgentNet):
     def __init__(self,
-                 name: str,
-                 basedirpath: str,
-                 client: Client = None,
-                 port: int = None,
+                 name: str=None,
+                 basedirpath: str=None,
+                 client: Client=None,
+                 port: int=None,
                  loop=None,
                  config=None,
                  endpointArgs=None):
@@ -51,7 +51,7 @@ class Agent(Motor, AgentNet):
         Motor.__init__(self)
         self.loop = loop or asyncio.get_event_loop()
         self._eventListeners = {}  # Dict[str, set(Callable)]
-        self._name = name
+        self._name = name or 'Agent'
         self._port = port
 
         self.config = config or getConfig()

@@ -26,7 +26,7 @@ class AgentIssuer:
         self.signAndSend(resp, link.localIdentifier, frm)
 
     async def processReqClaim(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError

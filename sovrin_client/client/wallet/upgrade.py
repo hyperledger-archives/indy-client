@@ -1,8 +1,8 @@
+from stp_core.types import Identifier
 from plenum.common.constants import TXN_TYPE, NAME, VERSION
-from plenum.common.types import Identifier
 from sovrin_common.generates_request import GeneratesRequest
-from sovrin_common.constants import POOL_UPGRADE, ACTION, SCHEDULE, SHA256, TIMEOUT, \
-    START, JUSTIFICATION
+from sovrin_common.constants import POOL_UPGRADE, ACTION, SCHEDULE, \
+    SHA256, TIMEOUT, START, JUSTIFICATION
 from sovrin_common.types import Request
 
 

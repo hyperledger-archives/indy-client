@@ -5,18 +5,20 @@ import base58
 import libnacl.public
 import pytest
 
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, OP_FIELD_NAME
+from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, \
+    OP_FIELD_NAME, NYM, TARGET_NYM, \
+    TXN_TYPE, ROLE, NONCE
+from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
+from sovrin_common.constants import SKEY
 from plenum.common.types import f
 from plenum.common.util import adict
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.identity import Identity
-from sovrin_common.constants import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
-    NONCE, SKEY, TRUST_ANCHOR
 from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
@@ -239,8 +241,9 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     req = trustAnchorWallet.preparePending()[0]
     _, key = trustAnchorWallet._prepared.pop((req.identifier, req.reqId))
     req.reqId = lastReqId
-    req.signature = trustAnchorWallet.signMsg(msg=req.getSigningState(),
-                                          identifier=req.identifier)
+
+    req.signature = trustAnchorWallet.signMsg(msg=req.signingState,
+                                              identifier=req.identifier)
     trustAnchorWallet._prepared[req.identifier, req.reqId] = req, key
     trustAnchor.submitReqs(req)
 

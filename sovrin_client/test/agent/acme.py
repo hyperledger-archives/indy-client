@@ -1,8 +1,7 @@
 from plenum.common.log import getlogger
 from plenum.common.constants import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
-    ID
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, ID
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -20,12 +19,14 @@ class AcmeAgent(BaseAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None):
 
         portParam, = self.getPassedArgs()
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         port=portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {

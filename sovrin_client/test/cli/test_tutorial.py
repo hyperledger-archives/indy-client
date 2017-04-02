@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
@@ -36,6 +36,38 @@ def getSampleLinkInvitation():
     }
 
 
+
+@pytest.fixture(scope="module")
+def philCli(be, do, philCLI):
+    be(philCLI)
+    do('prompt Phil', expect=prompt_is('Phil'))
+
+    do('new keyring Phil', expect=['New keyring Phil created',
+                                   'Active keyring set to "Phil"'])
+
+    mapper = {
+        'seed': '11111111111111111111111111111111',
+        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+    do('new key with seed {seed}', expect=['Key created in keyring Phil',
+                                           'Identifier for key is {idr}',
+                                           'Current identifier set to {idr}'],
+       mapper=mapper)
+
+    return philCLI
+
+
+def checkIfInvalidAttribIsRejected(do, map):
+    data = json.loads(map.get('invalidEndpointAttr'))
+    endpoint = data.get(ENDPOINT).get('ha')
+    errorMsg = 'client request invalid: InvalidClientRequest(' \
+               '"invalid endpoint: \'{}\'",)'.format(endpoint)
+
+    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+       within=5,
+       expect=[errorMsg],
+       mapper=map)
+
+
 def checkIfValidEndpointIsAccepted(do, map, attribAdded):
     validEndpoints = []
     validPorts = ["1", "3457", "65535"]
@@ -43,7 +75,7 @@ def checkIfValidEndpointIsAccepted(do, map, attribAdded):
         validEndpoints.append("127.0.0.1:{}".format(validPort))
 
     for validEndpoint in validEndpoints:
-        endpoint = json.dumps({ENDPOINT: validEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha':validEndpoint}})
         map["validEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={validEndpointAttr}",
            within=5,
@@ -65,7 +97,7 @@ def checkIfInvalidEndpointIsRejected(do, map):
         errorMsg = 'client request invalid: InvalidClientRequest(' \
                    '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
                                                             invalidEndpoint)
-        endpoint = json.dumps({ENDPOINT: invalidEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
            within=5,
@@ -834,6 +866,7 @@ def testAliceLoadedThriftLoanApplication(thriftInviteLoadedByAlice):
     pass
 
 
+@pytest.mark.skip('Cannot ping if not synced since will not have public key')
 def testPingThriftBeforeSync(be, do, aliceCli, thriftMap,
                              thriftInviteLoadedByAlice):
     be(aliceCli)

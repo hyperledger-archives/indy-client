@@ -1,16 +1,17 @@
+from plenum.common.keygen_utils import initLocalKeys
+
+
+from stp_core.loop.eventually import eventually
 import warnings
 
-from plenum.common.eventually import eventually
-from plenum.common.port_dispenser import genHa
-from plenum.common.raet import initLocalKeep
 from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
 from plenum.test.node_catchup.helper import \
     ensureClientConnectedToNodesAndPoolLedgerSame
 from plenum.test.test_node import checkNodesConnected
 from sovrin_client.client.wallet.node import Node
-
 from sovrin_common import strict_types
+from stp_core.network.port_dispenser import genHa
 
 # typecheck during tests
 strict_types.defaultShouldCheck = True
@@ -18,7 +19,7 @@ strict_types.defaultShouldCheck = True
 import pytest
 from copy import deepcopy
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
     ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
@@ -50,7 +51,6 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
 def warnfilters(plenum_warnfilters):
     def _():
         plenum_warnfilters()
-        warnings.filterwarnings('ignore', category=DeprecationWarning, module='plenum\.common\.looper', message="The 'warn' method is deprecated")
     return _
 
 
@@ -114,8 +114,10 @@ def trusteeWallet(trusteeData):
     return wallet
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, up, trusteeWallet):
+def trustee(nodeSet, looper, tdir, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 
 
@@ -139,8 +141,10 @@ def looper():
         yield l
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def steward(nodeSet, looper, tdir, up, stewardWallet):
+def steward(nodeSet, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
 
 
@@ -346,7 +350,7 @@ def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
 
     looper.run(eventually(chk, retryWait=1, timeout=10))
 
-    initLocalKeep(newNodeName, tdirWithPoolTxns, sigseed, override=True)
+    initLocalKeys(newNodeName, tdirWithPoolTxns, sigseed, override=True)
 
     newNode = testNodeClass(newNodeName, basedirpath=tdir, config=tconf,
                             ha=(nodeIp, nodePort), cliha=(clientIp, clientPort),

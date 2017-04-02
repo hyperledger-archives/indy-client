@@ -1,36 +1,34 @@
 import ast
+import asyncio
 import datetime
-from collections import OrderedDict
-
 import importlib
 import json
 import os
+from collections import OrderedDict
 from functools import partial
 from hashlib import sha256
 from operator import itemgetter
-from typing import Dict, Any, Tuple, Callable, List, NamedTuple
-
+from typing import Dict, Any, Tuple, Callable, NamedTuple
 import asyncio
 
 import base58
 from libnacl import randombytes
-from plenum.cli.cli import Cli as PlenumCli, Cli
-from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
-from plenum.cli.helper import getClientGrams
-from plenum.cli.phrase_word_completer import PhraseWordCompleter
-from plenum.common.port_dispenser import genHa
-from plenum.common.signer import Signer
-from plenum.common.signer_did import DidSigner
-from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
-from plenum.common.txn_util import createGenesisTxnFile
-from plenum.common.util import randomString, cleanSeed
 from prompt_toolkit.contrib.completers import WordCompleter
 from prompt_toolkit.layout.lexers import SimpleLexer
 from pygments.token import Token
 
 from anoncreds.protocol.globals import KEYS
 from anoncreds.protocol.types import Schema, ID
+from plenum.cli.cli import Cli as PlenumCli, Cli
+from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
+from plenum.cli.helper import getClientGrams
+from plenum.cli.phrase_word_completer import PhraseWordCompleter
+from plenum.common.signer_did import DidSigner
+from plenum.common.signer_simple import SimpleSigner
+from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
+from plenum.common.txn_util import createGenesisTxnFile
+from plenum.common.util import randomString
+from sovrin_client.__metadata__ import __version__
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
@@ -47,8 +45,8 @@ from sovrin_client.cli.helper import getNewClientGrams, \
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.link import Link
-from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.node import Node
+from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.auth import Authoriser
@@ -60,10 +58,15 @@ from sovrin_common.identity import Identity
 from sovrin_common.constants import TARGET_NYM, ROLE, TXN_TYPE, NYM, REF, \
     ACTION, SHA256, TIMEOUT, SCHEDULE, \
     START, JUSTIFICATION, NULL
+
+from stp_core.crypto.signer import Signer
+from stp_core.crypto.util import cleanSeed
+from stp_core.network.port_dispenser import genHa
 from sovrin_common.roles import Roles
 from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.util import ensureReqCompleted, getIndex
 from sovrin_client.__metadata__ import __version__
+
 
 try:
     nodeMod = importlib.import_module('sovrin_node.server.node')
@@ -553,8 +556,8 @@ class SovrinCli(PlenumCli):
             if error:
                 self.print("{}".format(error), Token.BoldOrange)
             else:
-                self.print("Attribute added for nym {}".format(reply[TARGET_NYM]),
-                       Token.BoldBlue)
+                self.print("Attribute added for nym {}".
+                           format(reply[TARGET_NYM]), Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
                                     req.key, self.activeClient, out)

@@ -3,6 +3,7 @@ from plenum.common.log import getlogger
 
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
+from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.agent.base_agent import BaseAgent
@@ -19,12 +20,14 @@ class ThriftAgent(BaseAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None):
 
         portParam, = self.getPassedArgs()
 
         super().__init__('Thrift Bank', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         port=portParam or port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {

@@ -1,16 +1,14 @@
 import json
 import logging
 import re
-import warnings
-from itertools import groupby
 
 import pytest
-from _pytest.recwarn import WarningsRecorder
+from plenum.common.constants import PUBKEY
 
-from anoncreds.protocol.types import SchemaKey, ID, PublicKey
-from plenum.common.eventually import eventually
-from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from anoncreds.protocol.types import SchemaKey, ID
 from sovrin_common.roles import Roles
+from stp_core.loop.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.constants import ENDPOINT
 
@@ -79,17 +77,24 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     faberAgentPort = 5555
     acmeAgentPort = 6666
     thriftAgentPort = 7777
-    faberEndpoint = "{}:{}".format(agentIpAddress, faberAgentPort)
-    acmeEndpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
-    thriftEndpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
 
-    for nym, ep in [
-        ('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
-        ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
-        ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
-        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
+    faberHa = "{}:{}".format(agentIpAddress, faberAgentPort)
+    acmeHa = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    thriftHa = "{}:{}".format(agentIpAddress, thriftAgentPort)
+    faberId = 'FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB'
+    acmeId = '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21'
+    thriftId = '9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW'
+    faberPk = '5hmMA64DDQz5NzGJNVtRzNwpkZxktNQds21q3Wxxa62z'
+    acmePk = 'C5eqjU7NMVMGGfGfx2ubvX5H9X346bQt5qeziVAo3naQ'
+    thriftPk = 'AGBjYvyM3SFnoiDGAEzkSLHvqyzVkXeMZfKDvdpEsC2x'
+    for nym, ha, pk in [(faberId, faberHa, faberPk),
+                    (acmeId, acmeHa, acmePk),
+                    (thriftId, thriftHa, thriftPk)]:
+        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT:
+                                                    {'ha': ha, PUBKEY: pk}})}
         do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
-           within=5, expect=nymAddedOut, mapper=m)
+            within=5,
+            expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 

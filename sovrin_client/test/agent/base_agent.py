@@ -25,16 +25,18 @@ class BaseAgent(TestWalletedAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None,
+                 endpointArgs=None):
 
-        if not basedirpath:
-            config = getConfig()
-            basedirpath = basedirpath or os.path.expanduser(config.baseDir)
+        config = config or getConfig()
+        basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
         portParam, = self.getPassedArgs()
 
         super().__init__(name, basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         portParam or port, loop=loop, config=config,
+                         endpointArgs=endpointArgs)
 
         self.claimVersionNumber = 0.01
 
@@ -59,7 +61,7 @@ class BaseAgent(TestWalletedAgent):
         return self.name.replace(" ","-").lower() + "-schema-version.txt"
 
     def updateClaimVersionFile(self, fileName,):
-        claimVersionFilePath = '{}/{}'.format(self._basedirpath, fileName)
+        claimVersionFilePath = '{}/{}'.format(self.basedirpath, fileName)
         # get version number from file
         if os.path.isfile(claimVersionFilePath):
             try:
@@ -70,18 +72,18 @@ class BaseAgent(TestWalletedAgent):
                     file.write(str(self.claimVersionNumber))
                     file.truncate()
             except OSError as e:
-                self.logger.warn('Error occurred while reading version file: '
+                self.logger.warning('Error occurred while reading version file: '
                                  'error:{}'.format(e))
                 raise e
             except ValueError as e:
-                self.logger.warn('Invalid version number')
+                self.logger.warning('Invalid version number')
                 raise e
         else:
             try:
                 with open(claimVersionFilePath, mode='w') as file:
                     file.write(str(self.claimVersionNumber))
             except OSError as e:
-                self.logger.warn('Error creating version file {}'.format(e))
+                self.logger.warning('Error creating version file {}'.format(e))
                 raise e
 
     def setupLogging(self, filePath):

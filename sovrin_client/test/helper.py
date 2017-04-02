@@ -6,24 +6,22 @@ import pyorient
 
 from config.config import cmod
 from plenum.common.log import getlogger
-from plenum.common.looper import Looper
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
-from plenum.common.types import f, Identifier, HA
+from plenum.common.types import f, HA
+from stp_core.types import Identifier
+
 from plenum.persistence.orientdb_store import OrientDbStore
-from plenum.common.eventually import eventually
-from plenum.test.helper import initDirWithGenesisTxns
+from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
-from plenum.test.cli.helper import newCLI as newPlenumCLI
 
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
-from sovrin_common.constants import Environment
 from sovrin_common.identity import Identity
 
 from sovrin_client.client.client import Client

@@ -3,13 +3,11 @@ import os
 import re
 from _sha256 import sha256
 
-import pytest
+from stp_core.loop.eventually import eventually
+from stp_core.loop.looper import Looper
 
-from plenum.cli.cli import Exit
-from plenum.common.eventually import eventually
-from plenum.common.looper import Looper
 from plenum.common.log import getlogger
-from plenum.common.port_dispenser import genHa
+
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
@@ -21,7 +19,9 @@ from plenum.test.helper import initDirWithGenesisTxns
 from plenum.test.testable import Spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
+from sovrin_client.test.helper import TestClient
 from sovrin_common.constants import Environment
+from stp_core.network.port_dispenser import genHa
 from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
 from sovrin_common.txn_util import getTxnOrderedFields
@@ -35,6 +35,11 @@ logger = getlogger()
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     # new = logging.StreamHandler(sys.stdout)
+    #     # Logger()._setHandler('std', new)
+    #     Logger().enableStdLogging()
 
 
 def sendNym(cli, nym, role):

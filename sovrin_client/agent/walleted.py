@@ -8,6 +8,8 @@ from datetime import datetime
 from typing import Dict, Union, List
 
 from base58 import b58decode
+
+from plenum.common.error import fault
 from plenum.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
@@ -28,7 +30,9 @@ from sovrin_client.agent.agent_verifier import AgentVerifier
 from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FIELD, \
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
+from sovrin_client.agent.endpoint import ZEndpoint
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
+from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
@@ -38,11 +42,13 @@ from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.client.wallet.types import ProofRequest, AvailableClaim
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.exceptions import LinkNotFound, LinkAlreadyExists, \
-    NotConnectedToNetwork, LinkNotReady
+    NotConnectedToNetwork, LinkNotReady, RemoteEndpointNotFound
 from sovrin_common.identity import Identity
 from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
+from plenum.common.constants import PUBKEY
+from stp_core.network.exceptions import RemoteNotFound
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
@@ -147,16 +153,18 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         body, (frm, ha) = msg
         nonce = body.get(NONCE)
         try:
-            return self.linkFromNonce(nonce,
-                                      remoteIdr=body.get(f.IDENTIFIER.nm),
-                                      remoteHa=ha)
+            kwargs = dict(nonce=nonce, remoteIdr=body.get(f.IDENTIFIER.nm), remoteHa=ha)
+            if ha is None:
+                # Incase of ZStack,
+                kwargs.update(remotePubKey=frm)
+            return self.linkFromNonce(**kwargs)
         except NonceNotFound:
             self.logAndSendErrorResp(frm, body,
                                      "Nonce not found",
                                      "Nonce not found for msg: {}".format(msg))
             return None
 
-    def linkFromNonce(self, nonce, remoteIdr, remoteHa):
+    def linkFromNonce(self, nonce, remoteIdr, remoteHa=None, remotePubKey=None):
         internalId = self.getInternalIdByInvitedNonce(nonce)
         linkName = self.getLinkNameByInternalId(internalId)
         link = self.wallet.getLinkByInternalId(internalId)
@@ -169,7 +177,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                         invitationNonce=nonce,
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
-                        internalId=internalId)
+                        internalId=internalId,
+                        remotePubKey=remotePubKey)
             self.wallet.addLink(link)
         else:
             link.remoteIdentifier = remoteIdr
@@ -188,19 +197,28 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     linkName=None, origReqId=None):
         if linkName:
             assert not (signingIdr or toRaetStackName)
-            self.connectTo(linkName)
             link = self.wallet.getLink(linkName, required=True)
-            ha = link.getRemoteEndpoint(required=True)
-
-            # TODO ensure status is appropriate with code like the following
-            # if link.linkStatus != constant.LINK_STATUS_ACCEPTED:
-            # raise LinkNotReady('link status is {}'.format(link.linkStatus))
-
             if not link.localIdentifier:
                 raise LinkNotReady('link is not yet established, '
                                    'send/accept invitation first')
             signingIdr = link.localIdentifier
-            params = dict(ha=ha)
+
+            try:
+                self.connectTo(link=link)
+                ha = link.getRemoteEndpoint(required=True)
+                params = dict(ha=ha)
+            except RemoteEndpointNotFound as ex:
+                logger.debug('ZStack remote found')
+                if not (isinstance(self.endpoint, ZEndpoint) and
+                            self.endpoint.hasRemote(link.remotePubKey.encode() if
+                            isinstance(link.remotePubKey, str) else
+                                                    link.remotePubKey)):
+                    fault(ex, "Do not know {} {}".format(link.remotePubKey, ha))
+                    return
+            # TODO ensure status is appropriate with code like the following
+            # if link.linkStatus != constant.LINK_STATUS_ACCEPTED:
+            # raise LinkNotReady('link status is {}'.format(link.linkStatus))
+                params = dict(name=link.remotePubKey)
         else:
             params = dict(name=toRaetStackName)
         # origReqId needs to be supplied when you want to respond to request
@@ -272,6 +290,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def handleEndpointMessage(self, msg):
         body, frm = msg
         logger.debug("Message received (from -> {}): {}".format(frm, body))
+        if isinstance(frm, bytes):
+            frm = frm.decode()
         for reqFieldName in (TYPE, f.REQ_ID.nm):
             reqFieldValue = body.get(reqFieldName)
             if not reqFieldValue:
@@ -279,7 +299,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     reqFieldName, body)
                 self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
                                           errorMsg, self.wallet.defaultId, frm)
-                logger.warn("{}".format(errorMsg))
+                logger.warning("{}".format(errorMsg))
                 return
 
         typ = body.get(TYPE)
@@ -326,7 +346,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         handler = self.msgHandlers.get(typ)
         if handler:
             # TODO we should verify signature here
-            frmHa = self.endpoint.getRemote(frm).ha
+            frmHa = self.endpoint.getHa(frm)
+            # `frmHa` can be None
             res = handler((body, (frm, frmHa)))
             if inspect.isawaitable(res):
                 self.loop.call_soon(asyncio.ensure_future, res)
@@ -340,14 +361,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                "msg: {}".format(body[DATA], body[REQ_MSG]))
 
     def _handlePing(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.wallet.getLinkByNonce(body.get(NONCE))
         if link:
             self.signAndSend({TYPE: 'pong'}, self.wallet.defaultId, frm,
                              origReqId=body.get(f.REQ_ID.nm))
 
     def _handlePong(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         identifier = body.get(IDENTIFIER)
         if identifier:
             li = self._getLinkByTarget(getCryptonym(identifier))
@@ -532,7 +553,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self.signAndSend(resp, signingIdr, to, origReqId=origReqId)
 
     def _handleAcceptance(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         # TODO this is really kludgy code... needs refactoring
         # exception handling, separation of concerns, etc.
@@ -621,10 +642,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self.notifyMsgListener("    Ping sent.")
         return reqId
 
-    def connectTo(self, linkName):
-        link = self.wallet.getLink(linkName, required=True)
+    def connectTo(self, linkName=None, link=None):
+        assert linkName or link
+        if link is None:
+            link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
-        self.connectToHa(ha)
+        self.connectToHa(ha, link.targetVerkey, link.remotePubKey)
 
     def loadInvitation(self, invitationData):
         linkInvitation = invitationData["link-invitation"]
@@ -640,7 +663,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             for cr in proofRequestsJson:
                 proofRequests.append(
                     ProofRequest(cr[NAME], cr[VERSION], cr[ATTRIBUTES],
-                                      cr[VERIFIABLE_ATTRIBUTES]))
+                                 cr[VERIFIABLE_ATTRIBUTES]))
 
         self.notifyMsgListener("1 link invitation found for {}.".
                                format(linkInvitationName))
@@ -717,9 +740,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def acceptInvitation(self, link: Union[str, Link]):
         if isinstance(link, str):
             link = self.wallet.getLink(link, required=True)
-        elif isinstance(link, Link):
-            pass
-        else:
+        if not isinstance(link, Link):
             raise TypeError("Type of link must be either string or Link but "
                             "provided {}".format(type(link)))
         # TODO should move to wallet in a method like accept(link)
@@ -740,6 +761,22 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                          .format(link.invitationNonce, link.localIdentifier))
         self.signAndSend(msg, None, None, link.name)
 
+    # def _handleSyncNymResp(self, link, additionalCallback):
+    #     def _(reply, err):
+    #         if err:
+    #             raise RuntimeError(err)
+    #         reqId = self._updateLinkWithLatestInfo(link, reply)
+    #         if reqId:
+    #             self.loop.call_later(.2,
+    #                                  self.executeWhenResponseRcvd,
+    #                                  time.time(), 8000,
+    #                                  self.loop, reqId, PONG, True,
+    #                                  additionalCallback, reply, err)
+    #         else:
+    #             additionalCallback(reply, err)
+    #
+    #     return _
+
     def _handleSyncResp(self, link, additionalCallback):
         def _(reply, err):
             if err:
@@ -757,11 +794,22 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return _
 
     def _updateLinkWithLatestInfo(self, link: Link, reply):
-
+        link.targetVerkey = DidVerifier(reply[VERKEY],
+                                        identifier=link.remoteIdentifier).verkey
         if DATA in reply and reply[DATA]:
             data = json.loads(reply[DATA])
-            ip, port = data.get(ENDPOINT).split(":")
-            link.remoteEndPoint = (ip, int(port))
+            ep = data.get(ENDPOINT)
+            if ep:
+                # TODO: Validate its an IP port pair or a malicious entity
+                # can crash the code
+                if 'ha' in ep:
+                    ip, port = ep['ha'].split(":")
+                    link.remoteEndPoint = (ip, int(port))
+                if PUBKEY in ep:
+                    link.remotePubKey = ep[PUBKEY]
+                else:
+                    link.remotePubKey = friendlyVerkeyToPubkey(
+                        link.targetVerkey) if link.targetVerkey else None
 
         link.linkLastSynced = datetime.now()
         self.notifyMsgListener("    Link {} synced".format(link.name))
@@ -782,6 +830,19 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise NotConnectedToNetwork
         link = self.wallet.getLink(linkName, required=True)
         nym = getCryptonym(link.remoteIdentifier)
+        # identity = Identity(identifier=nym)
+        # req = self.wallet.requestIdentity(identity,
+        #                                   sender=self.wallet.defaultId)
+        # self.client.submitReqs(req)
+        #
+        # if doneCallback:
+        #     self.loop.call_later(.2,
+        #                          ensureReqCompleted,
+        #                          self.loop,
+        #                          req.key,
+        #                          self.client,
+        #                          self._handleSyncNymResp(link, doneCallback))
+
         attrib = Attribute(name=ENDPOINT,
                            value=None,
                            dest=nym,

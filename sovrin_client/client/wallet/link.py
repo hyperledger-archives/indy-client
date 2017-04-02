@@ -3,6 +3,7 @@ from typing import List
 from plenum.common.constants import NAME, NONCE
 from plenum.common.types import f
 from plenum.common.util import prettyDateDifference
+from plenum.common.verifier import DidVerifier
 from sovrin_client.client.wallet.types import AvailableClaim
 
 from sovrin_common.exceptions import InvalidLinkException, \
@@ -48,6 +49,7 @@ class Link:
                  trustAnchor=None,
                  remoteIdentifier=None,
                  remoteEndPoint=None,
+                 remotePubKey=None,
                  invitationNonce=None,
                  proofRequests=None,
                  internalId=None):
@@ -57,6 +59,7 @@ class Link:
         self.trustAnchor = trustAnchor
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
+        self.remotePubKey = remotePubKey
         self.invitationNonce = invitationNonce
 
         # for optionally storing a reference to an identifier in another system
@@ -186,6 +189,18 @@ class Link:
 
         if isinstance(self.remoteEndPoint, tuple):
             return self.remoteEndPoint
-        else:
+        elif isinstance(self.remoteEndPoint, str):
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
+        else:
+            raise ValueError('Cannot convert endpoint {} to HA'.
+                             format(self.remoteEndPoint))
+
+    @property
+    def remoteVerkey(self):
+        # This property should be used to fetch verkey compared to
+        # targetVerkey, its a more consistent name and takes care of
+        # abbreviated verkey
+        v = DidVerifier(verkey=self.targetVerkey,
+                        identifier=self.remoteIdentifier)
+        return v.verkey

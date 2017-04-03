@@ -5,7 +5,7 @@ from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from anoncreds.protocol.types import Schema, ID
 from anoncreds.protocol.wallet.issuer_wallet import IssuerWalletInMemory
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from sovrin_client.anon_creds.sovrin_public_repo import SovrinPublicRepo
 from sovrin_client.test.anon_creds.conftest import GVT

@@ -1,5 +1,5 @@
 from anoncreds.protocol.types import AttribDef, AttribType
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG

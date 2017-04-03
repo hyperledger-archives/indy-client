@@ -10,7 +10,7 @@ from typing import Dict, Union, List
 from base58 import b58decode
 
 from plenum.common.error import fault
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
 from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \

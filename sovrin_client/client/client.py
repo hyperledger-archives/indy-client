@@ -10,7 +10,7 @@ from raet.raeting import AutoMode
 
 from plenum.client.client import Client as PlenumClient
 from plenum.common.error import fault
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.startable import Status
 
 from plenum.common.constants import REPLY, NAME, VERSION, REQACK, REQNACK, \

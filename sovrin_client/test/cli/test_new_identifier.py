@@ -35,9 +35,24 @@ def getTotalIds(cli):
 def testNewIdWithIncorrectSeed(be, do, aliceCLI):
     totalIds = getTotalIds(aliceCLI)
     be(aliceCLI)
+    # Seed not of length 32 or 64
     do("new identifier with seed aaaaaaaaaaa",
-       expect=["Seed needs to be 32 characters long"])
-    checkWalletState(aliceCLI, totalIds=totalIds+0, isAbbr=False, isCrypto=False)
+       expect=["Seed needs to be 32 or 64 characters (if hex) long"])
+    checkWalletState(aliceCLI, totalIds=totalIds, isAbbr=False, isCrypto=False)
+
+    # Seed of length 64 but not hex
+    do("new identifier with seed "
+       "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+       expect=["Seed needs to be 32 or 64 characters (if hex) long"])
+    checkWalletState(aliceCLI, totalIds=totalIds, isAbbr=False,
+                     isCrypto=False)
+
+    # Seed of length 64 and hex
+    do("new identifier with seed "
+       "2af3d062450c942be50ee766ce2571a6c75c0aca0de322293e7e9f116959c9c3",
+       expect=["Current identifier set to"])
+    checkWalletState(aliceCLI, totalIds=totalIds+1, isAbbr=False,
+                     isCrypto=False)
 
 
 def testNewIdIsNotInvalidCommand(be, do, aliceCLI):

@@ -58,7 +58,7 @@ class ThriftAgent(BaseAgent):
     def getLinkNameByInternalId(self, internalId):
         return self._attrs[internalId]._vals["first_name"]
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
             self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
                                       "    Loan eligibility criteria satisfied,"

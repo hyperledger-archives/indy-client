@@ -127,7 +127,7 @@ class BaseAgent(TestWalletedAgent):
     def getAttrs(self):
         raise NotImplemented
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         pass
 
     async def initAvailableClaimList(self):

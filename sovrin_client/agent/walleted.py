@@ -76,6 +76,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if self.client:
             self.syncClient()
         self.rcvdMsgStore = {}  # type: Dict[reqId, [reqMsg]]
+
+        self._proofRequestsSchema = {}  # Dict[str, Dict[str, any]]
+
         self.msgHandlers = {
             ERROR: self._handleError,
             EVENT: self._eventHandler,
@@ -121,15 +124,15 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return ACCEPT_INVITE, CLAIM_REQUEST, PROOF, \
                CLAIM, AVAIL_CLAIM_LIST, EVENT, PONG, REQ_AVAIL_CLAIMS
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         raise NotImplementedError
 
     def isClaimAvailable(self, link, claimName):
         raise NotImplementedError
 
-    async def _postClaimVerif(self, claimName, link, frm):
+    async def _postProofVerif(self, claimName, link, frm):
         link.verifiedClaimProofs.append(claimName)
-        await self.postClaimVerif(claimName, link, frm)
+        await self.postProofVerif(claimName, link, frm)
 
     def getAvailableClaimList(self, link):
         raise NotImplementedError

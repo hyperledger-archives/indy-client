@@ -693,14 +693,18 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
     return mapping
 
 
-def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
+def showProofReq(do, expectMsgs, mapper):
+    do("show proof request {proof-request-to-show}",
+       expect=expectMsgs,
+       mapper=mapper,
+       within=3)
+
+
+def testShowJobApplicationProofReqAfterSetAttr(be, do, aliceCli,
                                                showJobAppProofRequestOut,
                                                aliceSelfAttestsAttributes):
     be(aliceCli)
-    do("show proof request {proof-request-to-show}",
-       expect=showJobAppProofRequestOut,
-       mapper=aliceSelfAttestsAttributes,
-       within=3)
+    showProofReq(do, showJobAppProofRequestOut, aliceSelfAttestsAttributes)
 
 
 # def testInvalidSigErrorResponse(be, do, aliceCli, faberMap,

@@ -111,7 +111,7 @@ class AcmeAgent(BaseAgent):
     def getSchemaKeysForClaimsAvailableToAll(self):
         return []
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
         oldClaims = self.availableClaimsByIdentifier.get(link.remoteIdentifier)
         if not oldClaims:

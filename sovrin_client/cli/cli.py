@@ -1155,7 +1155,8 @@ class SovrinCli(PlenumCli):
                 self._printNoClaimFoundMsg()
             return True
 
-    def _createNewIdentifier(self, isAbbr, isCrypto, identifier, seed, alias=None):
+    def _createNewIdentifier(self, isAbbr, isCrypto, identifier, seed,
+                             alias=None):
         if not self.isValidSeedForNewKey(seed):
             return True
 

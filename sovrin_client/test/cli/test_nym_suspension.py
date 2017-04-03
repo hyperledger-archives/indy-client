@@ -1,3 +1,4 @@
+from binascii import hexlify
 from copy import copy
 
 import pytest
@@ -62,16 +63,38 @@ def trustAnchorAdded(be, do, trusteeCli, nymAddedOut):
     return v
 
 
-# @pytest.yield_fixture(scope="module")
-# def trustAnchorCLI(CliBuilder):
-#     yield from CliBuilder("TrustAnchor")
-#
-#
-# @pytest.fixture(scope="module")
-# def trustAnchorCli(trustAnchorCLI, be, do, connectedToTest):
-#     be(trustAnchorCLI)
-#     do('connect test', within=3, expect=connectedToTest)
-#     return trustAnchorCLI
+@pytest.yield_fixture(scope="module")
+def trustAnchorCLI(CliBuilder):
+    yield from CliBuilder("TrustAnchor")
+
+
+@pytest.fixture(scope="module")
+def trustAnchorCli(trustAnchorCLI, be, do, connectedToTest, trustAnchorAdded):
+    be(trustAnchorCLI)
+    do('new keyring TS', expect=['New keyring TS created',
+                                   'Active keyring set to "TS"'])
+    seed = hexlify(vals['newTrustAnchorIdr'][1]).decode()
+    do('new key with seed {seed}', expect=['Key created in keyring TS'],
+       mapper={'seed': seed})
+    do('connect test', within=3, expect=connectedToTest)
+    return trustAnchorCLI
+
+
+@pytest.yield_fixture(scope="module")
+def anotherTrusteeCLI(CliBuilder):
+    yield from CliBuilder("NewTrustee")
+
+
+@pytest.fixture(scope="module")
+def anotherTrusteeCli(anotherTrusteeCLI, be, do, connectedToTest, anotherTrusteeAdded):
+    be(anotherTrusteeCLI)
+    do('new keyring TS1', expect=['New keyring TS1 created',
+                                   'Active keyring set to "TS1"'])
+    seed = hexlify(vals['newTrusteeIdr'][1]).decode()
+    do('new key with seed {seed}', expect=['Key created in keyring TS1'],
+       mapper={'seed': seed})
+    do('connect test', within=3, expect=connectedToTest)
+    return anotherTrusteeCLI
 
 
 def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded,
@@ -80,11 +103,25 @@ def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded,
     do('send NYM dest={target} role=',
        within=5,
        expect=nymAddedOut, mapper=trustAnchorAdded)
-    # s = SimpleSigner().identifier
-    # be(trustAnchorCli)
-    # do('send NYM dest={target}',
-    #    within=5,
-    #    expect=nymAddedOut, mapper={'target': s})
+    s = SimpleSigner().identifier
+    be(trustAnchorCli)
+    errorMsg = 'UnauthorizedClientRequest'
+    do('send NYM dest={target}',
+       within=5,
+       expect=[errorMsg], mapper={'target': s})
+
+
+def testTrusteeSuspendingTrustee(be, do, trusteeCli, anotherTrusteeAdded,
+                                 nymAddedOut, anotherTrusteeCli, stewardAdded):
+    be(trusteeCli)
+    do('send NYM dest={target} role=',
+       within=5,
+       expect=nymAddedOut, mapper=anotherTrusteeAdded)
+    be(anotherTrusteeCli)
+    errorMsg = 'InvalidClientRequest'
+    do('send NYM dest={target} role=',
+       within=5,
+       expect=[errorMsg], mapper=stewardAdded)
 
 
 def testTrusteeSuspendingSteward(be, do, trusteeCli, stewardAdded, nymAddedOut):
@@ -100,10 +137,3 @@ def testTrusteeSuspendingTGB(be, do, trusteeCli, tbgAdded, nymAddedOut):
        within=5,
        expect=nymAddedOut, mapper=tbgAdded)
 
-
-def testTrusteeSuspendingTrustee(be, do, trusteeCli, anotherTrusteeAdded,
-                                 nymAddedOut):
-    be(trusteeCli)
-    do('send NYM dest={target} role=',
-       within=5,
-       expect=nymAddedOut, mapper=anotherTrusteeAdded)

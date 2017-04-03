@@ -115,9 +115,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
 
     for agentCls, agentName, agentPort, buildAgentWalletFunc in \
             agentParams:
-        agentCls.getPassedArgs = lambda _: (agentPort,)
+        agentCls.getPassedArgs = lambda _: (agentPort, False)
         TestWalletedAgent.createAndRunAgent(
-            agentCls, agentName, buildAgentWalletFunc(), tdir, agentPort,
+            agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
             philCLI.looper, TestClient)
 
     for p in philCLI.looper.prodables:
@@ -158,7 +158,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                        reqClaimOut1, syncLinkOutWithEndpoint,
                        syncedInviteAcceptedOutWithoutClaims, tMap,
                        transcriptClaimMap):
-
+        pass
         async def getPublicKey(wallet, schemaId):
             return await wallet.getPublicKey(schemaId)
 

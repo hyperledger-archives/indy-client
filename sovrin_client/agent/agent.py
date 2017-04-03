@@ -1,10 +1,14 @@
 import asyncio
 import os
+
 from typing import Dict
 from typing import Tuple
 
+import errno
+
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from plenum.common.error import fault
+from plenum.common.signer_simple import SimpleSigner
 from stp_core.network.exceptions import RemoteNotFound
 from plenum.common.exceptions import NoConsensusYet
 from plenum.common.log import getlogger
@@ -12,6 +16,8 @@ from stp_core.loop.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.startable import Status
 from plenum.common.types import HA
+from plenum.common.util import saveGivenWallet, normalizedWalletFileName, getLastSavedWalletFileName, \
+    getWalletByPath
 from stp_core.types import Identifier
 from stp_core.network.util import checkPortAvailable
 from sovrin_client.agent.agent_net import AgentNet
@@ -218,12 +224,29 @@ class WalletedAgent(Walleted, Agent, Caching):
                  config=None,
                  endpointArgs=None):
 
-        self._wallet = wallet or Wallet(name)
         Agent.__init__(self, name, basedirpath, client, port, loop=loop,
                        config=config, endpointArgs=endpointArgs)
 
+        self.config = getConfig(basedirpath)
+
+        self._wallet = None
+
+        # restore any active wallet belonging to this agent
+        self._restoreLastActiveWallet()
+
+        # if no persisted wallet is restored and a wallet is passed,
+        # then use given wallet, else ignore the given wallet
+        if not self.wallet and wallet:
+            self.wallet = wallet
+
+        # if wallet is not yet set, then create a wallet
+        if not self.wallet:
+            self.wallet = Wallet(name)
+
         self._attrRepo = attrRepo or AttributeRepoInMemory()
+
         Walleted.__init__(self)
+
         if self.client:
             self._initIssuerProverVerifier()
 
@@ -233,11 +256,76 @@ class WalletedAgent(Walleted, Agent, Caching):
         self.prover = SovrinProver(client=self.client, wallet=self._wallet)
         self.verifier = SovrinVerifier(client=self.client, wallet=self._wallet)
 
+    @property
+    def wallet(self):
+        return self._wallet
+
+    @wallet.setter
+    def wallet(self, newWallet):
+        self._wallet = newWallet
+
     @Agent.client.setter
     def client(self, client):
         Agent.client.fset(self, client)
         if self.client:
             self._initIssuerProverVerifier()
+
+    def getContextDir(self):
+        # TODO: Will we need any environment context for agent's walletS?
+        return os.path.expanduser(os.path.join(
+            self.config.baseDir, self.config.keyringsDir, "agents",
+            self.name.lower().replace(" ", "-")))
+
+    def start(self, loop):
+        super().start(loop)
+
+    def _saveAllWallets(self):
+        self._saveActiveWallet()
+        # TODO: There are some other wallets in issuer, prover and verifier,
+        # which also should be persisted.
+
+    def stop(self, *args, **kwargs):
+        self._saveAllWallets()
+        super().stop(*args, **kwargs)
+
+    def _saveActiveWallet(self):
+        self._saveWallet(self._wallet, self.getContextDir())
+
+    def _saveWallet(self, wallet: Wallet, contextDir, walletName=None):
+        try:
+            fileName = normalizedWalletFileName(walletName or wallet.name)
+            walletFilePath = saveGivenWallet(wallet, fileName, contextDir)
+            self.logger.info('Active keyring "{}" saved ({})'.
+                             format(self._wallet.name, walletFilePath))
+        except IOError as ex:
+            self.logger.info("Error occurred while saving wallet. " +
+                             "error no.{}, error.{}"
+                             .format(ex.errno, ex.strerror))
+
+    def _restoreLastActiveWallet(self):
+        walletFilePath = None
+        try:
+            contextDir = self.getContextDir()
+            walletFileName = getLastSavedWalletFileName(contextDir)
+            walletFilePath = os.path.join(contextDir, walletFileName)
+            wallet = getWalletByPath(walletFilePath)
+            # TODO: What about current wallet if any?
+            self.wallet = wallet
+            self.logger.info('Saved keyring "{}" restored ({})'.
+                             format(self.wallet.name, walletFilePath))
+        except ValueError as e:
+            if not str(e) == "max() arg is an empty sequence":
+                self.logger.info("No wallet to restore")
+        except (ValueError, AttributeError) as e:
+            self.logger.info(
+                "error occurred while restoring wallet {}: {}".
+                    format(walletFilePath, e))
+        except IOError as exc:
+            if exc.errno == errno.ENOENT:
+                self.logger.debug("no such keyring file exists ({})".
+                              format(walletFilePath))
+            else:
+                raise exc
 
 
 def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
@@ -246,6 +334,8 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
 
     if not wallet:
         wallet = Wallet(name)
+        wallet.addIdentifier(signer=SimpleSigner(
+            seed=randomString(32).encode('utf-8')))
     if not basedirpath:
         basedirpath = config.baseDir
     if not port:

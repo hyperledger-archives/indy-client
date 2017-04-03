@@ -300,3 +300,21 @@ def wallet_state(totalLinks=0,
                  totalSchemas=0,
                  totalClaimsRcvd=0):
     return locals()
+
+
+def getAgentCliHelpString():
+    return """Sovrin-CLI, a simple command-line interface for a Sovrin Identity platform.
+   Commands:
+       help - Shows this or specific help message for given command
+         Usage:
+            help [<command name>]
+       prompt - Changes the prompt to given principal (a person like Alice, an organization like Faber College, or an IoT-style thing)
+       list keyrings - Lists all keyrings
+       list ids - Lists all identifiers of active keyring
+       show - Shows content of given file
+       show link - Shows link info in case of one matching link, otherwise shows all the matching link names
+       ping - Pings given target's endpoint
+       list links - List available links in active wallet
+       send proofreq - Send a proof request
+       license - Shows the license
+       exit - Exit the command-line interface ('quit' also works)"""

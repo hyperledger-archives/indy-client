@@ -1,25 +1,26 @@
 import ast
-import asyncio
 import datetime
+from collections import OrderedDict
+
 import importlib
 import json
 import os
-from collections import OrderedDict
 from functools import partial
 from hashlib import sha256
 from operator import itemgetter
 from typing import Dict, Any, Tuple, Callable, NamedTuple
+
 import asyncio
 
 import base58
 from libnacl import randombytes
+from plenum.cli.cli import Cli as PlenumCli
 from prompt_toolkit.contrib.completers import WordCompleter
 from prompt_toolkit.layout.lexers import SimpleLexer
 from pygments.token import Token
 
 from anoncreds.protocol.globals import KEYS
 from anoncreds.protocol.types import Schema, ID
-from plenum.cli.cli import Cli as PlenumCli, Cli
 from plenum.cli.constants import PROMPT_ENV_SEPARATOR, NO_ENV
 from plenum.cli.helper import getClientGrams
 from plenum.cli.phrase_word_completer import PhraseWordCompleter
@@ -27,8 +28,7 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
-from plenum.common.util import randomString
-from sovrin_client.__metadata__ import __version__
+from plenum.common.util import randomString, getWalletFilePath
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
@@ -237,7 +237,7 @@ class SovrinCli(PlenumCli):
     def activeWallet(self, wallet):
         PlenumCli.activeWallet.fset(self, wallet)
         if self._agent:
-            self._agent._wallet = self._activeWallet
+            self._agent.wallet = self._activeWallet
 
     @staticmethod
     def _getSetAttrUsage():
@@ -1404,9 +1404,11 @@ class SovrinCli(PlenumCli):
     def _listLinks(self, matchedVars):
         if matchedVars.get('list_links') == listLinksCmd.id:
             links = self.activeWallet.getLinkNames()
-            for link in links:
-                self.print(link)
-
+            if len(links) == 0:
+                self.print("No links exists")
+            else:
+                for link in links:
+                    self.print(link + "\n")
             return True
 
     def _printAvailClaims(self, link):
@@ -1478,7 +1480,7 @@ class SovrinCli(PlenumCli):
                 currentWalletName = self._activeWallet.name
                 self._activeWallet.env = newEnv
                 randomSuffix = ''
-                sourceWalletFilePath = Cli.getWalletFilePath(
+                sourceWalletFilePath = getWalletFilePath(
                     self.getContextBasedKeyringsBaseDir(), self.walletFileName)
                 targetContextDir = os.path.join(self.getKeyringsBaseDir(),
                                                 newEnv)
@@ -1494,7 +1496,7 @@ class SovrinCli(PlenumCli):
                     self._saveActiveWalletInDir(contextDir=targetContextDir,
                                                 printMsgs=False)
                     os.remove(sourceWalletFilePath)
-                targetWalletFilePath = Cli.getWalletFilePath(
+                targetWalletFilePath = getWalletFilePath(
                     targetContextDir, self.walletFileName)
 
                 self.print("Current active keyring got moved to '{}' "

@@ -26,13 +26,9 @@ class FaberAgent(BaseAgent):
                  loop=None,
                  config=None):
 
-        portParam, = self.getPassedArgs()
-
         super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop, config=config,
+                         port=port, loop=loop, config=config,
                          endpointArgs=self.getEndpointArgs(wallet))
-
-        self.availableClaims = []
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -77,51 +73,6 @@ class FaberAgent(BaseAgent):
                 status="graduated")
         }
 
-        self._schema = SchemaKey("Transcript", "1.2", self.wallet.defaultId)
-
-    # def getInternalIdByInvitedNonce(self, nonce):
-    #     if nonce in self._invites:
-    #         return self._invites[nonce]
-    #     else:
-    #         raise NonceNotFound
-    #
-    # def isClaimAvailable(self, link, claimName):
-    #     return claimName == "Transcript"
-    #
-    # def getAvailableClaimList(self, requesterId):
-    #     return self.availableClaims + \
-    #            self.requesterAvailClaims.get(requesterId, [])
-    #
-    # async def postClaimVerif(self, claimName, link, frm):
-    #     pass
-    #
-    # async def initAvailableClaimList(self):
-    #     schema = await self.issuer.wallet.getSchema(ID(self._schema))
-    #     self.availableClaims.append({
-    #         NAME: schema.name,
-    #         VERSION: schema.version,
-    #         "schemaSeqNo": schema.seqId
-    #     })
-    #
-    # def _addAttribute(self, schemaKey, proverId, link):
-    #     attr = self._attrs[self.getInternalIdByInvitedNonce(proverId)]
-    #     self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
-    #                                         userId=proverId,
-    #                                         attributes=attr)
-    #
-    # async def addSchemasToWallet(self):
-    #     schema = await self.issuer.genSchema(self._schema.name,
-    #                                          self._schema.version,
-    #                                          self._attrDef.attribNames(),
-    #                                          'CL')
-    #     if schema:
-    #         schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
-    #         p_prime, q_prime = primes["prime2"]
-    #         await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
-    #         await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
-    #         await self.initAvailableClaimList()
-    #     return schema
-
     def getAttrDefs(self):
         return [self._attrDef]
 
@@ -142,6 +93,8 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
+    port=5555
     TestWalletedAgent.createAndRunAgent(
-        FaberAgent, "Faber College", wallet=buildFaberWallet(),
-        basedirpath=None, port=5555, looper=None, clientClass=TestClient)
+        "Faber College", agentClass=FaberAgent, wallet=buildFaberWallet(),
+        basedirpath=None, port=port, looper=None, clientClass=TestClient,
+        cliAgentCreator=lambda: createFaber(port=port))

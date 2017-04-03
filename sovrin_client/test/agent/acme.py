@@ -22,10 +22,8 @@ class AcmeAgent(BaseAgent):
                  loop=None,
                  config=None):
 
-        portParam, = self.getPassedArgs()
-
         super().__init__('Acme Corp', basedirpath, client, wallet,
-                         port=portParam or port, loop=loop, config=config,
+                         port=port, loop=loop, config=config,
                          endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
@@ -140,12 +138,14 @@ class AcmeAgent(BaseAgent):
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):
-    return createAgent(AcmeAgent, name or "Acme Corp",
-                       wallet or buildAcmeWallet(),
-                       basedirpath, port, clientClass=TestClient)
+    return createAgent(AcmeAgent, name=name or "Acme Corp",
+                       wallet=wallet or buildAcmeWallet(),
+                       basedirpath=basedirpath, port=port, clientClass=TestClient)
 
 
 if __name__ == "__main__":
+    port=6666
     TestWalletedAgent.createAndRunAgent(
-        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
-        port=6666, looper=None, clientClass=TestClient)
+        name="Acme Corp",  agentClass=AcmeAgent, wallet=buildAcmeWallet(),
+        basedirpath=None, port=port, looper=None, clientClass=TestClient,
+        cliAgentCreator=lambda: createAcme(port=port))

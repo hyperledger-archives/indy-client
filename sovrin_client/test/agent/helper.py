@@ -47,11 +47,16 @@ def getAgentCmdLineParams():
         parser.add_argument('--port', required=False,
                             help='port where agent will listen')
 
+        parser.add_argument('--withcli',
+                            help='if given, agent will start in cli mode',
+                            action='store_true')
+
         args = parser.parse_args()
         port = int(args.port) if args.port else None
-        return port,
+        with_cli = args.withcli
+        return port, with_cli
     else:
-        return None,
+        return None, False
 
     
 def buildAgentWallet(name, seed):
@@ -75,7 +80,7 @@ def buildThriftWallet():
 def bootstrapAgentCli(name, agentCreator, looper, bootstrap):
     curDir = os.getcwd()
     logFilePath = os.path.join(curDir, config.logFilePath)
-    cli = AgentCli(name='{}-Agent'.format(name),
+    cli = AgentCli(name='{}-Agent'.format(name).lower().replace(" ", "-"),
                    agentCreator=agentCreator,
                    looper=looper,
                    basedirpath=config.baseDir,

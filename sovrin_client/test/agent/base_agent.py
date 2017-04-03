@@ -32,7 +32,9 @@ class BaseAgent(TestWalletedAgent):
         config = config or getConfig()
         basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
-        portParam, = self.getPassedArgs()
+        portParam, _ = self.getPassedArgs()
+
+        self.logger = getlogger()
 
         super().__init__(name, basedirpath, client, wallet,
                          portParam or port, loop=loop, config=config,
@@ -40,9 +42,7 @@ class BaseAgent(TestWalletedAgent):
 
         self.claimVersionNumber = 0.01
 
-        self.logger = getlogger()
-
-        # available claims to anyone whos connection is accepted by the agent
+        # available claims to anyone whose connection is accepted by the agent
         self.availableClaimsToAll = []
 
         # available claims only for certain invitation (by nonce)

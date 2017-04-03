@@ -11,7 +11,7 @@ from plenum.common.error import fault
 from plenum.common.signer_simple import SimpleSigner
 from stp_core.network.exceptions import RemoteNotFound
 from plenum.common.exceptions import NoConsensusYet
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from stp_core.loop.looper import Looper
 from plenum.common.motor import Motor
 from plenum.common.startable import Status

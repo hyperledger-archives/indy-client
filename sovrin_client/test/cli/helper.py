@@ -6,7 +6,7 @@ from _sha256 import sha256
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \

@@ -5,7 +5,7 @@ from typing import Union, Tuple
 import pyorient
 
 from config.config import cmod
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME

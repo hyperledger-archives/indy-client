@@ -1,4 +1,4 @@
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.constants import NAME, VERSION
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, ID

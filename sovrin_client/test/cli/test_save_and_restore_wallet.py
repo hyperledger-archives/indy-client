@@ -3,6 +3,7 @@ from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
+from plenum.cli.constants import NO_ENV
 from plenum.common.util import createDirIfNotExists
 from plenum.test.cli.helper import checkWalletFilePersisted, checkWalletRestored, \
     createAndAssertNewCreation, createAndAssertNewKeyringCreation, \
@@ -163,15 +164,14 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
     restartCliWithCorruptedWalletFile(earlMultiNodePools, be, do, filePath)
 
 
-@pytest.mark.skip(reason='SOV-174')
 def testRestoreWalletFile(aliceCLI):
     import shutil
     fileName = "tmp_wallet_restore_issue"
     curPath = os.path.dirname(os.path.realpath(__file__))
     walletFilePath = os.path.join(curPath, fileName)
-    keyringsDir = aliceCLI.getKeyringsBaseDir()
-    createDirIfNotExists(keyringsDir)
-    shutil.copy2(walletFilePath, keyringsDir)
-    targetWalletFilePath = os.path.join(keyringsDir, fileName)
-    wallet = aliceCLI.restoreWalletByPath(targetWalletFilePath)
-    assert wallet is not None and isinstance(wallet, Wallet)
+    noEnvKeyringsDir = os.path.join(aliceCLI.getKeyringsBaseDir(), NO_ENV)
+    createDirIfNotExists(noEnvKeyringsDir)
+    shutil.copy2(walletFilePath, noEnvKeyringsDir)
+    targetWalletFilePath = os.path.join(noEnvKeyringsDir, fileName)
+    restored = aliceCLI.restoreWalletByPath(targetWalletFilePath)
+    assert restored and isinstance(aliceCLI.activeWallet, Wallet)

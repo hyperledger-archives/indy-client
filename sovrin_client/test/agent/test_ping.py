@@ -1,4 +1,4 @@
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.testable import spy, SpyLog
 
 from sovrin_client.agent.constants import PING, PONG

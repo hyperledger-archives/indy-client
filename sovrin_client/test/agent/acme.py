@@ -34,11 +34,16 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=No
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)
 
+    endpoint_args = {'onlyListener': True}
+    if wallet:
+        endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
+
     agent = AcmeAgent(name=name or "Acme Corp",
                       basedirpath=base_dir_path,
                       client=client,
                       wallet=wallet or buildAcmeWallet(),
-                      port=port)
+                      port=port,
+                      endpointArgs=endpoint_args)
 
     # maps invitation nonces to internal ids
     agent._invites = {

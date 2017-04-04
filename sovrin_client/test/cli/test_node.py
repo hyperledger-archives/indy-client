@@ -1,12 +1,15 @@
 from copy import copy
 
 import pytest
-from plenum.common.eventually import eventually
-from plenum.common.port_dispenser import genHa
+
+from stp_core.crypto.util import randomSeed
+from stp_core.loop.eventually import eventually
+
+from stp_core.network.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, \
     ALIAS, CLIENT_STACK_SUFFIX, SERVICES, VALIDATOR
-from plenum.common.util import randomSeed, randomString
+from plenum.common.util import randomString
 from plenum.test.cli.helper import exitFromCli
 from sovrin_common.roles import Roles
 

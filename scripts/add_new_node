@@ -1,10 +1,14 @@
 #! /usr/bin/env python3
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 
 from sovrin_client.client.client import Client
 from sovrin_common.config_util import getConfig
+
+
+# TODO: This code is obsolete, moreover we have a CLI command for this.
+
 
 looper = Looper(debug=True)
 

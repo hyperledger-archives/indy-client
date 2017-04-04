@@ -3,10 +3,14 @@ import logging
 import re
 
 import pytest
-from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
-from plenum.common.eventually import eventually
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+
+from sovrin_common.roles import Roles
+from stp_core.loop.eventually import eventually
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.roles import Roles
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.runnable_agent import RunnableAgent
@@ -83,12 +87,23 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     acmeEndpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
     thriftEndpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
 
-    for nym, ep in [('FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB', faberEndpoint),
-                    ('7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21', acmeEndpoint),
-                    ('9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW', thriftEndpoint)]:
-        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT: ep})}
+    faberHa = "{}:{}".format(agentIpAddress, faberAgentPort)
+    acmeHa = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    thriftHa = "{}:{}".format(agentIpAddress, thriftAgentPort)
+    faberId = 'FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB'
+    acmeId = '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21'
+    thriftId = '9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW'
+    faberPk = '5hmMA64DDQz5NzGJNVtRzNwpkZxktNQds21q3Wxxa62z'
+    acmePk = 'C5eqjU7NMVMGGfGfx2ubvX5H9X346bQt5qeziVAo3naQ'
+    thriftPk = 'AGBjYvyM3SFnoiDGAEzkSLHvqyzVkXeMZfKDvdpEsC2x'
+    for nym, ha, pk in [(faberId, faberHa, faberPk),
+                    (acmeId, acmeHa, acmePk),
+                    (thriftId, thriftHa, thriftPk)]:
+        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT:
+                                                    {'ha': ha, PUBKEY: pk}})}
         do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
-           within=5, expect=nymAddedOut, mapper=m)
+            within=5,
+            expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={target} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 
@@ -128,7 +143,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema.seqId
 
         issuerKey = await faberAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey
+        assert issuerKey  # TODO isinstance(issuerKey, PublicKey)
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId
@@ -238,6 +253,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    reqClaimOut1, syncLinkOutWithEndpoint,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
+
     aliceCLI.looper.runFor(3)
 
     # Same flow is executed by different cli

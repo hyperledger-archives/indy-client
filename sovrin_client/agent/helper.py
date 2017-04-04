@@ -1,10 +1,22 @@
 import os
 
+from stp_core.crypto.util import ed25519PkToCurve25519
+from plenum.common.util import friendlyToRaw, rawToFriendly
+
 from plenum.common.signer_simple import SimpleSigner
-from sovrin_client.agent.agent import runAgent
+# from sovrin_client.agent.agent import runAgent
+# from sovrin_client.agent.agent import runBootstrap
+
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 
+def processInvAccept(wallet, msg):
+    pass
+
+def friendlyVerkeyToPubkey(verkey):
+    vkRaw = friendlyToRaw(verkey)
+    pkraw = ed25519PkToCurve25519(vkRaw)
+    return rawToFriendly(pkraw)
 
 def getClaimVersionFileName(agentName):
     return agentName.replace(" ", "-").lower() + "-schema-version.txt"

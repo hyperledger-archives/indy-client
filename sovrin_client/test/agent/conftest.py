@@ -1,7 +1,9 @@
-from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
-
+from sovrin_client.agent.endpoint import REndpoint
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.strict_types import strict_types
+from stp_core.network.port_dispenser import genHa
+
 
 strict_types.defaultShouldCheck = True
 
@@ -19,9 +21,9 @@ import os
 import pytest
 
 import sample
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.util import randomString
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.helper import assertFunc
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
@@ -106,7 +108,7 @@ def aliceAgent(aliceWallet, agentBuilder):
 @pytest.fixture(scope="module")
 def aliceAdded(nodeSet, steward, stewardWallet,
                emptyLooper, aliceAgent):
-    addAgentAndEndpoint(emptyLooper, aliceAgent, steward, stewardWallet)
+    addAgent(emptyLooper, aliceAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -146,16 +148,7 @@ def thriftAgentPort():
     return genHa()[1]
 
 
-def addAgentAndEndpoint(looper, agent, steward, stewardWallet):
-    looper.add(agent.client)
-    attrib = createAgentAndAddEndpoint(looper,
-                                       agent.wallet.defaultId,
-                                       agent.wallet,
-                                       agent.client,
-                                       agent.port,
-                                       steward,
-                                       stewardWallet)
-    return attrib
+
 
 
 @pytest.fixture(scope="module")
@@ -181,7 +174,7 @@ def faberAdded(nodeSet,
                stewardWallet,
                emptyLooper,
                faberAgent):
-    return addAgentAndEndpoint(emptyLooper, faberAgent, steward, stewardWallet)
+    return addAgent(emptyLooper, faberAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -203,7 +196,7 @@ def acmeAdded(nodeSet,
               stewardWallet,
               emptyLooper,
               acmeAgent):
-    return addAgentAndEndpoint(emptyLooper, acmeAgent, steward, stewardWallet)
+    return addAgent(emptyLooper, acmeAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -225,7 +218,7 @@ def thfiftAdded(nodeSet,
               stewardWallet,
               emptyLooper,
               thriftAgent):
-    return addAgentAndEndpoint(emptyLooper, thriftAgent, steward, stewardWallet)
+    return addAgent(emptyLooper, thriftAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -364,29 +357,36 @@ def checkAcceptInvitation(emptyLooper,
         #                        format(internalId))
         # TODO: Get link from invitee wallet to check.
         assert link.remoteIdentifier == inviteeAcceptanceId
-        assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        if isinstance(inviteeAgent.endpoint, REndpoint):
+            assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
 
-    emptyLooper.run(eventually(chk))
+
+    emptyLooper.run(eventually(chk, timeout=10))
 
 
-def createAgentAndAddEndpoint(looper, agentNym, agentWallet, agentClient,
-                              agentPort, steward, stewardWallet):
-    agentVerkey = agentWallet.getVerkey()
+def addAgent(looper, agent, steward, stewardWallet):
+    # 1. add Agent's NYM (by Steward)
+    agentNym = agent.wallet.defaultId
     createNym(looper,
               agentNym,
               steward,
               stewardWallet,
               role=TRUST_ANCHOR,
-              verkey=agentVerkey)
-    ep = '127.0.0.1:{}'.format(agentPort)
-    attributeData = json.dumps({ENDPOINT: ep})
+              verkey=agent.wallet.getVerkey())
+
+    # 2. add client to the loop
+    looper.add(agent.client)
+
+    # 3. add attribute to the Agent's NYM with endpoint information (by Agent's client)
+    ep = '127.0.0.1:{}'.format(agent.port)
+    attributeData = json.dumps({ENDPOINT: {'ha': ep}})
 
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
                        origin=agentNym,
                        value=attributeData,
                        dest=agentNym,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, agentClient, agentWallet, attrib)
+    addAttributeAndCheck(looper, agent.client, agent.wallet, attrib)
     return attrib
 
 

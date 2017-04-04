@@ -1,8 +1,7 @@
 from typing import Dict
 
-from plenum.common.types import Identifier
-
 from sovrin_common.identity import Identity
+from stp_core.types import Identifier
 
 
 class TrustAnchoring:

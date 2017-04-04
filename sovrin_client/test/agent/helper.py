@@ -1,9 +1,11 @@
+import argparse
 import os
 import sys
 
-from plenum.common.looper import Looper
+from stp_core.loop.eventually import eventually
+from sovrin_client.agent.endpoint import REndpoint, ZEndpoint
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.eventually import eventually
 from plenum.test.test_stack import checkRemoteExists, CONNECTED
 from sovrin_client.agent.agent import runBootstrap, runAgent
 from sovrin_client.agent.agent_cli import AgentCli
@@ -22,10 +24,35 @@ def connectAgents(agent1, agent2):
 def ensureAgentsConnected(looper, agent1, agent2):
     e1 = agent1.endpoint
     e2 = agent2.endpoint
-    looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,
-                          timeout=10))
-    looper.run(eventually(checkRemoteExists, e2, e1.name, CONNECTED,
-                          timeout=10))
+    if isinstance(e1, ZEndpoint) and isinstance(e2, ZEndpoint):
+        def _(e1, e2):
+            assert e1.publicKey in e2.remotesByKeys or e1.publicKey in e2.peersWithoutRemotes
+            assert e2.publicKey in e1.remotesByKeys or e2.publicKey in e1.peersWithoutRemotes
+
+        looper.run(eventually(_, e1, e2, timeout=10))
+
+    elif isinstance(e1, REndpoint) and isinstance(e2, REndpoint):
+        looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,
+                              timeout=10))
+        looper.run(eventually(checkRemoteExists, e2, e1.name, CONNECTED,
+                              timeout=10))
+    else:
+        RuntimeError('Unacceptable Endpoint types')
+
+
+def getAgentCmdLineParams():
+    if sys.stdin.isatty():
+        parser = argparse.ArgumentParser(
+            description="Starts agents with given port, cred def and issuer seq")
+
+        parser.add_argument('--port', required=False,
+                            help='port where agent will listen')
+
+        args = parser.parse_args()
+        port = int(args.port) if args.port else None
+        return port,
+    else:
+        return None,
 
     
 def buildAgentWallet(name, seed):

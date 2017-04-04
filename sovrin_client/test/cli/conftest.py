@@ -1,42 +1,38 @@
 import json
 import os
-import tempfile
 import re
+import tempfile
 from typing import List
 
-import plenum
 import pytest
 
+import plenum
 from plenum.common.exceptions import BlowUp
+from stp_core.loop.eventually import eventually
 from plenum.common.log import getlogger
-from plenum.common.raet import initLocalKeep
-from plenum.common.eventually import eventually
-from sovrin_common.roles import Roles
-
-# noinspection PyUnresolvedReferences
-from plenum.test.conftest import tconf, conf, tdirWithPoolTxns, poolTxnData, \
-    tdirWithDomainTxns, poolTxnNodeNames, nodeAndClientInfoFilePath
-
-# noinspection PyUnresolvedReferences
-from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
-    emptyLooper, faberWallet, faberLinkAdded, acmeWallet, acmeLinkAdded, acmeBootstrap, \
-    acmeIsRunning as runningAcme, faberAgentPort, acmeAgentPort, faberAgent, faberBootstrap, \
-    acmeAgent, thriftIsRunning as runningThrift, thriftAgentPort, thriftWallet,\
-    thriftAgent, agentIpAddress
-
+from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
+from sovrin_client.test.helper import createNym, buildStewardClient
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
+from sovrin_common.roles import Roles
 from sovrin_node.test.conftest import domainTxnOrderedFields
-from sovrin_client.test.helper import createNym, buildStewardClient, P
+from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
-plenum.common.util.loggingConfigured = False
+# plenum.common.util.loggingConfigured = False
 
-from plenum.common.looper import Looper
-from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, doByCtx
+from stp_core.loop.looper import Looper
+from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
+    doByCtx
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, prompt_is, addAgent
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent
+from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
+    acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
+    faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
+    faberAgentPort, acmeAgentPort, thriftAgentPort, faberAgent, acmeAgent, \
+    thriftAgent
+
 
 config = getConfig()
 
@@ -108,15 +104,16 @@ def susanMap():
 
 @pytest.fixture(scope="module")
 def faberMap(agentIpAddress, faberAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, faberAgentPort)
+    ha = "{}:{}".format(agentIpAddress, faberAgentPort)
     return {'inviter': 'Faber College',
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
             "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11'}}),
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
             "claims": "Transcript",
             "claim-to-show": "Transcript",
             "proof-req-to-match": "Transcript",
@@ -125,16 +122,17 @@ def faberMap(agentIpAddress, faberAgentPort):
 
 @pytest.fixture(scope="module")
 def acmeMap(agentIpAddress, acmeAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    ha = "{}:{}".format(agentIpAddress, acmeAgentPort)
     return {'inviter': 'Acme Corp',
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1: 11'}}),
             'invite': 'sample/acme-job-application.sovrin',
             'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
             'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
             'inviter-not-exists': 'non-existing-inviter',
             'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
             'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
-            ENDPOINT: endpoint,
-            'endpointAttr': json.dumps({ENDPOINT: endpoint}),
             'proof-requests': 'Job-Application',
             'proof-request-to-show': 'Job-Application',
             'claim-ver-req-to-show': '0.2',
@@ -143,7 +141,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'rcvd-claim-transcript-provider': 'Faber College',
             'rcvd-claim-transcript-name': 'Transcript',
             'rcvd-claim-transcript-version': '1.2',
-            'send-proof-target': '1',
+            'send-proof-target': 'Alice',
             'pr-name': 'Job-Application',
             'pr-schema-version': '0.2'
             }
@@ -151,15 +149,16 @@ def acmeMap(agentIpAddress, acmeAgentPort):
 
 @pytest.fixture(scope="module")
 def thriftMap(agentIpAddress, thriftAgentPort):
-    endpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
+    ha = "{}:{}".format(agentIpAddress, thriftAgentPort)
     return {'inviter': 'Thrift Bank',
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
             "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
-            ENDPOINT: endpoint,
-            "endpointAttr": json.dumps({ENDPOINT: endpoint}),
+            ENDPOINT: ha,
+            "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
+            "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': '127.0.0.1:4A78'}}),
             "proof-requests": "Loan-Application-Basic, Loan-Application-KYC",
             "rcvd-claim-job-certificate-name": "Job-Certificate",
             "rcvd-claim-job-certificate-version": "0.2",
@@ -861,13 +860,11 @@ def philCLI(CliBuilder):
 
 
 @pytest.fixture(scope="module")
-def poolCLI(poolCLI_baby, poolTxnData, poolTxnNodeNames):
+def poolCLI(poolCLI_baby, poolTxnData, poolTxnNodeNames, conf):
     seeds = poolTxnData["seeds"]
     for nName in poolTxnNodeNames:
-        initLocalKeep(nName,
-                      poolCLI_baby.basedirpath,
-                      seeds[nName],
-                      override=True)
+       initNodeKeysForBothStacks(nName, poolCLI_baby.basedirpath,
+                                      seeds[nName], override=True)
     return poolCLI_baby
 
 
@@ -915,7 +912,8 @@ def multiPoolNodesCreated(request, tconf, looper, tdir, nodeAndClientInfoFilePat
                                     newTdirWithDomainTxns, tconf,
                                     cliTempLogger)
         poolCLIBaby = next(poolCLIBabyGen(poolName, looper))
-        poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames)
+        poolCli = poolCLI(poolCLIBaby, newPoolTxnData, newPoolTxnNodeNames,
+                          tconf)
         testPoolNode.poolCli = poolCli
         multiNodes.append(testPoolNode)
         ensureNodesCreated(poolCli, newPoolTxnNodeNames)
@@ -1256,21 +1254,20 @@ def poolNodesStarted(be, do, poolCLI):
         'Delta now connected to Beta',
         'Delta now connected to Gamma']
 
-    primarySelectedExpect = [
-        'Alpha:0 selected primary',
-        'Alpha:1 selected primary',
-        'Beta:0 selected primary',
-        'Beta:1 selected primary',
-        'Gamma:0 selected primary',
-        'Gamma:1 selected primary',
-        'Delta:0 selected primary',
-        'Delta:1 selected primary',
-        ]
+    # primarySelectedExpect = [
+    #     'Alpha:0 selected primary',
+    #     'Alpha:1 selected primary',
+    #     'Beta:0 selected primary',
+    #     'Beta:1 selected primary',
+    #     'Gamma:0 selected primary',
+    #     'Gamma:1 selected primary',
+    #     'Delta:0 selected primary',
+    #     'Delta:1 selected primary',
+    #     ]
 
-    do('new node all', within=6, expect = connectedExpect)
-    # do(None, within=4, expect=primarySelectedExpect)
+    do('new node all', within=6, expect=connectedExpect)
+
     return poolCLI
-
 
 
 @pytest.fixture(scope="module")

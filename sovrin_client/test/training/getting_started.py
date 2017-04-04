@@ -1,3 +1,21 @@
+# Test for required installed modules
+import sys
+try:
+    from sovrin_client import *
+except ImportError as e:
+    print("Sovrin Client is required for this guild, "
+          "see doc for installing Sovrin Client.", file=sys.stderr)
+    print(str(e), file=sys.stderr)
+    sys.exit(-1)
+
+try:
+    from sovrin_node import *
+except ImportError as e:
+    print("Sovrin Node is required for this guild, "
+          "see doc for installing Sovrin Node.", file=sys.stderr)
+    print(str(e), file=sys.stderr)
+    sys.exit(-1)
+
 from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
 from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift

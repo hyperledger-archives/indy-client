@@ -1,14 +1,17 @@
-from plenum.common.eventually import eventually
-from plenum.common.port_dispenser import genHa
-from plenum.common.raet import initLocalKeep
+from plenum.common.keygen_utils import initLocalKeys
+
+
+from stp_core.loop.eventually import eventually
+import warnings
+
 from plenum.common.util import randomString
 from plenum.test.helper import checkSufficientRepliesForRequests
 from plenum.test.node_catchup.helper import \
     ensureClientConnectedToNodesAndPoolLedgerSame
 from plenum.test.test_node import checkNodesConnected
 from sovrin_client.client.wallet.node import Node
-
 from sovrin_common import strict_types
+from stp_core.network.port_dispenser import genHa
 
 # typecheck during tests
 strict_types.defaultShouldCheck = True
@@ -16,7 +19,7 @@ strict_types.defaultShouldCheck = True
 import pytest
 from copy import deepcopy
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
     ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
@@ -34,6 +37,23 @@ from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
     genTestClient, TestClient, createNym
 
 
+# noinspection PyUnresolvedReferences
+from plenum.test.conftest import tdir, nodeReg, up, ready, \
+    whitelist, concerningLogLevels, logcapture, keySharedNodes, \
+    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
+    poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
+    poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
+    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager, \
+    warncheck, warnfilters as plenum_warnfilters
+
+
+@pytest.fixture(scope="session")
+def warnfilters(plenum_warnfilters):
+    def _():
+        plenum_warnfilters()
+    return _
+
+
 @pytest.fixture(scope="module")
 def primes1():
     P_PRIME1, Q_PRIME1 = primes.get("prime1")
@@ -46,15 +66,6 @@ def primes2():
     return dict(p_prime=P_PRIME2, q_prime=Q_PRIME2)
 
 
-# noinspection PyUnresolvedReferences
-from plenum.test.conftest import tdir, nodeReg, up, ready, \
-    whitelist, concerningLogLevels, logcapture, keySharedNodes, \
-    startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
-    poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
-    poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
-    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager
-
-
 @pytest.fixture(scope="module")
 def tconf(conf, tdir):
     conf.baseDir = tdir
@@ -63,13 +74,8 @@ def tconf(conf, tdir):
 
 
 @pytest.fixture(scope="module")
-def poolTxnDataClone(poolTxnData):
-    return deepcopy(poolTxnData)
-
-
-@pytest.fixture(scope="module")
-def updatedPoolTxnData(poolTxnDataClone):
-    data = poolTxnDataClone
+def updatedPoolTxnData(poolTxnData):
+    data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
     signer = SimpleSigner(seed=trusteeSeed.encode())
     t = {
@@ -108,8 +114,10 @@ def trusteeWallet(trusteeData):
     return wallet
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, up, trusteeWallet):
+def trustee(nodeSet, looper, tdir, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 
 
@@ -133,8 +141,10 @@ def looper():
         yield l
 
 
+# TODO: This fixture is present in sovrin_node too, it should be
+# sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def steward(nodeSet, looper, tdir, up, stewardWallet):
+def steward(nodeSet, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
 
 
@@ -340,7 +350,7 @@ def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
 
     looper.run(eventually(chk, retryWait=1, timeout=10))
 
-    initLocalKeep(newNodeName, tdirWithPoolTxns, sigseed, override=True)
+    initLocalKeys(newNodeName, tdirWithPoolTxns, sigseed, override=True)
 
     newNode = testNodeClass(newNodeName, basedirpath=tdir, config=tconf,
                             ha=(nodeIp, nodePort), cliha=(clientIp, clientPort),

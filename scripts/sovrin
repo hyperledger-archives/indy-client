@@ -35,7 +35,7 @@ loadPlugins(baseDir)
 
 # NOTE: Put all regular imports below (not related to loadplugin)
 from sovrin_client.cli.cli import SovrinCli
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 
 
 def run_cli():

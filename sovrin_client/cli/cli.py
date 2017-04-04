@@ -1375,7 +1375,7 @@ class SovrinCli(PlenumCli):
             self.print('Found proof request "{}" in link "{}"'.
                        format(proofRequest.name, matchingLink.name))
 
-            self.agent.loop.run_until_complete(
+            self.agent.loop.call_soon(asyncio.ensure_future,
                 self._fulfillProofRequestByContext(self.curContext))
             return True
 

@@ -11,11 +11,11 @@ import os
 import tempfile
 from collections import OrderedDict
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
 
 from sovrin_client.client.client import Client
-from sovrin_common.txn import TXN_TYPE, NYM
+from sovrin_common.constants import TXN_TYPE, NYM
 
 
 def run_node():

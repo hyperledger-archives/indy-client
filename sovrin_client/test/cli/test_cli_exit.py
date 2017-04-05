@@ -1,7 +1,7 @@
 import pytest
 
 from sovrin_client.test.cli.test_tutorial import prompt_is
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.cli.cli import Exit
 
 
@@ -15,7 +15,7 @@ def testCliExitCommand(be, do, poolNodesStarted, aliceCLI, CliBuilder,
     do('new keyring {}'.format(name), expect=newKeyringOut, mapper=aliceMap)
     do('connect test', within=within, expect=connectedToTest)
     with pytest.raises(Exit):
-        do('exit', within=within)
+        do('exit')
 
     def checkWalletRestore():
         # open cli again

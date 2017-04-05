@@ -5,7 +5,7 @@
     "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "124.34.56.189:7880"
   },
-  "claim-requests": [{
+  "proof-requests": [{
       "name": "Loan-Application-Basic",
       "version": "0.1",
       "attributes": {
@@ -22,6 +22,14 @@
             "ssn": "string"
       },
       "verifiableAttributes": ["first_name", "last_name", "ssn"]
+    }, {
+      "name": "Name-Proof",
+      "version": "0.1",
+      "attributes": {
+            "first_name": "string",
+            "last_name": "string"
+      },
+      "verifiableAttributes": ["first_name", "last_name"]
     }],
   "sig": "D1vU5fbtJbqWKdCoVJgqHBLLhh5CYspikuEXdnBVVyCnLHiYC9ZsZrDWpz3GkFFGvfC4RQ4kuB64vUFLo3F7Xk6"
 }

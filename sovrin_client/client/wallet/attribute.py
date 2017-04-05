@@ -1,12 +1,11 @@
 from enum import unique, IntEnum
 from typing import Optional, TypeVar
 
-from plenum.common.txn import TXN_TYPE, TARGET_NYM, RAW, ORIGIN
-from plenum.common.types import Identifier
-
+from plenum.common.constants import TXN_TYPE, TARGET_NYM, RAW, ORIGIN
 from sovrin_common.generates_request import GeneratesRequest
-from sovrin_common.txn import ATTRIB, GET_ATTR
+from sovrin_common.constants import ATTRIB, GET_ATTR
 from sovrin_common.types import Request
+from stp_core.types import Identifier
 
 Value = TypeVar('Value', str, dict)
 

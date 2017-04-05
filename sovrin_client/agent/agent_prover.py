@@ -1,23 +1,45 @@
 import asyncio
 from typing import Any
+from collections import OrderedDict
 
-from plenum.common.txn import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
-    DATA
+from plenum.common.constants import NONCE, TYPE, NAME, VERSION, ORIGIN, IDENTIFIER, \
+    DATA, VERIFIABLE_ATTRIBUTES, ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getCryptonym
 
 from anoncreds.protocol.prover import Prover
 from anoncreds.protocol.types import SchemaKey, ID, Claims, ProofInput
 from anoncreds.protocol.utils import toDictWithStrValues
-from sovrin_client.agent.msg_constants import REQUEST_CLAIM, CLAIM_PROOF, CLAIM_FIELD, \
-    CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
-from sovrin_client.client.wallet.link import ClaimProofRequest, Link
+from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD, \
+    CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD, \
+    REQ_AVAIL_CLAIMS
+from sovrin_client.client.wallet.types import ProofRequest
+from sovrin_client.client.wallet.link import Link
 from sovrin_common.util import getNonceForProof
+from sovrin_common.exceptions import LinkNotReady
 
 
 class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
+
+    def sendReqAvailClaims(self, link: Link):
+        if self.loop.is_running():
+            self.loop.call_soon(asyncio.ensure_future,
+                                self.sendAvailClaimsAsync(link))
+        else:
+            self.loop.run_until_complete(
+                self.sendAvailClaimsAsync(link))
+
+    async def sendAvailClaimsAsync(self, link: Link):
+        op = {
+            TYPE: REQ_AVAIL_CLAIMS,
+            NONCE: link.invitationNonce
+        }
+        try:
+            self.signAndSend(msg=op, linkName=link.name)
+        except LinkNotReady as ex:
+            self.notifyMsgListener(str(ex))
 
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
@@ -38,7 +60,7 @@ class AgentProver:
 
         op = {
             NONCE: link.invitationNonce,
-            TYPE: REQUEST_CLAIM,
+            TYPE: CLAIM_REQUEST,
             NAME: name,
             VERSION: version,
             ORIGIN: origin,
@@ -46,6 +68,33 @@ class AgentProver:
         }
 
         self.signAndSend(msg=op, linkName=link.name)
+
+    def handleProofRequest(self, msg):
+        body, _ = msg
+        link = self._getLinkByTarget(getCryptonym(body.get(IDENTIFIER)))
+        proofReqName = body.get(NAME)
+        proofReqExist = False
+
+        for request in link.proofRequests:
+            if request.name == proofReqName:
+                proofReqExist = True
+                break
+
+        self.notifyMsgListener('    Proof request {} received from {}.\n'
+                               .format(proofReqName, link.name))
+
+        if not proofReqExist:
+            link.proofRequests.append(
+                ProofRequest(
+                    name=proofReqName,
+                    version=body.get(VERSION),
+                    attributes=body.get(ATTRIBUTES),
+                    verifiableAttributes=body.get(VERIFIABLE_ATTRIBUTES)
+                )
+            )
+        else:
+            self.notifyMsgListener('    Proof request {} already exist.\n'
+                                   .format(proofReqName))
 
     async def handleReqClaimResponse(self, msg):
         body, _ = msg
@@ -69,29 +118,31 @@ class AgentProver:
         else:
             self.notifyMsgListener("No matching link found")
 
-    def sendProof(self, link: Link, claimPrfReq: ClaimProofRequest):
+    def sendProof(self, link: Link, proofReq: ProofRequest):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendProofAsync(link, claimPrfReq))
+                                self.sendProofAsync(link, proofReq))
         else:
-            self.loop.run_until_complete(self.sendProofAsync(link, claimPrfReq))
+            self.loop.run_until_complete(self.sendProofAsync(link, proofReq))
 
-    async def sendProofAsync(self, link: Link, claimPrfReq: ClaimProofRequest):
+    async def sendProofAsync(self, link: Link, proofRequest: ProofRequest):
+        # TODO _F_ this nonce should be from the Proof Request, not from an
+        # invitation
         nonce = getNonceForProof(link.invitationNonce)
 
-        revealedAttrNames = claimPrfReq.verifiableAttributes
+        revealedAttrNames = proofRequest.verifiableAttributes
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
+        # TODO rename presentProof to buildProof or generateProof
         proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)
-
-        op = {
-            NAME: claimPrfReq.name,
-            VERSION: claimPrfReq.version,
-            NONCE: link.invitationNonce,
-            TYPE: CLAIM_PROOF,
-            PROOF_FIELD: proof.toStrDict(),
-            PROOF_INPUT_FIELD: proofInput.toStrDict(),
-            REVEALED_ATTRS_FIELD: toDictWithStrValues(revealedAttrs)
-        }
+        revealedAttrs.update(proofRequest.selfAttestedAttrs)
+        op = OrderedDict([
+            (TYPE, PROOF),
+            (NAME, proofRequest.name),
+            (VERSION, proofRequest.version),
+            (NONCE, link.invitationNonce),
+            (PROOF_FIELD, proof.toStrDict()),
+            (PROOF_INPUT_FIELD, proofInput.toStrDict()),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
+            (REVEALED_ATTRS_FIELD, toDictWithStrValues(revealedAttrs))])
 
         self.signAndSend(msg=op, linkName=link.name)
 
@@ -112,18 +163,21 @@ class AgentProver:
             schemaKeyId = ID(
                 SchemaKey(name=name, version=version, issuerId=origin))
             schema = await self.prover.wallet.getSchema(schemaKeyId)
-            claimAttrs = set(schema.attrNames)
+            claimAttrs = OrderedDict()
+            for attr in schema.attrNames:
+                claimAttrs[attr] = None
             claim = None
             try:
                 claim = await self.prover.wallet.getClaims(schemaKeyId)
             except ValueError:
                 pass  # it means no claim was issued
-            attrs = {k: None for k in claimAttrs}
+
             if claim:
                 issuedAttributes = claim.primaryClaim.attrs
-                if claimAttrs.intersection(issuedAttributes.keys()):
-                    attrs = {k: issuedAttributes[k] for k in claimAttrs}
-            matchingLinkAndReceivedClaim.append((li, cl, attrs))
+                if set(claimAttrs.keys()).intersection(issuedAttributes.keys()):
+                    for k in claimAttrs.keys():
+                        claimAttrs[k] = issuedAttributes[k]
+            matchingLinkAndReceivedClaim.append((li, cl, claimAttrs))
         return matchingLinkAndReceivedClaim
 
     async def getMatchingRcvdClaimsAsync(self, attributes):
@@ -135,3 +189,20 @@ class AgentProver:
             if attributes.intersection(issuedAttrs.keys()):
                 matchingLinkAndRcvdClaim.append((li, cl, issuedAttrs))
         return matchingLinkAndRcvdClaim
+
+    async def getClaimsUsedForAttrs(self, attributes):
+        allMatchingClaims = await self.getMatchingLinksWithReceivedClaimAsync()
+        alreadySatisfiedKeys = {}
+        claimsToUse = []
+        alreadyAddedClaims = []
+
+        for li, cl, issuedAttrs in allMatchingClaims:
+            issuedClaimKeys = issuedAttrs.keys()
+            for key in attributes.keys():
+                if key not in alreadySatisfiedKeys and key in issuedClaimKeys:
+                    if li not in alreadyAddedClaims:
+                        claimsToUse.append((li, cl, issuedAttrs))
+                    alreadySatisfiedKeys[key] = True
+                    alreadyAddedClaims.append(li)
+
+        return claimsToUse

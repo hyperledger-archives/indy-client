@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 import argparse
 
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.script_helper import changeHA
-from plenum.common.types import HA
+from stp_core.types import HA
 from plenum.common.util import getMaxFailures
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.helper import checkSufficientRepliesRecvd
 
 from sovrin_common.config_util import getConfig

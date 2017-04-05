@@ -1,22 +1,32 @@
 from abc import abstractmethod
 from typing import Dict, Any
 
-from plenum.common.txn import NAME, VERSION, ORIGIN
+from plenum.common.constants import NAME, VERSION, ORIGIN
 from plenum.common.types import f
 
 from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.types import SchemaKey, ID
 from anoncreds.protocol.types import ClaimRequest
-from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD
+from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, CLAIMS_LIST_FIELD
+from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIELD, \
+    AVAIL_CLAIM_LIST
 
 
 class AgentIssuer:
     def __init__(self, issuer: Issuer):
         self.issuer = issuer
 
-    async def processReqClaim(self, msg):
+    async def processReqAvailClaims(self, msg):
         body, (frm, ha) = msg
+        link = self.verifyAndGetLink(msg)
+        data = {
+            CLAIMS_LIST_FIELD: self.getAvailableClaimList(link)
+        }
+        resp = self.getCommonMsg(AVAIL_CLAIM_LIST, data)
+        self.signAndSend(resp, link.localIdentifier, frm)
+
+    async def processReqClaim(self, msg):
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError
@@ -36,7 +46,7 @@ class AgentIssuer:
         schema = await self.issuer.wallet.getSchema(ID(schemaKey))
         schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
 
-        self._addAtrribute(schemaKey=schemaKey, proverId=claimReq.userId,
+        self._addAttribute(schemaKey=schemaKey, proverId=claimReq.userId,
                            link=link)
 
         claim = await self.issuer.issueClaim(schemaId, claimReq)
@@ -53,5 +63,5 @@ class AgentIssuer:
                          origReqId=body.get(f.REQ_ID.nm))
 
     @abstractmethod
-    def _addAtrribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
+    def _addAttribute(self, schemaKey, proverId, link) -> Dict[str, Any]:
         raise NotImplementedError

@@ -6,28 +6,33 @@ from typing import Dict, Union, Tuple, Optional, Callable
 
 import pyorient
 from base58 import b58decode, b58encode
+from raet.raeting import AutoMode
+
 from plenum.client.client import Client as PlenumClient
 from plenum.common.error import fault
 from plenum.common.log import getlogger
-from plenum.common.stacked import SimpleStack
 from plenum.common.startable import Status
-from plenum.common.txn import REPLY, STEWARD, NAME, VERSION, REQACK, REQNACK, \
-    TXN_ID, TARGET_NYM, NONCE
-from plenum.common.types import OP_FIELD_NAME, f, HA
+
+from plenum.common.constants import REPLY, NAME, VERSION, REQACK, REQNACK, \
+    TXN_ID, TARGET_NYM, NONCE, STEWARD, OP_FIELD_NAME
+from plenum.common.types import f, HA
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
 from raet.raeting import AutoMode
 
-from sovrin_common.config_util import getConfig
-from sovrin_common.txn import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
-    SPONSOR, NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
-    GET_ATTR
+from sovrin_common.constants import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
+    NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
+    GET_ATTR, TRUST_ANCHOR
+
 from sovrin_client.persistence.client_req_rep_store_file import ClientReqRepStoreFile
 from sovrin_client.persistence.client_req_rep_store_orientdb import \
     ClientReqRepStoreOrientDB
 from sovrin_client.persistence.client_txn_log import ClientTxnLog
+from sovrin_common.config_util import getConfig
 from sovrin_common.persistence.identity_graph import getEdgeByTxnType, IdentityGraph
+from stp_raet.rstack import SimpleRStack
+from stp_core.types import HA
 
 logger = getlogger()
 
@@ -60,8 +65,8 @@ class Client(PlenumClient):
                              auto=AutoMode.always)
             self.peerMsgRoutes = []
             self.peerMsgRouter = Router(*self.peerMsgRoutes)
-            self.peerStack = SimpleStack(stackargs,
-                                         msgHandler=self.handlePeerMessage)
+            self.peerStack = SimpleRStack(stackargs,
+                                          msgHandler=self.handlePeerMessage)
             self.peerStack.sign = self.sign
             self.peerInbox = deque()
         self._observers = {}  # type Dict[str, Callable]
@@ -173,7 +178,7 @@ class Client(PlenumClient):
 
     def addNymToGraph(self, txn):
         origin = txn.get(f.IDENTIFIER.nm)
-        if txn.get(ROLE) == SPONSOR:
+        if txn.get(ROLE) == TRUST_ANCHOR:
             if not self.graphStore.hasSteward(origin):
                 try:
                     self.graphStore.addNym(None, nym=origin, role=STEWARD)

@@ -1,14 +1,20 @@
 from typing import Any
+from collections import OrderedDict
 
-from plenum.common.txn import NAME, NONCE, TYPE, DATA, VERSION
+from plenum.common.constants import NAME, NONCE, TYPE, DATA, VERSION, \
+    ATTRIBUTES, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 
 from anoncreds.protocol.types import FullProof
 from anoncreds.protocol.types import ProofInput
 from anoncreds.protocol.utils import fromDictWithStrValues
 from anoncreds.protocol.verifier import Verifier
-from sovrin_client.agent.msg_constants import CLAIM_PROOF_STATUS, PROOF_FIELD, \
-    PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD
+from sovrin_client.agent.msg_constants import PROOF_STATUS, PROOF_FIELD, \
+    PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD, PROOF_REQUEST, \
+    PROOF_REQ_SCHEMA_NAME, PROOF_REQ_SCHEMA_VERSION, \
+    PROOF_REQ_SCHEMA_ATTRIBUTES, PROOF_REQ_SCHEMA_VERIFIABLE_ATTRIBUTES, \
+    ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
+from sovrin_client.client.wallet.link import Link
 from sovrin_common.util import getNonceForProof
 
 
@@ -16,29 +22,28 @@ class AgentVerifier(Verifier):
     def __init__(self, verifier: Verifier):
         self.verifier = verifier
 
-    async def verifyClaimProof(self, msg: Any):
-        body, (frm, ha) = msg
+    async def verifyProof(self, msg: Any):
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError
 
-        claimName = body[NAME]
+        proofName = body[NAME]
         nonce = getNonceForProof(body[NONCE])
         proof = FullProof.fromStrDict(body[PROOF_FIELD])
         proofInput = ProofInput.fromStrDict(body[PROOF_INPUT_FIELD])
         revealedAttrs = fromDictWithStrValues(body[REVEALED_ATTRS_FIELD])
+        result = await self.verifier.verify(proofInput, proof,
+                                            revealedAttrs, nonce)
 
-        result = await self.verifier.verify(proofInput, proof, revealedAttrs,
-                                            nonce)
-
-        self.agentLogger.info('Claim request accepted with nonce {}'
+        self.logger.info('Proof accepted with nonce {}'
                               .format(nonce))
-        self.agentLogger.info('Verifying claim proof request from {}'
+        self.logger.info('Verifying proof from {}'
                               .format(link.name))
         status = 'verified' if result else 'failed verification'
         resp = {
-            TYPE: CLAIM_PROOF_STATUS,
-            DATA: '    Your claim {} {} was received and {}\n'.
+            TYPE: PROOF_STATUS,
+            DATA: '    Your Proof {} {} was received and {}\n'.
                 format(body[NAME], body[VERSION], status),
         }
         self.signAndSend(resp, link.localIdentifier, frm,
@@ -47,5 +52,26 @@ class AgentVerifier(Verifier):
         if result:
             for attribute in proofInput.revealedAttrs:
                 # Log attributes that were verified
-                self.agentLogger.info('{}: verified'.format(attribute))
-            await self._postClaimVerif(claimName, link, frm)
+                self.logger.info('verified {}: {}'.
+                                 format(attribute, revealedAttrs[attribute]))
+            self.logger.info('verified proof contains attributes from '
+                             'claim issued by: {}'.format(", ".join(
+                sorted([sk.issuerId for sk in proof.schemaKeys]))))
+            await self._postProofVerif(proofName, link, frm)
+
+    def sendProofReq(self, link: Link, proofReqSchemaKey):
+        if self._proofRequestsSchema and (
+                    proofReqSchemaKey in self._proofRequestsSchema):
+            proofRequest = self._proofRequestsSchema[proofReqSchemaKey]
+            op = OrderedDict([
+                (TYPE, PROOF_REQUEST),
+                (NAME, proofRequest[PROOF_REQ_SCHEMA_NAME]),
+                (VERSION, proofRequest[PROOF_REQ_SCHEMA_VERSION]),
+                (ATTRIBUTES, proofRequest[PROOF_REQ_SCHEMA_ATTRIBUTES]),
+                (VERIFIABLE_ATTRIBUTES,
+                 proofRequest[PROOF_REQ_SCHEMA_VERIFIABLE_ATTRIBUTES])
+            ])
+
+            self.signAndSend(msg=op, linkName=link.name)
+        else:
+            return ERR_NO_PROOF_REQUEST_SCHEMA_FOUND

@@ -96,9 +96,10 @@ def runAgentCli(name, agentCreator, looper=None, bootstrap=True):
         agentCli = bootstrapAgentCli(name, agentCreator, looper, bootstrap)
         commands = sys.argv[1:]
         looper.run(agentCli.shell(*commands))
+        return agentCli
 
     if looper:
-        run(looper)
+        return run(looper)
     else:
         with Looper(debug=False) as looper:
             run(looper)

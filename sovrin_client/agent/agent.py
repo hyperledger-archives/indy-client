@@ -105,9 +105,6 @@ class Agent(Motor, AgentNet):
                           msgHandler=self.handleEndpointMessage,
                           config = self.config,
                           endpointArgs=self.endpointArgs)
-
-
-
         super().start(loop)
         if self.client:
             self.client.start(loop)

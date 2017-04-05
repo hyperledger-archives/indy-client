@@ -34,13 +34,14 @@ class TestWalletedAgent(WalletedAgent):
         _, with_cli = TestWalletedAgent.getPassedArgs()
         try:
             if cliAgentCreator and with_cli:
-                runAgentCli(name=name, agentCreator=cliAgentCreator)
+                agentCli = runAgentCli(name=name, agentCreator=cliAgentCreator)
+                return agentCli.agent
             else:
                 assert agentClass
                 agent = createAgent(agentClass, name, wallet, basedirpath,
                             port, loop, clientClass)
                 runAgent(agent, looper, bootstrap)
-
+                return agent
 
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))

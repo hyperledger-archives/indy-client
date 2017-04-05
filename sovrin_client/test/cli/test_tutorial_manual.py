@@ -58,7 +58,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
                tdir, syncLinkOutWithEndpoint, jobCertificateClaimMap,
                syncedInviteAcceptedOutWithoutClaims, transcriptClaimMap,
-               reqClaimOut, reqClaimOut1, susanCLI, susanMap):
+               reqClaimOut, reqClaimOut1, susanCLI, susanMap, carolCLI, carolMap):
     eventually.slowFactor = 3
 
     # Create steward and add nyms and endpoint atttributes of all agents
@@ -113,20 +113,36 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
          buildThriftWallet)
     ]
 
-    for agentCls, agentName, agentPort, buildAgentWalletFunc in \
-            agentParams:
-        agentCls.getPassedArgs = lambda _: (agentPort, False)
-        TestWalletedAgent.createAndRunAgent(
-            agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
-            philCLI.looper, TestClient)
+    def startAgents():
+        agentsByName = {}
+        for agentCls, agentName, agentPort, buildAgentWalletFunc in \
+                agentParams:
+            agentCls.getPassedArgs = lambda _: (agentPort, False)
+            agent = TestWalletedAgent.createAndRunAgent(
+                agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
+                philCLI.looper, TestClient)
+            agentsByName[agentName] = agent
 
-    for p in philCLI.looper.prodables:
-        if p.name == 'Faber College':
-            faberAgent = p
-        if p.name == 'Acme Corp':
-            acmeAgent = p
-        if p.name == 'Thrift Bank':
-            thriftAgent = p
+        faberAgent, acmeAgent, thriftAgent = None, None, None
+        for p in philCLI.looper.prodables:
+            if p.name == 'Faber College':
+                faberAgent = p
+            if p.name == 'Acme Corp':
+                acmeAgent = p
+            if p.name == 'Thrift Bank':
+                thriftAgent = p
+
+        return faberAgent, acmeAgent, thriftAgent
+
+    faberAgent, acmeAgent, thriftAgent = startAgents()
+
+    # for p in philCLI.looper.prodables:
+    #     if p.name == 'Faber College':
+    #         faberAgent = p
+    #     if p.name == 'Acme Corp':
+    #         acmeAgent = p
+    #     if p.name == 'Thrift Bank':
+    #         thriftAgent = p
 
     async def checkTranscriptWritten():
         faberId = faberAgent.wallet.defaultId
@@ -254,3 +270,23 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    reqClaimOut1, syncLinkOutWithEndpoint,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
+
+    # stop agents
+    for agent in [faberAgent, acmeAgent, thriftAgent]:
+        agent.stop()
+        philCLI.looper.removeProdable(agent)
+
+    del faberAgent, acmeAgent, thriftAgent
+    # TODO: need to find out why we need to wait for some time
+    # before starting against again
+    philCLI.looper.runFor(40)
+
+    faberAgent, acmeAgent, thriftAgent = startAgents()
+    philCLI.looper.runFor(10)
+
+    executeGstFlow("Carol", carolCLI, carolMap, be, connectedToTest, do, fMap,
+                   aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
+                   reqClaimOut1, syncLinkOutWithEndpoint,
+                   syncedInviteAcceptedOutWithoutClaims, tMap,
+                   transcriptClaimMap)
+

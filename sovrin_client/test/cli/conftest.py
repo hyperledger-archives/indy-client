@@ -103,6 +103,11 @@ def susanMap():
 
 
 @pytest.fixture(scope="module")
+def carolMap():
+    return getDefaultUserMap("Carol")
+
+
+@pytest.fixture(scope="module")
 def faberMap(agentIpAddress, faberAgentPort):
     ha = "{}:{}".format(agentIpAddress, faberAgentPort)
     return {'inviter': 'Faber College',
@@ -852,6 +857,12 @@ def earlCLI(CliBuilder):
 @pytest.yield_fixture(scope="module")
 def susanCLI(CliBuilder):
     yield from CliBuilder("susan")
+
+
+@pytest.yield_fixture(scope="module")
+def carolCLI(CliBuilder):
+    yield from CliBuilder("carol")
+
 
 
 @pytest.yield_fixture(scope="module")

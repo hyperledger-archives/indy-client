@@ -1,5 +1,5 @@
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
 

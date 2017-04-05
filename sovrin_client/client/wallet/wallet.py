@@ -9,7 +9,7 @@ from typing import Optional
 from ledger.util import F
 from plenum.client.wallet import Wallet as PWallet
 from plenum.common.did_method import DidMethods
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
     IDENTIFIER, NYM, ROLE, VERKEY, NODE
 from plenum.common.types import f

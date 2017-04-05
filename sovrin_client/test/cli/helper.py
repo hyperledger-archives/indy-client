@@ -6,7 +6,7 @@ from _sha256 import sha256
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
@@ -314,3 +314,21 @@ def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
        within=3,
        expect=nymAddExpMsgs, mapper=mapper)
     return userCli
+
+
+def getAgentCliHelpString():
+    return """Sovrin-CLI, a simple command-line interface for a Sovrin Identity platform.
+   Commands:
+       help - Shows this or specific help message for given command
+         Usage:
+            help [<command name>]
+       prompt - Changes the prompt to given principal (a person like Alice, an organization like Faber College, or an IoT-style thing)
+       list keyrings - Lists all keyrings
+       list ids - Lists all identifiers of active keyring
+       show - Shows content of given file
+       show link - Shows link info in case of one matching link, otherwise shows all the matching link names
+       ping - Pings given target's endpoint
+       list links - List available links in active wallet
+       send proofreq - Send a proof request
+       license - Shows the license
+       exit - Exit the command-line interface ('quit' also works)"""

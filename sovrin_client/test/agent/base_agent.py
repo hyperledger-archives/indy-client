@@ -53,6 +53,8 @@ class BaseAgent(WalletedAgent, RunnableAgent):
 
         self.availableClaimsByIdentifier = {}
 
+        self._invites = {}
+
         self.updateClaimVersionFile(self.getClaimVersionFileName())
 
     def getClaimVersionFileName(self):

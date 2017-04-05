@@ -32,7 +32,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from tempfile import TemporaryDirectory
 
 from logging import Formatter
-from plenum.common.log import Logger
+from stp_core.common.log import Logger
 from ioflo.base.consoling import Console
 from plenum.config import logFormat
 
@@ -47,8 +47,8 @@ def out(record, extra_cli_value=None):
     if record.filename not in ignored_files:
         print(log_out_format.format(record))
 
-Logger().enableCliLogging(out, override_tags={})
-Logger().setupRaet(raet_log_level=Console.Wordage.concise)
+# Logger().enableCliLogging(out, override_tags={})
+# Logger().setupRaet(raet_log_level=Console.Wordage.concise)
 
 
 def start_agents(pool, looper):

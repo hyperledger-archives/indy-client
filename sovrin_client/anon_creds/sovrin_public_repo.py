@@ -3,7 +3,7 @@ import json
 from ledger.util import F
 from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, \
     VERSION, TYPE, ORIGIN
 

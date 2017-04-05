@@ -43,6 +43,18 @@ def test_acme_cli_started_successfully(be, acmeAgentCliRunning):
     assert acmeAgentCliRunning.currPromptText == 'Acme-Agent'
 
 
+def testAgentCliHelp(be, do, acmeAgentCliRunning):
+    be(acmeAgentCliRunning)
+    do('help', expect=[getAgentCliHelpString()])
+
+
+def testAgentCliForInvalidCommand(be, do, acmeAgentCliRunning):
+    be(acmeAgentCliRunning)
+    do('set Attr1 to Value1', expect=[
+        "Invalid command: 'set Attr1 to Value1'",
+        getAgentCliHelpString()])
+
+
 def sendProofRequest(be, do, agentCli, userMap):
     be(agentCli)
     userMap['pr-name-version'] = '{}-v{}'.format(

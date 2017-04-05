@@ -12,7 +12,7 @@ from typing import Set
 from base58 import b58decode
 
 from plenum.common.error import fault
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg
 from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION, \
@@ -82,6 +82,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if self.client:
             self.syncClient()
         self.rcvdMsgStore = {}  # type: Dict[reqId, [reqMsg]]
+
+        self._proofRequestsSchema = {}  # Dict[str, Dict[str, any]]
+
         self.msgHandlers = {
             ERROR: self._handleError,
             EVENT: self._eventHandler,
@@ -138,16 +141,16 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return ACCEPT_INVITE, CLAIM_REQUEST, PROOF, \
                CLAIM, AVAIL_CLAIM_LIST, EVENT, PONG, REQ_AVAIL_CLAIMS
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         raise NotImplementedError
 
     def is_claim_available(self, link, claim_name):
         return any(ac[NAME] == claim_name
                    for ac in self._get_available_claim_list_by_internal_id(link.internalId))
 
-    async def _postClaimVerif(self, claimName, link, frm):
+    async def _postProofVerif(self, claimName, link, frm):
         link.verifiedClaimProofs.append(claimName)
-        await self.postClaimVerif(claimName, link, frm)
+        await self.postProofVerif(claimName, link, frm)
 
     async def _set_available_claim_by_internal_id(self, internal_id, schema_id):
         sd = await self.schema_dict_from_id(schema_id)

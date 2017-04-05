@@ -5,7 +5,7 @@ from plenum.common.message_processor import MessageProcessor
 from raet.raeting import AutoMode
 from zmq.utils import z85
 
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from stp_raet.util import getHaFromLocalEstate
 from plenum.common.util import randomString, friendlyToRaw
 from stp_core.crypto.util import randomSeed

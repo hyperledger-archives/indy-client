@@ -9,7 +9,7 @@ from typing import Union, Tuple
 import pyorient
 
 from config.config import cmod
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
@@ -23,31 +23,25 @@ from plenum.test.test_client import genTestClient as genPlenumTestClient, \
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import spyable
 
-from sovrin_client.client.wallet.upgrade import Upgrade
-from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
-
-from sovrin_client.client.client import Client
 from sovrin_common.constants import NULL
+from sovrin_common.test.helper import TempStorage
+
+from sovrin_client.client.wallet.upgrade import Upgrade
+from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.client.client import Client
 
 logger = getlogger()
 
 
-class TestClientStorage:
+class TestClientStorage(TempStorage):
     def __init__(self, name, baseDir):
         self.name = name
         self.baseDir = baseDir
 
     def cleanupDataLocation(self):
-        loc = os.path.join(self.baseDir, "data/clients", self.name)
-        logger.debug('Cleaning up location {} of test client {}'.
-                     format(loc, self.name))
-        try:
-            shutil.rmtree(loc)
-        except Exception as ex:
-            logger.debug("Error while removing temporary directory {}".format(
-                ex))
+        self.cleanupDirectory(self.dataLocation)
         config = getConfig()
         if config.ReqReplyStore == "orientdb" or config.ClientIdentityGraph:
             try:

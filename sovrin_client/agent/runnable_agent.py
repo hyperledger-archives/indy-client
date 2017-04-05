@@ -3,7 +3,7 @@ import argparse
 
 from sovrin_client.client.client import Client
 from sovrin_client.agent.agent import createAgent, runAgent, Agent
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.util import getFormattedErrorMsg
 
 logger = getlogger()

@@ -140,7 +140,7 @@ class AgentProver:
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
         # TODO rename presentProof to buildProof or generateProof
         proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)
-
+        revealedAttrs.update(proofRequest.selfAttestedAttrs)
         op = OrderedDict([
             (TYPE, PROOF),
             (NAME, proofRequest.name),

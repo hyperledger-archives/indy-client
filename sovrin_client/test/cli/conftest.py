@@ -31,7 +31,7 @@ from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
     faberAgentPort, acmeAgentPort, thriftAgentPort, faberAgent, acmeAgent, \
-    thriftAgent
+    thriftAgent, faberBootstrap, acmeBootstrap
 
 
 config = getConfig()

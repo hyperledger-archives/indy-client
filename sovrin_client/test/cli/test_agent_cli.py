@@ -6,7 +6,8 @@ from plenum.test.cli.helper import TestCliCore
 from plenum.test.testable import spyable
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
-from sovrin_client.test.cli.helper import getCliBuilder
+from sovrin_client.test.agent.helper import buildAcmeWallet
+from sovrin_client.test.cli.helper import getCliBuilder, getAgentCliHelpString
 from sovrin_client.test.cli.test_tutorial import acmeWithEndpointAdded,\
     connectIfNotAlreadyConnected
 
@@ -28,7 +29,7 @@ def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLo
 def acmeAgentCli(agentCliBuilder, acmeAgentPort, tdir):
     yield from agentCliBuilder(
         name='Acme-Agent',
-        agentCreator=lambda: create_acme(port=acmeAgentPort, base_dir_path=tdir)
+        agentCreator=lambda: create_acme(port=acmeAgentPort, base_dir_path=tdir, wallet=buildAcmeWallet())
     )('Acme-Agent')
 
 

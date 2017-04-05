@@ -9,7 +9,7 @@ import pytest
 import plenum
 from plenum.common.exceptions import BlowUp
 from stp_core.loop.eventually import eventually
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
 from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.helper import createNym, buildStewardClient

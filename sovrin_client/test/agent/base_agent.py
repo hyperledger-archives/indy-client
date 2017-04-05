@@ -2,7 +2,7 @@ import os
 
 from ioflo.base.consoling import Console
 
-from plenum.common.log import Logger, getlogger
+from stp_core.common.log import Logger, getlogger
 from sovrin_client.agent.agent import runBootstrap
 
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent

@@ -6,7 +6,7 @@ import libnacl.public
 import pytest
 
 from stp_core.loop.eventually import eventually
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, \
     OP_FIELD_NAME, NYM, TARGET_NYM, \

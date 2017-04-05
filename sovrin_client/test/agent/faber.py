@@ -1,4 +1,4 @@
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
 from sovrin_client.client.client import Client

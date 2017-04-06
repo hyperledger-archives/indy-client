@@ -303,9 +303,10 @@ class WalletedAgent(Walleted, Agent, Caching):
 
     def _restoreWallet(self, contextDir, walletToBeUpdated):
         restoredWallet, walletFilePath = self._restoreLastActiveWallet(contextDir)
-        walletToBeUpdated = restoredWallet
-        self.logger.info('Saved keyring "{}" restored ({})'.
-                         format(basename(contextDir), walletFilePath))
+        if restoredWallet:
+            walletToBeUpdated = restoredWallet
+            self.logger.info('Saved keyring "{}" restored ({})'.
+                             format(basename(contextDir), walletFilePath))
 
     def _restoreMainWallet(self):
         mainWalletContextDir = self.getContextDir()
@@ -314,10 +315,11 @@ class WalletedAgent(Walleted, Agent, Caching):
             self._restoreWallet(contextDir, walletToBeUpdated)
 
     def _restoreIssuerWallet(self):
-        issuerContextDir = self._getIssuerWalletContextDir()
-        params = [(issuerContextDir, self.issuer.wallet)]
-        for contextDir, walletToBeUpdated in params:
-            self._restoreWallet(contextDir, walletToBeUpdated)
+        if self.issuer:
+            issuerContextDir = self._getIssuerWalletContextDir()
+            params = [(issuerContextDir, self.issuer.wallet)]
+            for contextDir, walletToBeUpdated in params:
+                self._restoreWallet(contextDir, walletToBeUpdated)
 
     def stop(self, *args, **kwargs):
         self._saveAllWallets()
@@ -358,7 +360,7 @@ class WalletedAgent(Walleted, Agent, Caching):
                               format(walletFilePath))
             else:
                 raise exc
-
+        return None, None
 
 def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
                 loop=None, clientClass=Client):

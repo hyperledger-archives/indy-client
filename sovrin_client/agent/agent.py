@@ -250,7 +250,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         if self.client:
             self._initIssuerProverVerifier()
 
-        # self._restoreIssuerWallet()
+        self._restoreIssuerWallet()
 
     def _initIssuerProverVerifier(self):
         self.issuer = SovrinIssuer(client=self.client, wallet=self._wallet,
@@ -285,7 +285,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._saveActiveWallet()
         # TODO: There are some other wallets in issuer, prover and verifier,
         # which also should be persisted.
-        # self._saveIssuerWallet()
+        self._saveIssuerWallet()
 
     def resetIssuerRepoBeforeSaving(self):
         self.issuer.wallet._repo = {}

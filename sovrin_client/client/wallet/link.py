@@ -98,8 +98,14 @@ class Link:
             else constant.NOT_ASSIGNED
         trustAnchor = self.trustAnchor or ""
         trustAnchorStatus = '(not yet written to Sovrin)'
-        targetVerKey = self.targetVerkey or \
-                       constant.UNKNOWN_WAITING_FOR_SYNC
+        if self.targetVerkey is not None:
+            if self.remoteIdentifier == self.targetVerkey:
+                targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
+            else:
+                targetVerKey = self.targetVerkey
+        else:
+            targetVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
+
         targetEndPoint = self.remoteEndPoint or \
                          constant.UNKNOWN_WAITING_FOR_SYNC
         if isinstance(targetEndPoint, tuple):

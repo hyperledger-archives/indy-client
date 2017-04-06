@@ -19,8 +19,9 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=N
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)
 
-    endpoint_args = {'seed': wallet._signerById(wallet.defaultId).seed,
-                     'onlyListener': True}
+    endpoint_args = {'onlyListener': True}
+    if wallet:
+        endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
 
     agent = WalletedAgent(name=name or "Faber College",
                           basedirpath=base_dir_path,

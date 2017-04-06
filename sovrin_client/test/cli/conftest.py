@@ -797,7 +797,6 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Verification key: <empty>",
             "    Signing key: <hidden>",
             "    Target: {target}",
-            "    Target Verification key: <unknown, waiting for sync>",
             "    Target endpoint: {endpoint}",
             "    Invitation nonce: {nonce}",
             "    Invitation status: not verified, target verkey unknown",

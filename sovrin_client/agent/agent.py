@@ -51,6 +51,7 @@ class Agent(Motor, AgentNet):
                  config=None,
                  endpointArgs=None):
 
+        self.logger = logger
         self.endpoint = None
         if port:
             checkPortAvailable(HA("0.0.0.0", port))
@@ -213,8 +214,8 @@ class Agent(Motor, AgentNet):
 
 class WalletedAgent(Walleted, Agent, Caching):
     def __init__(self,
-                 name: str,
-                 basedirpath: str,
+                 name: str = None,
+                 basedirpath: str = None,
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,

@@ -16,7 +16,7 @@ schema_id = None
 
 
 class AcmeAgent(WalletedAgent):
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         if claimName == "Job-Application":
 
             for schema in await self.issuer.wallet.getAllSchemas():

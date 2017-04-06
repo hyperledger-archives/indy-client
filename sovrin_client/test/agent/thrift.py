@@ -12,7 +12,7 @@ logger = getlogger()
 
 class ThriftAgent(WalletedAgent):
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
             self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
                                       "    Loan eligibility criteria satisfied,"
@@ -23,14 +23,19 @@ class ThriftAgent(WalletedAgent):
 
 def create_thrift(name=None, wallet=None, base_dir_path=None, port=7777, client=None):
 
+    endpoint_args = {'onlyListener': True}
+    if wallet:
+        endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
+
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)
 
     agent = ThriftAgent(name=name or 'Thrift Bank',
-                       basedirpath=base_dir_path,
-                       client=client,
-                       wallet=wallet or buildThriftWallet(),
-                       port=port)
+                        basedirpath=base_dir_path,
+                        client=client,
+                        wallet=wallet or buildThriftWallet(),
+                        port=port,
+                        endpointArgs=endpoint_args)
 
     agent._invites = {
         "77fbf9dc8c8e6acde33de98c6d747b28c": 1,

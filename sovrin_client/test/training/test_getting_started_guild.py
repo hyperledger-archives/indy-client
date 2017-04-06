@@ -3,8 +3,8 @@ from sovrin_client.test.training.getting_started import *
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import tconf
 
-def test_getting_started(tconf):
-    getting_started(base_dir=tconf.baseDir)
+# def test_getting_started(tconf):
+#     getting_started(base_dir=tconf.baseDir)
 
 
 def getting_started(base_dir=None):

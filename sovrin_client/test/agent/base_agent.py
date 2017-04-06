@@ -167,15 +167,16 @@ class BaseAgent(TestWalletedAgent):
                 "check if agent has attrib def and it's name is equivalent " \
                 "to it's corresponding schema key name"
             attrDef = matchedAttrDefs[0]
-            schema = await self.issuer.genSchema(schemaKey.name,
+            if not self.issuer.isSchemaExists(schemaKey):
+                schema = await self.issuer.genSchema(schemaKey.name,
                                                  schemaKey.version,
                                                  attrDef.attribNames(),
                                                  'CL')
-            if schema:
-                schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
-                p_prime, q_prime = primes["prime2"]
-                await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
-                await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
+                if schema:
+                    schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+                    p_prime, q_prime = primes["prime2"]
+                    await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
+                    await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
 
         await self.initAvailableClaimList()
 

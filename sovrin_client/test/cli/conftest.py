@@ -358,14 +358,18 @@ def showJobCertificateClaimInProofOut():
         "  salary_bracket: {attr-salary_bracket}"
     ]
 
+@pytest.fixture(scope="module")
+def proofConstructedMsg():
+    return ["The Proof is constructed from the following claims:"]
+
 
 @pytest.fixture(scope="module")
-def showJobAppProofRequestOut(showTranscriptProofOut):
+def showJobAppProofRequestOut(proofConstructedMsg, showTranscriptProofOut):
     return [
         'Found proof request "{proof-req-to-match}" in link "{inviter}"',
+        "Status: Requested",
         "Name: {proof-request-to-show}",
         "Version: {proof-request-version}",
-        "Status: Requested",
         "Attributes:",
         "{proof-request-attr-first_name}: {set-attr-first_name}",
         "{proof-request-attr-last_name}: {set-attr-last_name}",
@@ -373,7 +377,7 @@ def showJobAppProofRequestOut(showTranscriptProofOut):
         "{proof-request-attr-degree} (V): {attr-degree}",
         "{proof-request-attr-status} (V): {attr-status}",
         "{proof-request-attr-ssn} (V): {attr-ssn}"
-    ] + showTranscriptProofOut
+    ] + proofConstructedMsg + showTranscriptProofOut
 
 
 @pytest.fixture(scope="module")

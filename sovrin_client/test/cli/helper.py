@@ -318,3 +318,37 @@ def getAgentCliHelpString():
        send proofreq - Send a proof request
        license - Shows the license
        exit - Exit the command-line interface ('quit' also works)"""
+
+
+def getTotalLinks(userCli):
+    return len(userCli.activeWallet._links)
+
+
+def getTotalAvailableClaims(userCli):
+    availableClaimsCount = 0
+    for li in userCli.activeWallet._links.values():
+        availableClaimsCount += len(li.availableClaims)
+    return availableClaimsCount
+
+
+def getTotalSchemas(userCli):
+    async def getTotalSchemasCoro():
+        return 0 if userCli.agent.prover is None \
+            else len(await userCli.agent.prover.wallet.getAllSchemas())
+    return userCli.looper.run(getTotalSchemasCoro)
+
+
+def getTotalClaimsRcvd(userCli):
+    async def getTotalClaimsRcvdCoro():
+        return 0 if userCli.agent.prover is None \
+            else len((await userCli.agent.prover.wallet.getAllClaims()).keys())
+    return userCli.looper.run(getTotalClaimsRcvdCoro)
+
+
+def getWalletState(userCli):
+    totalLinks = getTotalLinks(userCli)
+    totalAvailClaims = getTotalAvailableClaims(userCli)
+    totalSchemas = getTotalSchemas(userCli)
+    totalClaimsRcvd = getTotalClaimsRcvd(userCli)
+    return wallet_state(totalLinks, totalAvailClaims, totalSchemas,
+                        totalClaimsRcvd)

@@ -220,7 +220,6 @@ class WalletedAgent(Walleted, Agent, Caching):
                  port: int = None,
                  loop=None,
                  attrRepo=None,
-                 agentLogger=None,
                  config=None,
                  endpointArgs=None):
 

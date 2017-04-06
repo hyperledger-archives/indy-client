@@ -250,7 +250,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         if self.client:
             self._initIssuerProverVerifier()
 
-        self._restoreIssuerWallet()
+        # self._restoreIssuerWallet()
 
     def _initIssuerProverVerifier(self):
         self.issuer = SovrinIssuer(client=self.client, wallet=self._wallet,
@@ -285,7 +285,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._saveActiveWallet()
         # TODO: There are some other wallets in issuer, prover and verifier,
         # which also should be persisted.
-        self._saveIssuerWallet()
+        # self._saveIssuerWallet()
 
     def resetIssuerRepoBeforeSaving(self):
         self.issuer.wallet._repo = {}
@@ -301,25 +301,23 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir()
                          , walletName="issuer")
 
-    def _restoreWallet(self, contextDir, walletToBeUpdated):
-        restoredWallet, walletFilePath = self._restoreLastActiveWallet(contextDir)
-        if restoredWallet:
-            walletToBeUpdated = restoredWallet
-            self.logger.info('Saved keyring "{}" restored ({})'.
-                             format(basename(contextDir), walletFilePath))
-
     def _restoreMainWallet(self):
         mainWalletContextDir = self.getContextDir()
-        params = [(mainWalletContextDir, self._wallet)]
-        for contextDir, walletToBeUpdated in params:
-            self._restoreWallet(contextDir, walletToBeUpdated)
+        restoredWallet, walletFilePath = self._restoreLastActiveWallet(
+            mainWalletContextDir)
+        if restoredWallet and walletFilePath:
+            self.wallet = restoredWallet
+            self.logger.info('Saved keyring "{}" restored ({})'.
+                             format(basename(self.wallet.name), walletFilePath))
 
     def _restoreIssuerWallet(self):
         if self.issuer:
             issuerContextDir = self._getIssuerWalletContextDir()
-            params = [(issuerContextDir, self.issuer.wallet)]
-            for contextDir, walletToBeUpdated in params:
-                self._restoreWallet(contextDir, walletToBeUpdated)
+            restoredWallet, walletFilePath = self._restoreLastActiveWallet(
+                issuerContextDir)
+            if restoredWallet and walletFilePath:
+                self.logger.info('Saved keyring "issuer" restored ({})'.
+                             format(basename(walletFilePath)))
 
     def stop(self, *args, **kwargs):
         self._saveAllWallets()

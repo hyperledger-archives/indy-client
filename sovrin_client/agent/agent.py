@@ -1,5 +1,6 @@
 import asyncio
 import os
+from os.path import basename
 
 from typing import Dict
 from typing import Tuple
@@ -231,7 +232,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._wallet = None
 
         # restore any active wallet belonging to this agent
-        self._restoreLastActiveWallet()
+        self._restoreMainWallet()
 
         # if no persisted wallet is restored and a wallet is passed,
         # then use given wallet, else ignore the given wallet
@@ -248,6 +249,8 @@ class WalletedAgent(Walleted, Agent, Caching):
 
         if self.client:
             self._initIssuerProverVerifier()
+
+        self._restoreIssuerWallet()
 
     def _initIssuerProverVerifier(self):
         self.issuer = SovrinIssuer(client=self.client, wallet=self._wallet,
@@ -282,6 +285,39 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._saveActiveWallet()
         # TODO: There are some other wallets in issuer, prover and verifier,
         # which also should be persisted.
+        self._saveIssuerWallet()
+
+    def resetIssuerRepoBeforeSaving(self):
+        self.issuer.wallet._repo = {}
+
+    def _getIssuerWalletContextDir(self):
+        return os.path.join(self.getContextDir(), "issuer")
+
+    def _saveIssuerWallet(self):
+
+        # TODO: Need to find out why it is taking time if we don't reset the
+        # variables mentioned in resetIssuerRepoBeforeSaving function
+        self.resetIssuerRepoBeforeSaving()
+        self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir()
+                         , walletName="issuer")
+
+    def _restoreWallet(self, contextDir, walletToBeUpdated):
+        restoredWallet, walletFilePath = self._restoreLastActiveWallet(contextDir)
+        walletToBeUpdated = restoredWallet
+        self.logger.info('Saved keyring "{}" restored ({})'.
+                         format(basename(contextDir), walletFilePath))
+
+    def _restoreMainWallet(self):
+        mainWalletContextDir = self.getContextDir()
+        params = [(mainWalletContextDir, self._wallet)]
+        for contextDir, walletToBeUpdated in params:
+            self._restoreWallet(contextDir, walletToBeUpdated)
+
+    def _restoreIssuerWallet(self):
+        issuerContextDir = self._getIssuerWalletContextDir()
+        params = [(issuerContextDir, self.issuer.wallet)]
+        for contextDir, walletToBeUpdated in params:
+            self._restoreWallet(contextDir, walletToBeUpdated)
 
     def stop(self, *args, **kwargs):
         self._saveAllWallets()
@@ -301,17 +337,14 @@ class WalletedAgent(Walleted, Agent, Caching):
                              "error no.{}, error.{}"
                              .format(ex.errno, ex.strerror))
 
-    def _restoreLastActiveWallet(self):
+    def _restoreLastActiveWallet(self, contextDir):
         walletFilePath = None
         try:
-            contextDir = self.getContextDir()
             walletFileName = getLastSavedWalletFileName(contextDir)
             walletFilePath = os.path.join(contextDir, walletFileName)
             wallet = getWalletByPath(walletFilePath)
             # TODO: What about current wallet if any?
-            self.wallet = wallet
-            self.logger.info('Saved keyring "{}" restored ({})'.
-                             format(self.wallet.name, walletFilePath))
+            return wallet, walletFilePath
         except ValueError as e:
             if not str(e) == "max() arg is an empty sequence":
                 self.logger.info("No wallet to restore")

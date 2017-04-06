@@ -76,3 +76,8 @@ def testAgentCreatesWalletIfItDoesntHaveOne(tdirWithPoolTxns):
                         wallet=None, basedirpath=tdirWithPoolTxns,
                         port=genHa()[1], clientClass=TestClient)
     assert agent._wallet is not None
+
+
+def testStopAgent(poolNodesStarted, agentAddedBySponsor, agentStarted):
+   agent, wallet = agentStarted
+   agent.stop()

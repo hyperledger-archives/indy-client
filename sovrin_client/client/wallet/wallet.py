@@ -280,7 +280,7 @@ class Wallet(PWallet, TrustAnchoring):
             nym = data.get(TARGET_NYM)
             idy = self.knownIds.get(nym)
             if idy:
-                idy.role = data.get(ROLE)
+                idy.role = data.get(ROLE) or None
                 idy.trustAnchor = data.get(f.IDENTIFIER.nm)
                 idy.last_synced = datetime.datetime.utcnow()
                 idy.verkey = data.get(VERKEY)

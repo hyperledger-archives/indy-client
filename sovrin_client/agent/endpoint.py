@@ -2,9 +2,9 @@ from typing import Callable
 
 from plenum import config
 from plenum.common.message_processor import MessageProcessor
-from raet.raeting import AutoMode
 
 from stp_core.common.log import getlogger
+from stp_core.network.auth_mode import AuthMode
 from stp_raet.util import getHaFromLocalEstate
 from plenum.common.util import randomString
 from stp_core.crypto.util import randomSeed
@@ -34,7 +34,7 @@ class REndpoint(SimpleRStack, EndpointCore):
             "name": name or randomString(8),
             "ha": HA("0.0.0.0", port),
             "main": True,
-            "auto": AutoMode.always,
+            "auth_mode": AuthMode.ALLOW_ANY.value,
             "mutable": "mutable",
             "messageTimeout": config.RAETMessageTimeout
         }
@@ -52,7 +52,7 @@ class ZEndpoint(SimpleZStack, EndpointCore):
         stackParams = {
             "name": name or randomString(8),
             "ha": HA("0.0.0.0", port),
-            "auto": AutoMode.always
+            "auth_mode": AuthMode.ALLOW_ANY.value
         }
         if basedirpath:
             stackParams["basedirpath"] = basedirpath

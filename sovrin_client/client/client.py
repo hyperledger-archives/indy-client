@@ -19,6 +19,7 @@ from plenum.common.types import f
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
+from stp_core.network.auth_mode import AuthMode
 from stp_raet.rstack import SimpleRStack
 from stp_zmq.zstack import SimpleZStack
 
@@ -63,7 +64,7 @@ class Client(PlenumClient):
             stackargs = dict(name=self.stackName,
                              ha=peerHA,
                              main=True,
-                             auto=2)
+                             auth_mode=AuthMode.ALLOW_ANY.value)
 
             self.peerMsgRoutes = []
             self.peerMsgRouter = Router(*self.peerMsgRoutes)

@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 
 import pytest
 
@@ -29,10 +30,13 @@ def runAgent(looper, basedir, port, name=None, agent=None):
     return startAgent(looper, agent, wallet)
 
 
+def _startAgent(looper, base_dir, port, name):
+    agent, wallet = runAgent(looper, base_dir, port, name)
+    return agent, wallet
+
 @pytest.fixture(scope="module")
 def agentStarted(emptyLooper, tdirWithPoolTxns):
-    agent, wallet = runAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
-    return agent, wallet
+    return _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
 
 
 def changeAndPersistWallet(agent):
@@ -78,6 +82,43 @@ def testAgentCreatesWalletIfItDoesntHaveOne(tdirWithPoolTxns):
     assert agent._wallet is not None
 
 
-def testStopAgent(poolNodesStarted, agentAddedBySponsor, agentStarted):
-   agent, wallet = agentStarted
-   agent.stop()
+def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
+                  agentAddedBySponsor, agentStarted):
+    agent, wallet = agentStarted
+    issuerWallet = agent.issuer.wallet
+    agent.stop()
+    emptyLooper.removeProdable(agent)
+    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
+    newIssuerWallet = newAgent.issuer.wallet
+
+    def compare(old, new):
+        if isinstance(old, Dict):
+            for k, v in old.items():
+                assert v == new.get(k)
+        else:
+            assert old == new
+
+    compareList = [
+        # from anoncreds wallet
+        (issuerWallet.walletId, newIssuerWallet.walletId),
+
+        # from anoncreds wallet-in-memory
+        (issuerWallet._schemasByKey, newIssuerWallet._schemasByKey),
+        (issuerWallet._schemasById, newIssuerWallet._schemasById),
+        (issuerWallet._pks, newIssuerWallet._pks),
+        (issuerWallet._pkRs, newIssuerWallet._pkRs),
+        (issuerWallet._accums, newIssuerWallet._accums),
+        (issuerWallet._accumPks, newIssuerWallet._accumPks),
+        # TODO: need to check for _tails, it is little bit different than
+        # others (Dict instead of namedTuple or class)
+
+        # from anoncreds issuer-wallet-in-memory
+        (issuerWallet._sks, newIssuerWallet._sks),
+        (issuerWallet._skRs, newIssuerWallet._skRs),
+        (issuerWallet._accumSks, newIssuerWallet._accumSks),
+        (issuerWallet._m2s, newIssuerWallet._m2s),
+        (issuerWallet._attributes, newIssuerWallet._attributes),
+
+    ]
+    for oldDict, newDict in compareList:
+        compare(oldDict, newDict)

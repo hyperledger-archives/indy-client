@@ -294,8 +294,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         return os.path.join(self.getContextDir(), "issuer")
 
     def _saveIssuerWallet(self):
-
-        # TODO: Need to find out why it is taking time if we don't reset the
+        # TODO: Need to find out why it hangs if we don't reset the
         # variables mentioned in resetIssuerRepoBeforeSaving function
         self.resetIssuerRepoBeforeSaving()
         self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir()
@@ -316,8 +315,9 @@ class WalletedAgent(Walleted, Agent, Caching):
             restoredWallet, walletFilePath = self._restoreLastActiveWallet(
                 issuerContextDir)
             if restoredWallet and walletFilePath:
+                self.issuer.resetIssuerWallet(restoredWallet)
                 self.logger.info('Saved keyring "issuer" restored ({})'.
-                             format(basename(walletFilePath)))
+                             format(walletFilePath))
 
     def stop(self, *args, **kwargs):
         self._saveAllWallets()
@@ -328,10 +328,11 @@ class WalletedAgent(Walleted, Agent, Caching):
 
     def _saveWallet(self, wallet: Wallet, contextDir, walletName=None):
         try:
-            fileName = normalizedWalletFileName(walletName or wallet.name)
+            walletName = walletName or wallet.name
+            fileName = normalizedWalletFileName(walletName)
             walletFilePath = saveGivenWallet(wallet, fileName, contextDir)
             self.logger.info('Active keyring "{}" saved ({})'.
-                             format(self._wallet.name, walletFilePath))
+                             format(walletName, walletFilePath))
         except IOError as ex:
             self.logger.info("Error occurred while saving wallet. " +
                              "error no.{}, error.{}"
@@ -359,6 +360,7 @@ class WalletedAgent(Walleted, Agent, Caching):
             else:
                 raise exc
         return None, None
+
 
 def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
                 loop=None, clientClass=Client):

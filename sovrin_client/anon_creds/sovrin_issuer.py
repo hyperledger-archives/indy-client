@@ -13,3 +13,10 @@ class SovrinIssuer(Issuer):
                                                     wallet=wallet)
         issuerWallet = IssuerWalletInMemory(wallet.name, publicRepo)
         super().__init__(issuerWallet, attrRepo)
+
+    def resetIssuerWallet(self, issuerWallet):
+        curRepo = self.wallet._repo
+        self.wallet = issuerWallet
+        self._primaryIssuer._wallet = issuerWallet
+        self._nonRevocationIssuer._wallet = issuerWallet
+        self.wallet._repo = curRepo

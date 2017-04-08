@@ -68,11 +68,15 @@ def start_agents(pool, looper):
 def start_agent(create_func, bootstrap_func, client, looper, steward):
     looper.run_till_quiet(1)
     agent = create_func(base_dir_path=None, client=client)
-    looper.add(agent)
 
     steward.publish_trust_anchor(Identity(identifier=agent.wallet.defaultId,
                                           verkey=agent.wallet.getVerkey(agent.wallet.defaultId),
                                           role=TRUST_ANCHOR))
+
+    looper.run_till_quiet(4)
+
+    looper.add(agent)
+
     looper.run_till_quiet(1)
 
     looper.run(bootstrap_func(agent))

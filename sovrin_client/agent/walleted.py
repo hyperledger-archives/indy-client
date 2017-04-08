@@ -894,10 +894,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                             "provided {}".format(type(link)))
         # TODO should move to wallet in a method like accept(link)
         if not link.localIdentifier:
-            signer = DidSigner()
-            self.wallet.addIdentifier(signer=signer)
-            link.localIdentifier = signer.identifier
-            link.localVerkey = signer.verkey
+            _create_identifier_for_link(self, link)
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender
@@ -926,6 +923,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     #             additionalCallback(reply, err)
     #
     #     return _
+
+    def create_identifier_for_link(self, link):
+        signer = DidSigner()
+        self.wallet.addIdentifier(signer=signer)
+        link.localIdentifier = signer.identifier
+        link.localVerkey = signer.verkey
 
     def _handleSyncResp(self, link, additionalCallback):
         def _(reply, err):

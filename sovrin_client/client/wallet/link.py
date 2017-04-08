@@ -61,6 +61,10 @@ class Link:
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
         self.remotePubKey = remotePubKey
+        # if remotePubKey is None\
+        #         and remote_verkey is not None:
+        #     self.remotePubKey =                     link.remotePubKey = friendlyVerkeyToPubkey(
+        #                 link.targetVerkey) if link.targetVerkey else None
         self.invitationNonce = invitationNonce
 
         # for optionally storing a reference to an identifier in another system

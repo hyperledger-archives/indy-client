@@ -3,8 +3,8 @@ from sovrin_client.test.training.getting_started import *
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import tconf
 
-# def test_getting_started(tconf):
-#     getting_started(base_dir=tconf.baseDir)
+def test_getting_started(tconf):
+    getting_started(base_dir=tconf.baseDir)
 
 
 def getting_started(base_dir=None):
@@ -19,9 +19,9 @@ def getting_started(base_dir=None):
 
     start_agents(pool, pool)
 
-    ####################################
+    # ###################################
     #  Alice's Wallet
-    ####################################
+    # ###################################
 
     alice_wallet = Wallet()
     alice_agent = WalletedAgent(name="Alice",
@@ -41,6 +41,13 @@ def getting_started(base_dir=None):
     print(FABER_INVITE)
 
     link_to_faber = alice_agent.load_invitation_str(FABER_INVITE)
+    alice_agent.create_identifier_for_link(link_to_faber)
+
+    print(link_to_faber)
+
+    alice_agent.sync(link_to_faber.name)
+
+    pool.run_till_quiet()
 
     print(link_to_faber)
 
@@ -138,7 +145,7 @@ def getting_started(base_dir=None):
 
     print(link_to_thrift)
 
-    ########
+    #######
 
     load_kyc_request = link_to_thrift.find_proof_request(name='Loan-Application-KYC')
 

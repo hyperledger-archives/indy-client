@@ -14,9 +14,16 @@ class SovrinIssuer(Issuer):
         issuerWallet = IssuerWalletInMemory(wallet.name, publicRepo)
         super().__init__(issuerWallet, attrRepo)
 
-    def resetIssuerWallet(self, issuerWallet):
-        curRepo = self.wallet._repo
+    def prepareWalletForPersistence(self):
+        # TODO: If we don't set self.wallet._repo.client to None,
+        # it hangs during wallet persistence, based on findings, it seems,
+        # somewhere it hangs during persisting client._ledger and
+        # client.ledgerManager
+        self.wallet._repo.client = None
+
+    def restoreWallet(self, issuerWallet):
+        curClient = self.wallet._repo.client
         self.wallet = issuerWallet
         self._primaryIssuer._wallet = issuerWallet
         self._nonRevocationIssuer._wallet = issuerWallet
-        self.wallet._repo = curRepo
+        self.wallet._repo.client = curClient

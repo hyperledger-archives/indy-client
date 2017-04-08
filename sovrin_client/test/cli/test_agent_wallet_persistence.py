@@ -82,15 +82,7 @@ def testAgentCreatesWalletIfItDoesntHaveOne(tdirWithPoolTxns):
     assert agent._wallet is not None
 
 
-def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
-                  agentAddedBySponsor, agentStarted):
-    agent, wallet = agentStarted
-    issuerWallet = agent.issuer.wallet
-    agent.stop()
-    emptyLooper.removeProdable(agent)
-    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
-    newIssuerWallet = newAgent.issuer.wallet
-
+def _compareWallets(unpersistedWallet, restoredWallet):
     def compare(old, new):
         if isinstance(old, Dict):
             for k, v in old.items():
@@ -100,25 +92,40 @@ def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
 
     compareList = [
         # from anoncreds wallet
-        (issuerWallet.walletId, newIssuerWallet.walletId),
+        (unpersistedWallet.walletId, restoredWallet.walletId),
+        (unpersistedWallet._repo.wallet.name, restoredWallet._repo.wallet.name),
 
         # from anoncreds wallet-in-memory
-        (issuerWallet._schemasByKey, newIssuerWallet._schemasByKey),
-        (issuerWallet._schemasById, newIssuerWallet._schemasById),
-        (issuerWallet._pks, newIssuerWallet._pks),
-        (issuerWallet._pkRs, newIssuerWallet._pkRs),
-        (issuerWallet._accums, newIssuerWallet._accums),
-        (issuerWallet._accumPks, newIssuerWallet._accumPks),
+        (unpersistedWallet._schemasByKey, restoredWallet._schemasByKey),
+        (unpersistedWallet._schemasById, restoredWallet._schemasById),
+        (unpersistedWallet._pks, restoredWallet._pks),
+        (unpersistedWallet._pkRs, restoredWallet._pkRs),
+        (unpersistedWallet._accums, restoredWallet._accums),
+        (unpersistedWallet._accumPks, restoredWallet._accumPks),
         # TODO: need to check for _tails, it is little bit different than
         # others (Dict instead of namedTuple or class)
 
         # from anoncreds issuer-wallet-in-memory
-        (issuerWallet._sks, newIssuerWallet._sks),
-        (issuerWallet._skRs, newIssuerWallet._skRs),
-        (issuerWallet._accumSks, newIssuerWallet._accumSks),
-        (issuerWallet._m2s, newIssuerWallet._m2s),
-        (issuerWallet._attributes, newIssuerWallet._attributes),
+        (unpersistedWallet._sks, restoredWallet._sks),
+        (unpersistedWallet._skRs, restoredWallet._skRs),
+        (unpersistedWallet._accumSks, restoredWallet._accumSks),
+        (unpersistedWallet._m2s, restoredWallet._m2s),
+        (unpersistedWallet._attributes, restoredWallet._attributes),
 
     ]
+
+    assert unpersistedWallet._repo.client is None
+    assert restoredWallet._repo.client is not None
     for oldDict, newDict in compareList:
         compare(oldDict, newDict)
+
+
+def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
+                  agentAddedBySponsor, agentStarted):
+    agent, wallet = agentStarted
+    unpersistedIssuerWallet = agent.issuer.wallet
+    agent.stop()
+    emptyLooper.removeProdable(agent)
+    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
+    restoredIssuerWallet = newAgent.issuer.wallet
+    _compareWallets(unpersistedIssuerWallet, restoredIssuerWallet)

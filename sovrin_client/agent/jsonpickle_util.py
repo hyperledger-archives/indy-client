@@ -1,53 +1,55 @@
 import jsonpickle
 
-from anoncreds.protocol.types import PublicKey, RevocationPublicKey, SecretKey, \
-    RevocationSecretKey, AccumulatorSecretKey
+from anoncreds.protocol.types import PublicKey, RevocationPublicKey, \
+    SecretKey, RevocationSecretKey, AccumulatorSecretKey
 from anoncreds.protocol.utils import toDictWithStrValues, fromDictWithStrValues
 
-OBJECTVALUE = 'py/integer-element'
+DATA_KEY = 'py/integer-element'
 
 
 class CommonIntegerElementHandler(jsonpickle.handlers.BaseHandler):
     def flatten(self, obj, data):
-        data[OBJECTVALUE] = toDictWithStrValues(obj)
+        data[DATA_KEY] = toDictWithStrValues(obj)
         return data
+
+    def restore(self, obj):
+        dict = fromDictWithStrValues(obj[DATA_KEY])
+        return self._restore(dict)
+
+    def _restore(self, dict):
+        raise NotImplemented
 
 
 class PublicKeyHandler(CommonIntegerElementHandler):
-    def restore(self, obj):
-        origObj = fromDictWithStrValues(obj[OBJECTVALUE])
-        return PublicKey(origObj.get("N"), origObj.get("Rms"),
-                       origObj.get("Rctxt"), origObj.get("R"),
-                       origObj.get("S"), origObj.get("Z"), origObj.get("seqId"))
+    def _restore(self, dict):
+        return PublicKey(dict.get("N"), dict.get("Rms"),
+                         dict.get("Rctxt"), dict.get("R"),
+                         dict.get("S"), dict.get("Z"), dict.get("seqId"))
 
 
 class RevocationPublicKeyHandler(CommonIntegerElementHandler):
-    def restore(self, obj):
-        origObj = fromDictWithStrValues(obj[OBJECTVALUE])
+    def _restore(self, dict):
         return RevocationPublicKey(
-            origObj.get("qr"), origObj.get("g"), origObj.get("h"),
-            origObj.get("h0"), origObj.get("h1"), origObj.get("h2"),
-            origObj.get("htilde"), origObj.get("u"), origObj.get("pk"),
-            origObj.get("y"), origObj.get("x"), origObj.get("seqId")
+            dict.get("qr"), dict.get("g"), dict.get("h"),
+            dict.get("h0"), dict.get("h1"), dict.get("h2"),
+            dict.get("htilde"), dict.get("u"), dict.get("pk"),
+            dict.get("y"), dict.get("x"), dict.get("seqId")
         )
 
 
 class SecretKeyHandler(CommonIntegerElementHandler):
-    def restore(self, obj):
-        origObj = fromDictWithStrValues(obj[OBJECTVALUE])
-        return SecretKey(origObj.get("pPrime"), origObj.get("qPrime"))
+    def _restore(self, dict):
+        return SecretKey(dict.get("pPrime"), dict.get("qPrime"))
 
 
 class RevocationSecretKeyHandler(CommonIntegerElementHandler):
-    def restore(self, obj):
-        origObj = fromDictWithStrValues(obj[OBJECTVALUE])
-        return RevocationSecretKey(origObj.get("x"), origObj.get("sk"))
+    def _restore(self, dict):
+        return RevocationSecretKey(dict.get("x"), dict.get("sk"))
 
 
 class AccumulatorSecretKeyHandler(CommonIntegerElementHandler):
-    def restore(self, obj):
-        origObj = fromDictWithStrValues(obj[OBJECTVALUE])
-        return AccumulatorSecretKey(origObj.get("gamma"))
+    def _restore(self, dict):
+        return AccumulatorSecretKey(dict.get("gamma"))
 
 
 def setUpJsonpickle():

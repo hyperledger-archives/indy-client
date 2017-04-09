@@ -120,6 +120,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
             agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
             philCLI.looper, TestClient)
 
+    faberAgent, acmeAgent, thriftAgent = None, None, None
+
     for p in philCLI.looper.prodables:
         if p.name == 'Faber College':
             faberAgent = p

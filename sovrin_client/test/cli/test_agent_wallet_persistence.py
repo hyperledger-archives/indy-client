@@ -126,6 +126,7 @@ def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
     unpersistedIssuerWallet = agent.issuer.wallet
     agent.stop()
     emptyLooper.removeProdable(agent)
-    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
+    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns,
+                                      agentPort, "Agent0")
     restoredIssuerWallet = newAgent.issuer.wallet
     _compareWallets(unpersistedIssuerWallet, restoredIssuerWallet)

@@ -42,17 +42,6 @@ class BaseAgent(TestWalletedAgent):
 
         self.claimVersionNumber = 0.01
 
-        # available claims to anyone whose connection is accepted by the agent
-        self.availableClaimsToAll = []
-
-        # available claims only for certain invitation (by nonce)
-        self.availableClaimsByNonce = {}
-
-        # mapping between specific identifier and available claims which would
-        # have been available once they have provided requested information
-        # like proof etc.
-        self.availableClaimsByIdentifier = {}
-
         self._invites = {}
 
         self.updateClaimVersionFile(self.getClaimVersionFileName())
@@ -168,6 +157,8 @@ class BaseAgent(TestWalletedAgent):
                 "to it's corresponding schema key name"
             attrDef = matchedAttrDefs[0]
             if not self.issuer.isSchemaExists(schemaKey):
+                self.logger.info("schema not found in wallet, will go and "
+                                 "get id from repo: {}".format( str(schemaKey)))
                 schema = await self.issuer.genSchema(schemaKey.name,
                                                  schemaKey.version,
                                                  attrDef.attribNames(),
@@ -177,7 +168,8 @@ class BaseAgent(TestWalletedAgent):
                     p_prime, q_prime = primes["prime2"]
                     await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
                     await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
-
+            else:
+                self.logger.info("schema is already loaded in wallet: {}".format(str(schemaKey)))
         await self.initAvailableClaimList()
 
     async def bootstrap(self):

@@ -22,8 +22,8 @@ class SovrinIssuer(Issuer):
         self.wallet._repo.client = None
 
     def restoreWallet(self, issuerWallet):
-        curClient = self.wallet._repo.client
+        curRepoClient = self.wallet._repo.client
         self.wallet = issuerWallet
         self._primaryIssuer._wallet = issuerWallet
         self._nonRevocationIssuer._wallet = issuerWallet
-        self.wallet._repo.client = curClient
+        self.wallet._repo.client = curRepoClient

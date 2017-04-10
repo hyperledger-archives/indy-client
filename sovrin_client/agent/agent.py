@@ -293,7 +293,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         # which we may also have to persist/restore as need arises
 
     def _saveIssuerWallet(self):
-        self.issuer.prepareWalletForPersistence()
+        self.issuer.prepareForWalletPersistence()
         self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
                          walletName="issuer")
 
@@ -322,7 +322,7 @@ class WalletedAgent(Walleted, Agent, Caching):
             restoredWallet, walletFilePath = self._restoreLastActiveWallet(
                 self._getIssuerWalletContextDir())
             if restoredWallet:
-                self.issuer.restoreWallet(restoredWallet)
+                self.issuer.restorePersistedWallet(restoredWallet)
                 self.logger.info('Saved keyring "issuer" restored ({})'.
                              format(walletFilePath))
 

@@ -891,7 +891,7 @@ def testAliceShowProofIncludeSingleClaim(
 
 
 @pytest.fixture(scope="module")
-def bankBasicClaimSent(be, do, aliceCli, thriftMap,
+def bankBasicProofSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)

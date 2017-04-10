@@ -93,9 +93,9 @@ class BaseAgent(TestWalletedAgent):
         assert link
         assert link.invitationNonce
         assert link.remoteIdentifier
-        return self.availableClaimsToAll + \
-               self.availableClaimsByNonce.get(link.invitationNonce, []) + \
-               self.availableClaimsByIdentifier.get(link.remoteIdentifier, [])
+        return self.issuer.wallet.availableClaimsToAll + \
+               self.issuer.wallet.availableClaimsByNonce.get(link.invitationNonce, []) + \
+               self.issuer.wallet.availableClaimsByIdentifier.get(link.remoteIdentifier, [])
 
     def isClaimAvailable(self, link, claimName):
         return claimName in [cl.get("name") for cl in
@@ -130,7 +130,7 @@ class BaseAgent(TestWalletedAgent):
 
         for schemaKey in self.getSchemaKeysForClaimsAvailableToAll():
             schema = await getSchema(schemaKey)
-            self.availableClaimsToAll.append(schema)
+            self.issuer.wallet.availableClaimsToAll.append(schema)
 
         for nonce, schemaNames in self.getSchemaKeysForClaimsAvailableToSpecificNonce().items():
             for schemaName in schemaNames:
@@ -138,9 +138,9 @@ class BaseAgent(TestWalletedAgent):
                 assert len(schemaKeys) == 1, \
                     "no such schema name found in generated schema keys"
                 schema = await getSchema(schemaKeys[0])
-                oldAvailClaims = self.availableClaimsByNonce.get(nonce, [])
+                oldAvailClaims = self.issuer.wallet.availableClaimsByNonce.get(nonce, [])
                 oldAvailClaims.append(schema)
-                self.availableClaimsByNonce[nonce] = oldAvailClaims
+                self.issuer.wallet.availableClaimsByNonce[nonce] = oldAvailClaims
 
     def _addAttribute(self, schemaKey, proverId, link):
         attr = self.getAttrs()[self.getInternalIdByInvitedNonce(proverId)]

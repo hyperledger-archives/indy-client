@@ -77,19 +77,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             self.syncClient()
         self.rcvdMsgStore = {}  # type: Dict[reqId, [reqMsg]]
 
-        # available claims to anyone whose connection is accepted by the agent
-        self.availableClaimsToAll = []
-
-        # available claims only for certain invitation (by nonce)
-        self.availableClaimsByNonce = {}
-
-        # mapping between specific identifier and available claims which would
-        # have been available once they have provided requested information
-        # like proof etc.
-        self.availableClaimsByIdentifier = {}
-
-        self._proofRequestsSchema = {}  # Dict[str, Dict[str, any]]
-
         self.msgHandlers = {
             ERROR: self._handleError,
             EVENT: self._eventHandler,

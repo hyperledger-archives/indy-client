@@ -22,7 +22,7 @@ from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
 from sovrin_client.test.cli.helper import newCLI
 from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationProofSent, \
-    jobCertClaimRequested, bankBasicClaimSent, bankKYCProofSent, \
+    jobCertClaimRequested, bankBasicProofSent, bankKYCProofSent, \
     setPromptAndKeyring
 from sovrin_client.test.helper import TestClient
 
@@ -99,7 +99,6 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
            expect=attrAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent
-
     fMap = faberMap(agentIpAddress, faberAgentPort)
     aMap = acmeMap(agentIpAddress, acmeAgentPort)
     tMap = thriftMap(agentIpAddress, thriftAgentPort)
@@ -113,22 +112,35 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
          buildThriftWallet)
     ]
 
-    for agentCls, agentName, agentPort, buildAgentWalletFunc in \
-            agentParams:
-        agentCls.getPassedArgs = lambda _: (agentPort, False)
-        TestWalletedAgent.createAndRunAgent(
-            agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
-            philCLI.looper, TestClient)
-
     faberAgent, acmeAgent, thriftAgent = None, None, None
 
-    for p in philCLI.looper.prodables:
-        if p.name == 'Faber College':
-            faberAgent = p
-        if p.name == 'Acme Corp':
-            acmeAgent = p
-        if p.name == 'Thrift Bank':
-            thriftAgent = p
+    def startAgents():
+        global faberAgent, acmeAgent, thriftAgent
+        for agentCls, agentName, agentPort, buildAgentWalletFunc in \
+                agentParams:
+            agentCls.getPassedArgs = lambda _: (agentPort, False)
+            TestWalletedAgent.createAndRunAgent(
+                agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
+                philCLI.looper, TestClient)
+        for p in philCLI.looper.prodables:
+            if p.name == 'Faber College':
+                _faberAgent = p
+            if p.name == 'Acme Corp':
+                _acmeAgent = p
+            if p.name == 'Thrift Bank':
+                _thriftAgent = p
+        return _faberAgent, _acmeAgent, _thriftAgent
+
+    def restartAgents():
+        # TODO: Need to uncomment this code when port unbinding and checking
+        # related issues get fixed
+        # for agent in [faberAgent, acmeAgent, thriftAgent]:
+        #     agent.stop()
+        #     philCLI.looper.removeProdable(name=agent.name)
+        # return startAgents()
+        return faberAgent, acmeAgent, thriftAgent
+
+    faberAgent, acmeAgent, thriftAgent = startAgents()
 
     async def checkTranscriptWritten():
         faberId = faberAgent.wallet.defaultId
@@ -160,7 +172,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                        reqClaimOut1, syncLinkOutWithEndpoint,
                        syncedInviteAcceptedOutWithoutClaims, tMap,
                        transcriptClaimMap):
-        pass
+
         async def getPublicKey(wallet, schemaId):
             return await wallet.getPublicKey(schemaId)
 
@@ -178,6 +190,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('show link faber')
         acceptInvitation(be, do, userCLI, fMap,
                          syncedInviteAcceptedOutWithoutClaims)
+
+        # restart agents to test everything still works fine
+        faberAgent, acmeAgent, thriftAgent = restartAgents()
+
         # Request claim
         do('show claim Transcript')
         aliceRequestedTranscriptClaim(be, do, userCLI, transcriptClaimMap,
@@ -208,6 +224,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
         jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
+
+        # restart agents to test everything still works fine
+        faberAgent, acmeAgent, thriftAgent = restartAgents()
+
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,
@@ -227,8 +247,12 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('load sample/thrift-loan-application.sovrin')
         acceptInvitation(be, do, userCLI, tMap,
                          syncedInviteAcceptedOutWithoutClaims)
-        # Send claims
-        bankBasicClaimSent(be, do, userCLI, tMap, None)
+
+        # restart agents to test everything still works fine
+        faberAgent, acmeAgent, thriftAgent = restartAgents()
+
+        # Send proofs
+        bankBasicProofSent(be, do, userCLI, tMap, None)
 
         thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(
             thriftAgent.issuer.wallet, acmeSchemaId))
@@ -249,7 +273,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
 
-    aliceCLI.looper.runFor(3)
+    # restart agents to test everything still works fine
+    faberAgent, acmeAgent, thriftAgent = restartAgents()
 
     executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
                    aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,

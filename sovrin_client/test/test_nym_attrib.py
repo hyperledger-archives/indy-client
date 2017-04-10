@@ -22,7 +22,7 @@ from sovrin_common.identity import Identity
 from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
-from sovrin_client.test.helper import checkNacks, submitAndCheckNacks, \
+from sovrin_client.test.helper import checkNacks, submitAndCheckRejects, \
     genTestClient, createNym
 
 logger = getlogger()
@@ -134,9 +134,9 @@ def testNonStewardCannotCreateATrustAnchor(nodeSet, client1, wallet1, looper):
             ROLE: TRUST_ANCHOR
         }
 
-        submitAndCheckNacks(looper=looper, client=client1, wallet=wallet1, op=op,
-                            identifier=wallet1.defaultId,
-                            contains="UnknownIdentifier")
+        submitAndCheckRejects(looper=looper, client=client1, wallet=wallet1, op=op,
+                              identifier=wallet1.defaultId,
+                              contains="UnknownIdentifier")
 
 
 def testStewardCreatesATrustAnchor(steward, addedTrustAnchor):
@@ -163,9 +163,9 @@ def testNonTrustAnchorCannotCreateAUser(nodeSet, looper, nonTrustAnchor):
             TXN_TYPE: NYM
         }
 
-        submitAndCheckNacks(looper, client, wallet, op,
-                            identifier=wallet.defaultId,
-                            contains="UnknownIdentifier")
+        submitAndCheckRejects(looper, client, wallet, op,
+                              identifier=wallet.defaultId,
+                              contains="UnknownIdentifier")
 
 
 def testTrustAnchorCreatesAUser(steward, userWalletA):

@@ -8,7 +8,7 @@ from config.config import cmod
 from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import REQNACK, OP_FIELD_NAME
+from plenum.common.constants import REQNACK, OP_FIELD_NAME, REJECT
 from plenum.common.types import f, HA
 from stp_core.types import Identifier
 
@@ -145,25 +145,32 @@ def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):
     return c, newWallet
 
 
-def checkNacks(client, reqId, contains='', nodeCount=4):
-    logger.debug("looking for :{}".format(reqId))
-    reqs = [x for x, _ in client.inBox if x[OP_FIELD_NAME] == REQNACK and
+def checkErrorMsg(typ, client, reqId, contains='', nodeCount=4):
+    reqs = [x for x, _ in client.inBox if x[OP_FIELD_NAME] == typ and
             x[f.REQ_ID.nm] == reqId]
     for r in reqs:
-        logger.debug("printing r :{}".format(r))
         assert f.REASON.nm in r
         assert contains in r[f.REASON.nm], '{} not in {}'.format(contains,
                                                                  r[f.REASON.nm])
     assert len(reqs) == nodeCount
 
 
-def submitAndCheckNacks(looper, client, wallet, op, identifier,
-                        contains='UnauthorizedClientRequest'):
+def checkNacks(client, reqId, contains='', nodeCount=4):
+    checkErrorMsg(REQNACK, client, reqId, contains=contains, nodeCount=nodeCount)
+
+
+def checkRejects(client, reqId, contains='', nodeCount=4):
+    checkErrorMsg(REJECT, client, reqId, contains=contains,
+                  nodeCount=nodeCount)
+
+
+def submitAndCheckRejects(looper, client, wallet, op, identifier,
+                          contains='UnauthorizedClientRequest'):
     req = wallet.signOp(op, identifier=identifier)
     wallet.pendRequest(req)
     reqs = wallet.preparePending()
     client.submitReqs(*reqs)
-    looper.run(eventually(checkNacks,
+    looper.run(eventually(checkRejects,
                           client,
                           req.reqId,
                           contains, retryWait=1, timeout=15))

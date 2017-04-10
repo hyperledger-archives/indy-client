@@ -1,4 +1,6 @@
+from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
+from sovrin_client.client.wallet.wallet import Wallet
 from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
@@ -9,6 +11,7 @@ from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
+THRIFT_SEED = b'Thrift00000000000000000000000000'
 
 class ThriftAgent(WalletedAgent):
 
@@ -26,6 +29,10 @@ def create_thrift(name=None, wallet=None, base_dir_path=None, port=7777, client=
     endpoint_args = {'onlyListener': True}
     if wallet:
         endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
+    else:
+        wallet = Wallet(name)
+        wallet.addIdentifier(signer=SimpleSigner(seed=THRIFT_SEED))
+        endpoint_args['seed'] = THRIFT_SEED
 
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)
@@ -33,7 +40,7 @@ def create_thrift(name=None, wallet=None, base_dir_path=None, port=7777, client=
     agent = ThriftAgent(name=name or 'Thrift Bank',
                         basedirpath=base_dir_path,
                         client=client,
-                        wallet=wallet or buildThriftWallet(),
+                        wallet=wallet,
                         port=port,
                         endpointArgs=endpoint_args)
 

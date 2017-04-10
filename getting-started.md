@@ -153,7 +153,7 @@ Link (not yet accepted)
     Target Verification key: <unknown, waiting for sync>
     Target endpoint: <unknown, waiting for sync>
     Invitation nonce: b1134a647eb818069c089e7694f63e6d
-    Invitation status: not verified, target verkey unknown
+    Invitation status: not verified, remote verkey unknown
     Last synced: <this link has not yet been synchronized>
 
 Try Next:
@@ -472,7 +472,7 @@ Link (not yet accepted)
     Target Verification key: <unknown, waiting for sync>
     Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
-    Invitation status: not verified, target verkey unknown
+    Invitation status: not verified, remote verkey unknown
     Proof Request(s): Job-Application
     Last synced: <this link has not yet been synchronized>
 

@@ -191,11 +191,9 @@ class Agent(Motor, AgentNet):
             _send(msg)
 
     def connectToHa(self, ha, verkey=None, pubkey=None):
-        if isinstance(self.endpoint, ZEndpoint):
-            assert pubkey
+        if self.endpoint is not None:
+            assert verkey, 'Verkey is required to connect to {}'.format(ha)
             self.endpoint.connectTo(ha, verkey, pubkey)
-        elif isinstance(self.endpoint, REndpoint):
-            self.endpoint.connectTo(ha)
         else:
             RuntimeError('Non supported Endpoint type used')
 

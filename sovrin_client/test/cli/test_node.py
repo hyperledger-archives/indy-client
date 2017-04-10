@@ -56,7 +56,7 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli,
 
     global vals
     v = copy(vals)
-    v['target'] = v['newStewardIdr']
+    v['remote'] = v['newStewardIdr']
     v['newStewardSeed'] = v['newStewardSeed'].decode()
 
     do('send NYM dest={{newStewardIdr}} role={role}'.format(role=Roles.STEWARD.name),

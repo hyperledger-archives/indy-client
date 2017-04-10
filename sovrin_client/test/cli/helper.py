@@ -309,7 +309,7 @@ def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
         do('connect test', within=3,
            expect=connectExpMsgs)
 
-    do('send NYM dest={{target}} role={role}'.format(
+    do('send NYM dest={{remote}} role={role}'.format(
         role=Roles.TRUST_ANCHOR.name),
        within=3,
        expect=nymAddExpMsgs, mapper=mapper)
@@ -327,7 +327,7 @@ def getAgentCliHelpString():
        list ids - Lists all identifiers of active keyring
        show - Shows content of given file
        show link - Shows link info in case of one matching link, otherwise shows all the matching link names
-       ping - Pings given target's endpoint
+       ping - Pings given remote's endpoint
        list links - List available links in active wallet
        send proofreq - Send a proof request
        license - Shows the license

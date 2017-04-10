@@ -19,9 +19,9 @@ vals = {
 def anotherTrusteeAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     v = copy(vals)
-    v['target'] = vals['newTrusteeIdr'][0]
+    v['remote'] = vals['newTrusteeIdr'][0]
     be(trusteeCli)
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUSTEE.name),
+    do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUSTEE.name),
        within=5,
        expect=nymAddedOut, mapper=v)
     return v
@@ -31,9 +31,9 @@ def anotherTrusteeAdded(be, do, trusteeCli, nymAddedOut):
 def tbgAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     v = copy(vals)
-    v['target'] = vals['newTGBIdr'][0]
+    v['remote'] = vals['newTGBIdr'][0]
     be(trusteeCli)
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TGB.name),
+    do('send NYM dest={{remote}} role={role}'.format(role=Roles.TGB.name),
        within=5,
        expect=nymAddedOut, mapper=v)
     return v
@@ -43,9 +43,9 @@ def tbgAdded(be, do, trusteeCli, nymAddedOut):
 def stewardAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     v = copy(vals)
-    v['target'] = vals['newStewardIdr'][0]
+    v['remote'] = vals['newStewardIdr'][0]
     be(trusteeCli)
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.STEWARD.name),
+    do('send NYM dest={{remote}} role={role}'.format(role=Roles.STEWARD.name),
        within=5,
        expect=nymAddedOut, mapper=v)
     return v
@@ -55,9 +55,9 @@ def stewardAdded(be, do, trusteeCli, nymAddedOut):
 def trustAnchorAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     v = copy(vals)
-    v['target'] = vals['newTrustAnchorIdr'][0]
+    v['remote'] = vals['newTrustAnchorIdr'][0]
     be(trusteeCli)
-    do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+    do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
        within=5,
        expect=nymAddedOut, mapper=v)
     return v
@@ -100,40 +100,40 @@ def anotherTrusteeCli(anotherTrusteeCLI, be, do, connectedToTest, anotherTrustee
 def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded,
                                      nymAddedOut, trustAnchorCli):
     be(trusteeCli)
-    do('send NYM dest={target} role=',
+    do('send NYM dest={remote} role=',
        within=5,
        expect=nymAddedOut, mapper=trustAnchorAdded)
     s = SimpleSigner().identifier
     be(trustAnchorCli)
     errorMsg = 'UnauthorizedClientRequest'
-    do('send NYM dest={target}',
+    do('send NYM dest={remote}',
        within=5,
-       expect=[errorMsg], mapper={'target': s})
+       expect=[errorMsg], mapper={'remote': s})
 
 
 def testTrusteeSuspendingTrustee(be, do, trusteeCli, anotherTrusteeAdded,
                                  nymAddedOut, anotherTrusteeCli, stewardAdded):
     be(trusteeCli)
-    do('send NYM dest={target} role=',
+    do('send NYM dest={remote} role=',
        within=5,
        expect=nymAddedOut, mapper=anotherTrusteeAdded)
     be(anotherTrusteeCli)
     errorMsg = 'InvalidClientRequest'
-    do('send NYM dest={target} role=',
+    do('send NYM dest={remote} role=',
        within=5,
        expect=[errorMsg], mapper=stewardAdded)
 
 
 def testTrusteeSuspendingSteward(be, do, trusteeCli, stewardAdded, nymAddedOut):
     be(trusteeCli)
-    do('send NYM dest={target} role=',
+    do('send NYM dest={remote} role=',
        within=5,
        expect=nymAddedOut, mapper=stewardAdded)
 
 
 def testTrusteeSuspendingTGB(be, do, trusteeCli, tbgAdded, nymAddedOut):
     be(trusteeCli)
-    do('send NYM dest={target} role=',
+    do('send NYM dest={remote} role=',
        within=5,
        expect=nymAddedOut, mapper=tbgAdded)
 

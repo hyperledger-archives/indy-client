@@ -16,10 +16,10 @@ class constant:
     SIGNER_VER_KEY = "Verification Key"
     SIGNER_VER_KEY_EMPTY = '<empty>'
 
-    TARGET_IDENTIFIER = "Target"
-    TARGET_VER_KEY = "Target Verification Key"
-    TARGET_VER_KEY_SAME_AS_ID = '<same as target>'
-    TARGET_END_POINT = "Target endpoint"
+    REMOTE_IDENTIFIER = "Remote"
+    REMOTE_VER_KEY = "Remote Verification Key"
+    REMOTE_VER_KEY_SAME_AS_ID = '<same as Remote>'
+    REMOTE_END_POINT = "Remote endpoint"
     SIGNATURE = "Signature"
     CLAIM_REQUESTS = "Claim Requests"
     AVAILABLE_CLAIMS = "Available Claims"
@@ -60,11 +60,7 @@ class Link:
         self.trustAnchor = trustAnchor
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
-        self.remotePubKey = remotePubKey
-        # if remotePubKey is None\
-        #         and remote_verkey is not None:
-        #     self.remotePubKey =                     link.remotePubKey = friendlyVerkeyToPubkey(
-        #                 link.targetVerkey) if link.targetVerkey else None
+        self.remotePubkey = remotePubKey
         self.invitationNonce = invitationNonce
 
         # for optionally storing a reference to an identifier in another system
@@ -76,7 +72,7 @@ class Link:
         self.verifiedClaimProofs = []
         self.availableClaims = []  # type: List[AvailableClaim]
 
-        self.targetVerkey = remote_verkey
+        self.remoteVerkey = remote_verkey
         self.linkStatus = None
         self.linkLastSynced = None
         self.linkLastSyncNo = None
@@ -102,30 +98,30 @@ class Link:
             else constant.NOT_ASSIGNED
         trustAnchor = self.trustAnchor or ""
         trustAnchorStatus = '(not yet written to Sovrin)'
-        if self.targetVerkey is not None:
-            if self.remoteIdentifier == self.targetVerkey:
-                targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
+        if self.remoteVerkey is not None:
+            if self.remoteIdentifier == self.remoteVerkey:
+                remoteVerKey = constant.REMOTE_VER_KEY_SAME_AS_ID
             else:
-                targetVerKey = self.targetVerkey
+                remoteVerKey = self.remoteVerkey
         else:
-            targetVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
+            remoteVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
 
-        targetEndPoint = self.remoteEndPoint or \
+        remoteEndPoint = self.remoteEndPoint or \
                          constant.UNKNOWN_WAITING_FOR_SYNC
-        if isinstance(targetEndPoint, tuple):
-            targetEndPoint = "{}:{}".format(*targetEndPoint)
-        linkStatus = 'not verified, target verkey unknown'
+        if isinstance(remoteEndPoint, tuple):
+            remoteEndPoint = "{}:{}".format(*remoteEndPoint)
+        linkStatus = 'not verified, remote verkey unknown'
         linkLastSynced = prettyDateDifference(self.linkLastSynced) or \
                          constant.LINK_NOT_SYNCHRONIZED
 
         if linkLastSynced != constant.LINK_NOT_SYNCHRONIZED and \
-                        targetEndPoint == constant.UNKNOWN_WAITING_FOR_SYNC:
-            targetEndPoint = constant.NOT_AVAILABLE
+                        remoteEndPoint == constant.UNKNOWN_WAITING_FOR_SYNC:
+            remoteEndPoint = constant.NOT_AVAILABLE
 
         if self.isAccepted:
             trustAnchorStatus = '(confirmed)'
-            if self.targetVerkey is None:
-                targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
+            if self.remoteVerkey is None:
+                remoteVerKey = constant.REMOTE_VER_KEY_SAME_AS_ID
             linkStatus = self.linkStatus
 
         # TODO: The verkey would be same as the local identifier until we
@@ -146,15 +142,12 @@ class Link:
             'Trust anchor: ' + trustAnchor + ' ' + trustAnchorStatus + '\n' \
             'Verification key: ' + verKey + '\n' \
             'Signing key: <hidden>' '\n' \
-            'Target: ' + (self.remoteIdentifier or
+            'Remote: ' + (self.remoteIdentifier or
                           constant.UNKNOWN_WAITING_FOR_SYNC) + '\n' \
-            'Target Verification key: ' + targetVerKey + '\n' \
-            'Target endpoint: ' + targetEndPoint + '\n' \
+            'Remote Verification key: ' + remoteVerKey + '\n' \
+            'Remote endpoint: ' + remoteEndPoint + '\n' \
             'Invitation nonce: ' + self.invitationNonce + '\n' \
             'Invitation status: ' + linkStatus + '\n'
-        # except Exception as ex:
-        #     print(ex)
-        #     print(targetEndPoint, linkStatus, )
 
         optionalLinkItems = ""
         if len(self.proofRequests) > 0:
@@ -211,12 +204,22 @@ class Link:
 
     @property
     def remoteVerkey(self):
+        if not hasattr(self, '_remoteVerkey'):
+            return None
+
+        if self._remoteVerkey is None:
+            return None
+
         # This property should be used to fetch verkey compared to
-        # targetVerkey, its a more consistent name and takes care of
+        # remoteVerkey, its a more consistent name and takes care of
         # abbreviated verkey
-        v = DidVerifier(verkey=self.targetVerkey,
+        v = DidVerifier(verkey=self._remoteVerkey,
                         identifier=self.remoteIdentifier)
         return v.verkey
+
+    @remoteVerkey.setter
+    def remoteVerkey(self, new_val):
+        self._remoteVerkey = new_val
 
     def find_available_claims(self, name=None, version=None, origin=None):
         return [ac for ac in self.availableClaims

@@ -1,3 +1,5 @@
+from plenum.common.signer_simple import SimpleSigner
+from sovrin_client.client.wallet.wallet import Wallet
 from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
@@ -13,6 +15,7 @@ from sovrin_client.test.helper import TestClient
 
 logger = getlogger()
 
+FABER_SEED = b'Faber000000000000000000000000000'
 
 def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=None):
 
@@ -22,11 +25,15 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=N
     endpoint_args = {'onlyListener': True}
     if wallet:
         endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
+    else:
+        wallet = Wallet(name)
+        wallet.addIdentifier(signer=SimpleSigner(seed=FABER_SEED))
+        endpoint_args['seed'] = FABER_SEED
 
     agent = WalletedAgent(name=name or "Faber College",
                           basedirpath=base_dir_path,
                           client=client,
-                          wallet=wallet or buildFaberWallet(),
+                          wallet=wallet,
                           port=port,
                           endpointArgs=endpoint_args)
 

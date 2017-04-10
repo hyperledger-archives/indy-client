@@ -99,12 +99,12 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for nym, ha, pk in [(faberId, faberHa, faberPk),
                     (acmeId, acmeHa, acmePk),
                     (thriftId, thriftHa, thriftPk)]:
-        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT:
+        m = {'remote': nym, 'endpoint': json.dumps({ENDPOINT:
                                                     {'ha': ha, PUBKEY: pk}})}
-        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+        do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
             within=5,
             expect=nymAddedOut, mapper=m)
-        do('send ATTRIB dest={target} raw={endpoint}', within=5,
+        do('send ATTRIB dest={remote} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent
@@ -190,7 +190,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None,  # Passing None since its not used
                                       None)  # Passing None since its not used
 
-        faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
+        faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['remote']))
         faberIssuerKey = userCLI.looper.run(
             getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
         userFaberIssuerKey = userCLI.looper.run(
@@ -218,7 +218,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         jobCertClaimRequested(be, do, userCLI, None,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
-        acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
+        acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['remote']))
         acmeIssuerKey = userCLI.looper.run(getPublicKey(
             acmeAgent.issuer.wallet, acmeSchemaId))
         userAcmeIssuerKey = userCLI.looper.run(getPublicKey(

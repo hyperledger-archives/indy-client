@@ -33,10 +33,9 @@ from tempfile import TemporaryDirectory
 
 from logging import Formatter
 from stp_core.common.log import Logger
-from ioflo.base.consoling import Console
 from plenum.config import logFormat
 
-ignored_files = ['node.py', 'stacked.py', 'primary_elector.py',
+ignored_files = ['node.py', 'stacked.py', 'zstack.py', 'network_interface.py', 'primary_elector.py',
                  'replica.py', 'propagator.py', 'upgrader.py',
                  'plugin_loader.py']
 
@@ -47,27 +46,26 @@ def out(record, extra_cli_value=None):
     if record.filename not in ignored_files:
         print(log_out_format.format(record))
 
-# Logger().enableCliLogging(out, override_tags={})
-# Logger().setupRaet(raet_log_level=Console.Wordage.concise)
+Logger().enableCliLogging(out, override_tags={})
 
 
-def start_agents(pool, looper):
-    start_agent(create_faber, bootstrap_faber,
+def start_agents(pool, looper, base_dir):
+    start_agent(base_dir, create_faber, bootstrap_faber,
                 pool.create_client(5500), looper,
                 pool.steward_agent())
 
-    start_agent(create_acme, bootstrap_acme,
+    start_agent(base_dir, create_acme, bootstrap_acme,
                 pool.create_client(5501), looper,
                 pool.steward_agent())
 
-    start_agent(create_thrift, bootstrap_thrift,
+    start_agent(base_dir, create_thrift, bootstrap_thrift,
                 pool.create_client(5502), looper,
                 pool.steward_agent())
 
 
-def start_agent(create_func, bootstrap_func, client, looper, steward):
-    looper.run_till_quiet(1)
-    agent = create_func(base_dir_path=None, client=client)
+def start_agent(base_dir, create_func, bootstrap_func, client, looper, steward):
+    looper.run_till_quiet()
+    agent = create_func(base_dir_path=base_dir, client=client)
 
     steward.publish_trust_anchor(Identity(identifier=agent.wallet.defaultId,
                                           verkey=agent.wallet.getVerkey(agent.wallet.defaultId),
@@ -77,7 +75,7 @@ def start_agent(create_func, bootstrap_func, client, looper, steward):
 
     looper.add(agent)
 
-    looper.run_till_quiet(1)
+    looper.run_till_quiet()
 
     looper.run(bootstrap_func(agent))
 

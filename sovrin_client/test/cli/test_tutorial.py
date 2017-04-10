@@ -62,7 +62,7 @@ def checkIfInvalidAttribIsRejected(do, map):
     errorMsg = 'client request invalid: InvalidClientRequest(' \
                '"invalid endpoint: \'{}\'",)'.format(endpoint)
 
-    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+    do("send ATTRIB dest={remote} raw={invalidEndpointAttr}",
        within=5,
        expect=[errorMsg],
        mapper=map)
@@ -77,7 +77,7 @@ def checkIfValidEndpointIsAccepted(do, map, attribAdded):
     for validEndpoint in validEndpoints:
         endpoint = json.dumps({ENDPOINT: {'ha':validEndpoint}})
         map["validEndpointAttr"] = endpoint
-        do("send ATTRIB dest={target} raw={validEndpointAttr}",
+        do("send ATTRIB dest={remote} raw={validEndpointAttr}",
            within=5,
            expect=attribAdded,
            mapper=map)
@@ -99,7 +99,7 @@ def checkIfInvalidEndpointIsRejected(do, map):
                                                             invalidEndpoint)
         endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
-        do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+        do("send ATTRIB dest={remote} raw={invalidEndpointAttr}",
            within=5,
            expect=[errorMsg],
            mapper=map)
@@ -109,7 +109,7 @@ def agentWithEndpointAdded(be, do, stewardCli, agentMap, attrAddedOut):
     be(stewardCli)
     checkIfInvalidEndpointIsRejected(do, agentMap)
     checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
-    do('send ATTRIB dest={target} raw={endpointAttr}',
+    do('send ATTRIB dest={remote} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
        mapper=agentMap)
@@ -453,7 +453,7 @@ def testPingFaber(be, do, aliceCli, faberMap,
 def testAliceAcceptFaberInvitationAgain(be, do, aliceCli, faberMap,
                                         unsycedAlreadyAcceptedInviteAcceptedOut,
                                         aliceAcceptedFaberInvitation):
-    li = aliceCli.activeWallet.getLinkBy(remote=faberMap['target'])
+    li = aliceCli.activeWallet.getLinkBy(remote=faberMap['remote'])
     li.linkStatus = None
     be(aliceCli)
     acceptInvitation(be, do, aliceCli, faberMap,

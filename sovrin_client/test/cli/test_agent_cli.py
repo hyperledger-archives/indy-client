@@ -105,13 +105,13 @@ def aliceAcceptedAcmeInvitationNoProofReq(
            mapper=acmeMap,
            expect=unsycedAcceptedInviteWithoutClaimOut)
 
-        proofRequestsBefore = getProofRequestsCount(aliceCLI, acmeMap['target'])
+        proofRequestsBefore = getProofRequestsCount(aliceCLI, acmeMap['remote'])
 
         sendProofRequest(be, do, acmeAgentCliRunning, acmeMap)
 
         checkProofRequestReceived(be, do, aliceCLI, acmeMap)
 
-        proofRequestsAfter = getProofRequestsCount(aliceCLI, acmeMap['target'])
+        proofRequestsAfter = getProofRequestsCount(aliceCLI, acmeMap['remote'])
 
         return proofRequestsBefore, proofRequestsAfter
     return _

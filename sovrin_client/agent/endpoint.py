@@ -5,6 +5,7 @@ from plenum.common.message_processor import MessageProcessor
 from raet.raeting import AutoMode
 from zmq.utils import z85
 
+from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from stp_core.common.log import getlogger
 from stp_raet.util import getHaFromLocalEstate
 from plenum.common.util import randomString, friendlyToRaw
@@ -43,6 +44,12 @@ class EndpointCore(MessageProcessor):
         for nm in remoteNames:
             self.transmitToClient(msg, nm)
 
+    def host_address(self) -> str:
+        return str(self.ha[0]) + ":" + str(self.ha[1])
+
+    def connectTo(self, ha, verkey, pubkey=None):
+        raise NotImplementedError
+
 
 class REndpoint(SimpleRStack, EndpointCore):
     def __init__(self, port: int, msgHandler: Callable,
@@ -67,14 +74,11 @@ class REndpoint(SimpleRStack, EndpointCore):
 
         self.msgHandler = msgHandler
 
-    def connectTo(self, ha):
+    def connectTo(self, ha, verkey, pubkey=None):
         if not self.isConnectedTo(ha=ha):
             self.connect(ha=ha)
         else:
             logger.debug('{} already connected {}'.format(self, ha))
-
-    def host_address(self) -> str:
-        return str(self.ha[0]) + ":" + str(self.ha[1])
 
 
 class ZEndpoint(SimpleZStack, EndpointCore):
@@ -95,9 +99,12 @@ class ZEndpoint(SimpleZStack, EndpointCore):
 
         self.msgHandler = msgHandler
 
-    def connectTo(self, ha, verkey, pubkey):
+    def connectTo(self, ha, verkey, pubkey=None):
         if not self.isConnectedTo(ha=ha):
-            assert pubkey, 'Need public key to connect to {}'.format(ha)
+            assert verkey, 'Verkey is required to connect to {}'.format(ha)
+            if pubkey is None:
+                pubkey = friendlyVerkeyToPubkey(verkey)
+
             zvk = z85.encode(friendlyToRaw(verkey)) if verkey else None
             zpk = z85.encode(friendlyToRaw(pubkey))
             self.connect(name=verkey or pubkey, ha=ha, verKey=zvk, publicKey=zpk)

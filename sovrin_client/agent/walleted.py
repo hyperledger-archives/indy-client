@@ -308,12 +308,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             except RemoteEndpointNotFound as ex:
                 logger.debug('ZStack remote found')
                 if not (isinstance(self.endpoint, ZEndpoint) and
-                            self.endpoint.hasRemote(link.remotePubKey.encode() if
-                            isinstance(link.remotePubKey, str) else
-                                                    link.remotePubKey)):
-                    fault(ex, "Do not know {} {}".format(link.remotePubKey, ha))
+                            self.endpoint.hasRemote(link.remotePubkey.encode() if
+                            isinstance(link.remotePubkey, str) else
+                                                    link.remotePubkey)):
+                    fault(ex, "Do not know {} {}".format(link.remotePubkey, ha))
                     return
-                params = dict(name=link.remotePubKey)
+                params = dict(name=link.remotePubkey)
             # TODO ensure status is appropriate with code like the following
             # if link.linkStatus != constant.LINK_STATUS_ACCEPTED:
             # raise LinkNotReady('link status is {}'.format(link.linkStatus))
@@ -564,8 +564,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def getVerkeyForLink(self, link):
         # TODO: Get latest verkey for this link's remote identifier from Sovrin
-        if link.targetVerkey:
-            return link.targetVerkey
+        if link.remoteVerkey:
+            return link.remoteVerkey
         else:
             raise VerkeyNotFound("verkey not set in link")
 
@@ -600,7 +600,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                 link = self.wallet.getLinkBy(remote=identifier)
                 # TODO: If verkey is None, it should be fetched from Sovrin.
                 # Assuming CID for now.
-                verkey = link.targetVerkey
+                verkey = link.remoteVerkey
 
         v = DidVerifier(verkey, identifier=identifier)
         if not v.verify(signature, ser):
@@ -675,7 +675,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         identifier = body.get(f.IDENTIFIER.nm)
         verkey = body.get(VERKEY)
         idy = Identity(identifier, verkey=verkey)
-        link.targetVerkey = verkey
+        link.remoteVerkey = verkey
         try:
             pendingCount = self.wallet.addTrustAnchoredIdentity(idy)
             logger.debug("pending request count {}".format(pendingCount))
@@ -767,7 +767,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link is None:
             link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
-        self.connectToHa(ha, link.targetVerkey, link.remotePubKey)
+        self.connectToHa(ha, link.remoteVerkey, link.remotePubkey)
 
     def loadInvitationFile(self, filePath):
         with open(filePath) as data_file:
@@ -894,7 +894,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                             "provided {}".format(type(link)))
         # TODO should move to wallet in a method like accept(link)
         if not link.localIdentifier:
-            _create_identifier_for_link(self, link)
+            self.create_identifier_for_link(link)
         msg = {
             TYPE: ACCEPT_INVITE,
             # TODO should not send this... because origin should be the sender
@@ -942,12 +942,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                      self.loop, reqId, PONG, True,
                                      additionalCallback, reply, err)
             else:
-                additionalCallback(reply, err)
+                if callable(additionalCallback):
+                    additionalCallback(reply, err)
 
         return _
 
     def _updateLinkWithLatestInfo(self, link: Link, reply):
-        link.targetVerkey = DidVerifier(reply[VERKEY],
+        link.remoteVerkey = DidVerifier(reply[VERKEY],
                                         identifier=link.remoteIdentifier).verkey
         if DATA in reply and reply[DATA]:
             data = json.loads(reply[DATA])
@@ -959,10 +960,10 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     ip, port = ep['ha'].split(":")
                     link.remoteEndPoint = (ip, int(port))
                 if PUBKEY in ep:
-                    link.remotePubKey = ep[PUBKEY]
+                    link.remotePubkey = ep[PUBKEY]
                 else:
-                    link.remotePubKey = friendlyVerkeyToPubkey(
-                        link.targetVerkey) if link.targetVerkey else None
+                    link.remotePubkey = friendlyVerkeyToPubkey(
+                        link.remoteVerkey) if link.remoteVerkey else None
 
         link.linkLastSynced = datetime.now()
         self.notifyMsgListener("    Link {} synced".format(link.name))
@@ -1003,13 +1004,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         req = self.wallet.requestAttribute(attrib, sender=self.wallet.defaultId)
         self.client.submitReqs(req)
 
-        if doneCallback:
-            self.loop.call_later(.2,
-                                 ensureReqCompleted,
-                                 self.loop,
-                                 req.key,
-                                 self.client,
-                                 self._handleSyncResp(link, doneCallback))
+        # if doneCallback:
+        self.loop.call_later(.2,
+                             ensureReqCompleted,
+                             self.loop,
+                             req.key,
+                             self.client,
+                             self._handleSyncResp(link, doneCallback))
 
     def executeWhenResponseRcvd(self, startTime, maxCheckForMillis,
                                 loop, reqId, respType,

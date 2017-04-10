@@ -1,8 +1,12 @@
+import pytest
+
 from sovrin_client.test.training.getting_started import *
 
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import tconf
 
+
+@pytest.mark.skip()
 def test_getting_started(tconf):
     getting_started(base_dir=tconf.baseDir)
 
@@ -17,7 +21,7 @@ def getting_started(base_dir=None):
 
     pool = create_local_pool(base_dir)
 
-    start_agents(pool, pool)
+    start_agents(pool, pool, base_dir)
 
     # ###################################
     #  Alice's Wallet
@@ -47,7 +51,7 @@ def getting_started(base_dir=None):
 
     alice_agent.sync(link_to_faber.name)
 
-    pool.run_till_quiet()
+    pool.run_till_quiet(2)
 
     print(link_to_faber)
 
@@ -59,7 +63,7 @@ def getting_started(base_dir=None):
 
     alice_agent.sendPing("Faber College")
 
-    pool.run_till_quiet(2)
+    pool.run_till_quiet(4)
 
     ####################################
     #  Transcription Claim
@@ -82,6 +86,12 @@ def getting_started(base_dir=None):
     ####################################
 
     link_to_acme = alice_agent.load_invitation_str(ACME_INVITE)
+
+    print(link_to_acme)
+
+    alice_agent.sync(link_to_acme.name)
+
+    pool.run_till_quiet(2)
 
     print(link_to_acme)
 
@@ -122,6 +132,12 @@ def getting_started(base_dir=None):
     ####################################
 
     link_to_thrift = alice_agent.load_invitation_str(THRIFT_INVITE)
+
+    print(link_to_thrift)
+
+    alice_agent.sync(link_to_thrift.name)
+
+    pool.run_till_quiet(2)
 
     print(link_to_thrift)
 

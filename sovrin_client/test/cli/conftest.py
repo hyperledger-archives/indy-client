@@ -109,7 +109,7 @@ def faberMap(agentIpAddress, faberAgentPort):
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
+            "remote": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: ha,
             "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11'}}),
@@ -131,7 +131,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
             'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
             'inviter-not-exists': 'non-existing-inviter',
-            'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'remote': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
             'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
             'proof-requests': 'Job-Application',
             'proof-request-to-show': 'Job-Application',
@@ -154,7 +154,7 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
+            "remote": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
@@ -437,17 +437,17 @@ def acmeInviteLoaded(aliceCLI, be, do, acmeMap, loadInviteOut):
 
 @pytest.fixture(scope="module")
 def attrAddedOut():
-    return ["Attribute added for nym {target}"]
+    return ["Attribute added for nym {remote}"]
 
 
 @pytest.fixture(scope="module")
 def nymAddedOut():
-    return ["Nym {target} added"]
+    return ["Nym {remote} added"]
 
 
 @pytest.fixture(scope="module")
 def unSyncedEndpointOut():
-    return ["Target endpoint: <unknown, waiting for sync>"]
+    return ["Remote endpoint: <unknown, waiting for sync>"]
 
 
 @pytest.fixture(scope="module")
@@ -781,8 +781,8 @@ def showAcceptedLinkOut():
             "Name: {inviter}",
             "Identifier: {identifier}",
             "Verification key: {verkey}",
-            "Target: {target}",
-            "Target Verification key: <same as target>",
+            "Remote: {remote}",
+            "Remote Verification key: <same as Remote>",
             "Trust anchor: {inviter} (confirmed)",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted"]
@@ -796,10 +796,10 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
             "    Verification key: <empty>",
             "    Signing key: <hidden>",
-            "    Target: {target}",
-            "    Target endpoint: {endpoint}",
+            "    Remote: {remote}",
+            "    Remote endpoint: {endpoint}",
             "    Invitation nonce: {nonce}",
-            "    Invitation status: not verified, target verkey unknown",
+            "    Invitation status: not verified, remote verkey unknown",
             "    Last synced: {last_synced}"] + \
            [""] + \
            nextCommandsToTryUsageLine + \
@@ -817,8 +817,8 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Trust anchor: {inviter} (confirmed)",
             "Verification key: ~",
             "Signing key: <hidden>",
-            "Target: {target}",
-            "Target Verification key: <same as target>",
+            "Remote: {remote}",
+            "Remote Verification key: <same as Remote>",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted",
             "Proof Request(s): {proof-requests}",

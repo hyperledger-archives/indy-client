@@ -51,7 +51,7 @@ from plenum.common.constants import PUBKEY
 from stp_core.network.exceptions import RemoteNotFound
 
 logger = getlogger()
-logger.setLevel(agentLoggingLevel)
+# logger.setLevel(agentLoggingLevel)
 
 
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):

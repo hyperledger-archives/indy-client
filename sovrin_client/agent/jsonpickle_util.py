@@ -9,47 +9,40 @@ DATA_KEY = 'py/integer-element'
 
 class CommonIntegerElementHandler(jsonpickle.handlers.BaseHandler):
     def flatten(self, obj, data):
-        data[DATA_KEY] = toDictWithStrValues(obj)
+        data[DATA_KEY] = obj.toStrDict()
         return data
 
     def restore(self, obj):
-        dict = fromDictWithStrValues(obj[DATA_KEY])
-        return self._restore(dict)
+        cls = self._getClass()
+        return cls.fromStrDict(obj[DATA_KEY])
 
-    def _restore(self, dict):
+    def _getClass(self):
         raise NotImplemented
 
 
 class PublicKeyHandler(CommonIntegerElementHandler):
-    def _restore(self, dict):
-        return PublicKey(dict.get("N"), dict.get("Rms"),
-                         dict.get("Rctxt"), dict.get("R"),
-                         dict.get("S"), dict.get("Z"), dict.get("seqId"))
+    def _getClass(self):
+        return PublicKey
 
 
 class RevocationPublicKeyHandler(CommonIntegerElementHandler):
-    def _restore(self, dict):
-        return RevocationPublicKey(
-            dict.get("qr"), dict.get("g"), dict.get("h"),
-            dict.get("h0"), dict.get("h1"), dict.get("h2"),
-            dict.get("htilde"), dict.get("u"), dict.get("pk"),
-            dict.get("y"), dict.get("x"), dict.get("seqId")
-        )
+    def _getClass(self):
+        return RevocationPublicKey
 
 
 class SecretKeyHandler(CommonIntegerElementHandler):
-    def _restore(self, dict):
-        return SecretKey(dict.get("pPrime"), dict.get("qPrime"))
+    def _getClass(self):
+        return SecretKey
 
 
 class RevocationSecretKeyHandler(CommonIntegerElementHandler):
-    def _restore(self, dict):
-        return RevocationSecretKey(dict.get("x"), dict.get("sk"))
+    def _getClass(self):
+        return RevocationSecretKey
 
 
 class AccumulatorSecretKeyHandler(CommonIntegerElementHandler):
-    def _restore(self, dict):
-        return AccumulatorSecretKey(dict.get("gamma"))
+    def _getClass(self):
+        return AccumulatorSecretKey
 
 
 def setUpJsonpickle():

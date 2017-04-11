@@ -3,10 +3,8 @@ import os
 import sys
 
 from stp_core.loop.eventually import eventually
-from sovrin_client.agent.endpoint import REndpoint, ZEndpoint
 from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.test.test_stack import checkRemoteExists, CONNECTED
 from sovrin_client.agent.agent import runBootstrap, runAgent
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.client.wallet.wallet import Wallet
@@ -21,23 +19,12 @@ def connectAgents(agent1, agent2):
     e1.connectTo(e2.ha)
 
 
-def ensureAgentsConnected(looper, agent1, agent2):
-    e1 = agent1.endpoint
-    e2 = agent2.endpoint
-    if isinstance(e1, ZEndpoint) and isinstance(e2, ZEndpoint):
-        def _(e1, e2):
-            assert e1.publicKey in e2.remotesByKeys or e1.publicKey in e2.peersWithoutRemotes
-            assert e2.publicKey in e1.remotesByKeys or e2.publicKey in e1.peersWithoutRemotes
+def ensureAgentConnected(looper, agent, link):
+    linkHa = link.getRemoteEndpoint(required=True)
+    def _checkConnected():
+        assert agent.endpoint.isConnectedTo(ha=linkHa)
 
-        looper.run(eventually(_, e1, e2, timeout=10))
-
-    elif isinstance(e1, REndpoint) and isinstance(e2, REndpoint):
-        looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,
-                              timeout=10))
-        looper.run(eventually(checkRemoteExists, e2, e1.name, CONNECTED,
-                              timeout=10))
-    else:
-        RuntimeError('Unacceptable Endpoint types')
+    looper.run(eventually(_checkConnected, timeout=10))
 
 
 def getAgentCmdLineParams():

@@ -37,7 +37,7 @@ class AgentProver:
             NONCE: link.invitationNonce
         }
         try:
-            self.signAndSend(msg=op, linkName=link.name)
+            self.signAndSendToLink(msg=op, linkName=link.name)
         except LinkNotReady as ex:
             self.notifyMsgListener(str(ex))
 
@@ -73,7 +73,7 @@ class AgentProver:
             CLAIM_REQ_FIELD: claimReq.toStrDict()
         }
 
-        self.signAndSend(msg=op, linkName=link.name)
+        self.signAndSendToLink(msg=op, linkName=link.name)
 
     def handleProofRequest(self, msg):
         body, _ = msg
@@ -150,7 +150,7 @@ class AgentProver:
             (PROOF_INPUT_FIELD, proofInput.toStrDict()),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
             (REVEALED_ATTRS_FIELD, toDictWithStrValues(revealedAttrs))])
 
-        self.signAndSend(msg=op, linkName=link.name)
+        self.signAndSendToLink(msg=op, linkName=link.name)
 
     def handleProofStatusResponse(self, msg: Any):
         body, _ = msg

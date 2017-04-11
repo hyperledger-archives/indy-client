@@ -22,7 +22,6 @@ from stp_core.types import Identifier
 from stp_core.network.util import checkPortAvailable
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
-from sovrin_client.agent.endpoint import ZEndpoint, REndpoint
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -51,7 +50,6 @@ class Agent(Motor, AgentNet):
                  config=None,
                  endpointArgs=None):
 
-        self.logger = logger
         self.endpoint = None
         if port:
             checkPortAvailable(HA("0.0.0.0", port))
@@ -62,7 +60,7 @@ class Agent(Motor, AgentNet):
         self._port = port
 
         self.config = config or getConfig()
-        self._basedirpath = basedirpath or os.path.expanduser(self.config.baseDir)
+        self.basedirpath = basedirpath or os.path.expanduser(self.config.baseDir)
         self.endpointArgs = endpointArgs
 
         # Client used to connect to Sovrin and forward on owner's txns
@@ -102,7 +100,7 @@ class Agent(Motor, AgentNet):
         AgentNet.__init__(self,
                           name=self._name.replace(" ", ""),
                           port=self._port,
-                          basedirpath=self._basedirpath,
+                          basedirpath=self.basedirpath,
                           msgHandler=self.handleEndpointMessage,
                           config = self.config,
                           endpoint_args=self.endpointArgs)
@@ -165,20 +163,10 @@ class Agent(Motor, AgentNet):
                                  name, ha, clbk, *args)
 
     def sendMessage(self, msg, name: str = None, ha: Tuple = None):
-        try:
-            remote = self.endpoint.getRemote(name=name, ha=ha)
-            name = remote.name
-            ha = remote.ha
-        except RemoteNotFound as ex:
-            if not (isinstance(self.endpoint, ZEndpoint) and
-                    self.endpoint.hasRemote(name.encode() if
-                                            isinstance(name, str) else name)):
-                fault(ex, "Do not know {} {}".format(name, ha))
-                return
 
         def _send(msg):
             nonlocal name, ha
-            self.endpoint.send(msg, name)
+            self.endpoint.send(msg, name, ha)
             logger.debug("Message sent (to -> {}): {}".format(ha, msg))
 
         # TODO: if we call following isConnectedTo method by ha,
@@ -189,13 +177,6 @@ class Agent(Motor, AgentNet):
             self.ensureConnectedToDest(name, ha, _send, msg)
         else:
             _send(msg)
-
-    def connectToHa(self, ha, verkey=None, pubkey=None):
-        if self.endpoint is not None:
-            assert verkey, 'Verkey is required to connect to {}'.format(ha)
-            self.endpoint.connectTo(ha, verkey, pubkey)
-        else:
-            RuntimeError('Non supported Endpoint type used')
 
     def registerEventListener(self, eventName, listener):
         cur = self._eventListeners.get(eventName)
@@ -219,7 +200,6 @@ class WalletedAgent(Walleted, Agent, Caching):
                  port: int = None,
                  loop=None,
                  attrRepo=None,
-                 agentLogger=None,
                  config=None,
                  endpointArgs=None):
 

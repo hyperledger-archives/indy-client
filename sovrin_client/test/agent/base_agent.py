@@ -2,9 +2,10 @@ import os
 
 from ioflo.base.consoling import Console
 
-from plenum.common.log import Logger, getlogger
-from sovrin_client.agent.agent import runBootstrap, WalletedAgent
-from sovrin_client.agent.runnable_agent import RunnableAgent
+from stp_core.common.log import Logger, getlogger
+from sovrin_client.agent.agent import runBootstrap
+
+from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
 from plenum.common.constants import NAME, VERSION
 
@@ -17,7 +18,7 @@ from sovrin_common.config import agentLoggingLevel
 from sovrin_common.config_util import getConfig
 
 
-class BaseAgent(WalletedAgent, RunnableAgent):
+class BaseAgent(TestWalletedAgent):
     def __init__(self,
                  name: str,
                  basedirpath: str,
@@ -31,7 +32,9 @@ class BaseAgent(WalletedAgent, RunnableAgent):
         config = config or getConfig()
         basedirpath = basedirpath or os.path.expanduser(config.baseDir)
 
-        portParam, = self.get_passed_args()
+        portParam, _ = self.getPassedArgs()
+
+        self.logger = getlogger()
 
         super().__init__(name, basedirpath, client, wallet,
                          portParam or port, loop=loop, config=config,
@@ -39,9 +42,7 @@ class BaseAgent(WalletedAgent, RunnableAgent):
 
         self.claimVersionNumber = 0.01
 
-        self.logger = getlogger()
-
-        # available claims to anyone whos connection is accepted by the agent
+        # available claims to anyone whose connection is accepted by the agent
         self.availableClaimsToAll = []
 
         # available claims only for certain invitation (by nonce)
@@ -50,7 +51,6 @@ class BaseAgent(WalletedAgent, RunnableAgent):
         # mapping between specific identifier and available claims which would
         # have been available once they have provided requested information
         # like proof etc.
-
         self.availableClaimsByIdentifier = {}
 
         self._invites = {}
@@ -100,30 +100,34 @@ class BaseAgent(WalletedAgent, RunnableAgent):
         else:
             raise NonceNotFound
 
-    # def get_available_claim_list(self, link):
-    #     assert link
-    #     assert link.invitationNonce
-    #     assert link.remoteIdentifier
-    #     return self.availableClaimsToAll + \
-    #            self.availableClaimsByNonce.get(link.invitationNonce, []) + \
-    #            self.availableClaimsByIdentifier.get(link.remoteIdentifier, [])
-    #
-    # def getSchemaKeysToBeGenerated(self):
-    #     raise NotImplemented
-    #
-    # def getSchemaKeysForClaimsAvailableToAll(self):
-    #     return self.getSchemaKeysToBeGenerated()
-    #
-    # def getSchemaKeysForClaimsAvailableToSpecificNonce(self):
-    #     return {}
+    def getAvailableClaimList(self, link):
+        assert link
+        assert link.invitationNonce
+        assert link.remoteIdentifier
+        return self.availableClaimsToAll + \
+               self.availableClaimsByNonce.get(link.invitationNonce, []) + \
+               self.availableClaimsByIdentifier.get(link.remoteIdentifier, [])
 
-    # def getAttrDefs(self):
-    #     raise NotImplemented
+    def isClaimAvailable(self, link, claimName):
+        return claimName in [cl.get("name") for cl in
+                             self.getAvailableClaimList(link)]
 
-    # def getAttrs(self):
-    #     raise NotImplemented
+    def getSchemaKeysToBeGenerated(self):
+        raise NotImplemented
 
-    async def postClaimVerif(self, claimName, link, frm):
+    def getSchemaKeysForClaimsAvailableToAll(self):
+        return self.getSchemaKeysToBeGenerated()
+
+    def getSchemaKeysForClaimsAvailableToSpecificNonce(self):
+        return {}
+
+    def getAttrDefs(self):
+        raise NotImplemented
+
+    def getAttrs(self):
+        raise NotImplemented
+
+    async def postProofVerif(self, claimName, link, frm):
         pass
 
     async def initAvailableClaimList(self):
@@ -149,43 +153,34 @@ class BaseAgent(WalletedAgent, RunnableAgent):
                 oldAvailClaims.append(schema)
                 self.availableClaimsByNonce[nonce] = oldAvailClaims
 
-    # def _addAttribute(self, schemaKey, proverId, link):
-    #     attr = self.getAttrs()[self.getInternalIdByInvitedNonce(proverId)]
-    #     self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
-    #                                         userId=proverId,
-    #                                         attributes=attr)
+    def _addAttribute(self, schemaKey, proverId, link):
+        attr = self.getAttrs()[self.getInternalIdByInvitedNonce(proverId)]
+        self.issuer._attrRepo.addAttributes(schemaKey=schemaKey,
+                                            userId=proverId,
+                                            attributes=attr)
 
-    async def add_schemas_to_wallet(self):
+    async def addSchemasToWallet(self):
         for schemaKey in self.getSchemaKeysToBeGenerated():
-            schema_id = self.publish_schema('basic',
-                                            schemaKey.name,
-                                            '1.0')
+            matchedAttrDefs = list(filter(lambda ad: ad.name == schemaKey.name,
+                             self.getAttrDefs()))
+            assert len(matchedAttrDefs) == 1, \
+                "check if agent has attrib def and it's name is equivalent " \
+                "to it's corresponding schema key name"
+            attrDef = matchedAttrDefs[0]
+            if not self.issuer.isSchemaExists(schemaKey):
+                schema = await self.issuer.genSchema(schemaKey.name,
+                                                 schemaKey.version,
+                                                 attrDef.attribNames(),
+                                                 'CL')
+                if schema:
+                    schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+                    p_prime, q_prime = primes["prime2"]
+                    await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
+                    await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
 
-            _, _ = self.publish_issuer_keys(schema_id,
-                                            p_prime=primes["prime1"][0],
-                                            q_prime=primes["prime1"][1])
-            self.publish_revocation_registry(schema_id=schema_id)
-
-        # for schemaKey in self.getSchemaKeysToBeGenerated():
-        #     matchedAttrDefs = list(filter(lambda ad: ad.name == schemaKey.name,
-        #                      self.getAttrDefs()))
-        #     assert len(matchedAttrDefs) == 1, \
-        #         "check if agent has attrib def and it's name is equivalent " \
-        #         "to it's corresponding schema key name"
-        #     attrDef = matchedAttrDefs[0]
-        #     schema = await self.issuer.genSchema(schemaKey.name,
-        #                                          schemaKey.version,
-        #                                          attrDef.attribNames(),
-        #                                          'CL')
-        #     if schema:
-        #         schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
-        #         p_prime, q_prime = primes["prime2"]
-        #         await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
-        #         await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)
-        #
-        # await self.initAvailableClaimList()
+        await self.initAvailableClaimList()
 
     async def bootstrap(self):
-        await runBootstrap(self.add_schemas_to_wallet)
+        await runBootstrap(self.addSchemasToWallet)
 
 

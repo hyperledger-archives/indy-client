@@ -31,7 +31,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
-from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
+from sovrin_client.test.agent.helper import ensureAgentConnected, buildFaberWallet, \
     buildAcmeWallet, buildThriftWallet, startAgent
 from sovrin_client.test.agent.thrift import create_thrift
 from sovrin_node.test.helper import addAttributeAndCheck
@@ -146,9 +146,6 @@ def acmeAgentPort():
 @pytest.fixture(scope="module")
 def thriftAgentPort():
     return genHa()[1]
-
-
-
 
 
 @pytest.fixture(scope="module")
@@ -340,26 +337,21 @@ def checkAcceptInvitation(emptyLooper,
     assert nonce
     inviterAgent, inviterWallet = inviterAgentAndWallet  # type: WalletedAgent, Wallet
 
-    inviteeWallet = inviteeAgent.wallet
     inviteeAgent.connectTo(linkName)
-    ensureAgentsConnected(emptyLooper, inviteeAgent, inviterAgent)
+    inviteeAcceptanceLink = inviteeAgent.wallet.getLink(linkName,
+                                                required=True)
+    ensureAgentConnected(emptyLooper, inviteeAgent, inviteeAcceptanceLink)
 
-    inviteeAgent.accept_invitation(linkName)
-    inviteeAcceptanceId = inviteeWallet.getLink(linkName,
-                                                required=True).localIdentifier
-    internalId = inviterAgent.get_internal_id_by_nonce(nonce)
+    inviteeAgent.acceptInvitation(linkName)
+    internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
 
     def chk():
-        link = inviterWallet.getLinkBy(internalId=internalId)
-        assert link
-        # if not link:
-        #     raise RuntimeError("Link not found for internal ID {}".
-        #                        format(internalId))
-        # TODO: Get link from invitee wallet to check.
-        assert link.remoteIdentifier == inviteeAcceptanceId
-        if isinstance(inviteeAgent.endpoint, REndpoint):
-            assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        assert inviteeAcceptanceLink.remoteEndPoint[1] == inviterAgent.endpoint.ha[1]
+        assert inviteeAcceptanceLink.isAccepted
 
+        link = inviterWallet.getLinkByInternalId(internalId)
+        assert link
+        assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 
     emptyLooper.run(eventually(chk, timeout=10))
 

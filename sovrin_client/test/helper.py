@@ -70,7 +70,8 @@ class TestClient(Client, StackedTester, TestClientStorage):
                              storageType=pyorient.STORAGE_TYPE_MEMORY)
 
     def onStopping(self, *args, **kwargs):
-        self.cleanupDataLocation()
+        # TODO: Why we needed following line?
+        # self.cleanupDataLocation()
         super().onStopping(*args, **kwargs)
 
 

@@ -19,7 +19,7 @@ from plenum.common.constants import TYPE, DATA, NONCE, IDENTIFIER, NAME, VERSION
     TARGET_NYM, ATTRIBUTES, VERKEY, VERIFIABLE_ATTRIBUTES
 from plenum.common.types import f
 from plenum.common.util import getTimeBasedId, getCryptonym, \
-    isMaxCheckTimeExpired, convertTimeBasedReqIdToMillis
+    isMaxCheckTimeExpired, convertTimeBasedReqIdToMillis, friendlyToRaw
 from plenum.common.verifier import DidVerifier
 
 from anoncreds.protocol.issuer import Issuer
@@ -36,7 +36,6 @@ from sovrin_client.agent.agent_verifier import AgentVerifier
 from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FIELD, \
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
-from sovrin_client.agent.endpoint import ZEndpoint
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
 from sovrin_client.agent.helper import friendlyVerkeyToPubkey
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
@@ -54,7 +53,6 @@ from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
 from plenum.common.constants import PUBKEY
-from stp_core.network.exceptions import RemoteNotFound
 
 logger = getlogger()
 logger.setLevel(agentLoggingLevel)
@@ -183,7 +181,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def logAndSendErrorResp(self, to, reqBody, respMsg, logMsg):
         logger.warning(logMsg)
         self.signAndSend(msg=self.getErrorResponse(reqBody, respMsg),
-                         signingIdr=self.wallet.defaultId, toRaetStackName=to)
+                         signingIdr=self.wallet.defaultId, name=to)
 
     # TODO: Verification needs to be moved out of it,
     # use `verifySignature` instead
@@ -231,7 +229,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def get_link_name_by_internal_id(self, internalId):
         return "Faber College"
-
 
     def set_issuer_backend(self, backend: BackendSystem):
         self.issuer_backend = backend
@@ -291,44 +288,27 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     def get_link_by_name(self, name):
         return self.wallet.getLink(str(name))
 
-    def signAndSend(self, msg, signingIdr=None, toRaetStackName=None,
-                    linkName=None, origReqId=None):
-        if linkName:
-            assert not (signingIdr or toRaetStackName)
-            link = self.wallet.getLink(linkName, required=True)
-            if not link.localIdentifier:
-                raise LinkNotReady('link is not yet established, '
-                                   'send/accept invitation first')
-            signingIdr = link.localIdentifier
+    def signAndSendToLink(self, msg, linkName, origReqId=None):
+        link = self.wallet.getLink(linkName, required=True)
+        if not link.localIdentifier:
+            raise LinkNotReady('link is not yet established, '
+                               'send/accept invitation first')
 
-            try:
-                self.connectTo(link=link)
-                ha = link.getRemoteEndpoint(required=True)
-                params = dict(ha=ha)
-            except RemoteEndpointNotFound as ex:
-                logger.debug('ZStack remote found')
-                if not (isinstance(self.endpoint, ZEndpoint) and
-                            self.endpoint.hasRemote(link.remotePubkey.encode() if
-                            isinstance(link.remotePubkey, str) else
-                                                    link.remotePubkey)):
-                    fault(ex, "Do not know {} {}".format(link.remotePubkey, ha))
-                    return
-                params = dict(name=link.remotePubkey)
-            # TODO ensure status is appropriate with code like the following
-            # if link.linkStatus != constant.LINK_STATUS_ACCEPTED:
-            # raise LinkNotReady('link status is {}'.format(link.linkStatus))
+        ha = link.remoteEndPoint
+        name = link.name
+        if not ha:
+            # if not remote address is present, then it's upcominh link, so we may have no
+            # explicit connection (wrk in a listener mode).
+            # PulicKey is used as a name in this case
+            name = link.remotePubKey
 
-            if not link.localIdentifier:
-                raise LinkNotReady('link is not yet established, '
-                                   'send/accept invitation first')
-        else:
-            params = dict(name=toRaetStackName)
-        # origReqId needs to be supplied when you want to respond to request
-        # so that on receiving end, response can be matched with request
-        # if origReqId:
-        #     msg[f.REQ_ID.nm] = origReqId
-        # else:
-        #     msg[f.REQ_ID.nm] = getTimeBasedId()
+        if ha:
+            self.connectTo(link=link)
+
+        return self.signAndSend(msg=msg, signingIdr=link.localIdentifier,
+                                name=name, ha=ha, origReqId=origReqId)
+
+    def signAndSend(self, msg, signingIdr, name=None, ha=None, origReqId=None):
         msg[f.REQ_ID.nm] = getTimeBasedId()
         if origReqId:
             msg[REF_REQUEST_ID] = origReqId
@@ -336,7 +316,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         msg[IDENTIFIER] = signingIdr
         signature = self.wallet.signMsg(msg, signingIdr)
         msg[f.SIG.nm] = signature
-        self.sendMessage(msg, **params)
+
+        self.sendMessage(msg, name=name, ha=ha)
+
         return msg[f.REQ_ID.nm]
 
     @staticmethod
@@ -656,14 +638,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         self.signAndSend(resp, signingIdr, to, origReqId=origReqId)
 
-    # DEPR!
-    # def addClaimsAvailableAfterInviteAccept(self, link):
-    #     internal_id = self._invites.get(link.invitationNonce, None)
-    #     if internal_id:
-    #         schemas = self._get_available_claim_list_by_internal_id(internal_id)
-    #         for schema in schemas:
-    #             self._set_available_claim_by_schema_dict(link.remoteIdentifier, schema)
-
     def _handleAcceptance(self, msg):
         body, (frm, ha) = msg
         link = self.verifyAndGetLink(msg)
@@ -767,7 +741,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link is None:
             link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
-        self.connectToHa(ha, link.remoteVerkey, link.remotePubkey)
+        self.endpoint.connectIfNotConnected(
+                         name=link.name,
+                         ha=ha,
+                         verKeyRaw=friendlyToRaw(link.remoteVerkey) if link.remoteVerkey else None,
+                         publicKeyRaw=friendlyToRaw(link.remotePubKey)) if link.remotePubKey else None
 
     def loadInvitationFile(self, filePath):
         with open(filePath) as data_file:
@@ -903,10 +881,9 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         }
         logger.debug("{} accepting invitation from {} with id {}".
                      format(self.name, link.name, link.localIdentifier))
-        self.logger.info('Invitation accepted with nonce {} from id {}'
-                              .format(link.invitationNonce,
-                                      link.localIdentifier))
-        self.signAndSend(msg, None, None, link.name)
+        self.logger.info('Accepting invitation with nonce {} from id {}'
+                         .format(link.invitationNonce, link.localIdentifier))
+        self.signAndSendToLink(msg, link.name)
 
     # def _handleSyncNymResp(self, link, additionalCallback):
     #     def _(reply, err):

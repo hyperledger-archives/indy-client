@@ -61,7 +61,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                reqClaimOut, reqClaimOut1, susanCLI, susanMap):
     eventually.slowFactor = 3
 
-    # Create steward and add nyms and endpoint atttributes of all agents
+    # Create steward and add nyms and endpoint attributes of all agents
     _, stewardSeed = poolTxnStewardData
     be(philCLI)
     do('new keyring Steward', expect=['New keyring Steward created',
@@ -115,13 +115,13 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     faberAgent, acmeAgent, thriftAgent = None, None, None
 
     def startAgents():
-        global faberAgent, acmeAgent, thriftAgent
         for agentCls, agentName, agentPort, buildAgentWalletFunc in \
                 agentParams:
             agentCls.getPassedArgs = lambda _: (agentPort, False)
             TestWalletedAgent.createAndRunAgent(
                 agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
                 philCLI.looper, TestClient)
+        _faberAgent, _acmeAgent, _thriftAgent = None, None, None
         for p in philCLI.looper.prodables:
             if p.name == 'Faber College':
                 _faberAgent = p
@@ -129,16 +129,14 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                 _acmeAgent = p
             if p.name == 'Thrift Bank':
                 _thriftAgent = p
+        philCLI.looper.runFor(5)
         return _faberAgent, _acmeAgent, _thriftAgent
 
     def restartAgents():
-        # TODO: Need to uncomment this code when port unbinding and checking
-        # related issues get fixed
-        # for agent in [faberAgent, acmeAgent, thriftAgent]:
-        #     agent.stop()
-        #     philCLI.looper.removeProdable(name=agent.name)
-        # return startAgents()
-        return faberAgent, acmeAgent, thriftAgent
+        for agent in [faberAgent, acmeAgent, thriftAgent]:
+            agent.stop()
+            philCLI.looper.removeProdable(name=agent.name)
+        return startAgents()
 
     faberAgent, acmeAgent, thriftAgent = startAgents()
 
@@ -191,8 +189,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         acceptInvitation(be, do, userCLI, fMap,
                          syncedInviteAcceptedOutWithoutClaims)
 
-        # restart agents to test everything still works fine
-        faberAgent, acmeAgent, thriftAgent = restartAgents()
+        # TODO: restart agents to test everything still works fine
+        # faberAgent, acmeAgent, thriftAgent = restartAgents()
 
         # Request claim
         do('show claim Transcript')
@@ -225,8 +223,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         # Passing some args as None since they are not used in the method
         jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
 
-        # restart agents to test everything still works fine
-        faberAgent, acmeAgent, thriftAgent = restartAgents()
+        # TODO: restart agents to test everything still works fine
+        # faberAgent, acmeAgent, thriftAgent = restartAgents()
 
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
@@ -248,8 +246,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         acceptInvitation(be, do, userCLI, tMap,
                          syncedInviteAcceptedOutWithoutClaims)
 
-        # restart agents to test everything still works fine
-        faberAgent, acmeAgent, thriftAgent = restartAgents()
+        # TODO: restart agents to test everything still works fine
+        # faberAgent, acmeAgent, thriftAgent = restartAgents()
 
         # Send proofs
         bankBasicProofSent(be, do, userCLI, tMap, None)
@@ -273,8 +271,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
 
-    # restart agents to test everything still works fine
-    faberAgent, acmeAgent, thriftAgent = restartAgents()
+    # TODO: restart agents to test everything still works fine
+    # faberAgent, acmeAgent, thriftAgent = restartAgents()
 
     executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
                    aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,

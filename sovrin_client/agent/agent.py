@@ -22,7 +22,6 @@ from stp_core.types import Identifier
 from stp_core.network.util import checkPortAvailable
 from sovrin_client.agent.agent_net import AgentNet
 from sovrin_client.agent.caching import Caching
-from sovrin_client.agent.endpoint import ZEndpoint, REndpoint
 from sovrin_client.agent.walleted import Walleted
 from sovrin_client.anon_creds.sovrin_issuer import SovrinIssuer
 from sovrin_client.anon_creds.sovrin_prover import SovrinProver
@@ -164,20 +163,10 @@ class Agent(Motor, AgentNet):
                                  name, ha, clbk, *args)
 
     def sendMessage(self, msg, name: str = None, ha: Tuple = None):
-        try:
-            remote = self.endpoint.getRemote(name=name, ha=ha)
-            name = remote.name
-            ha = remote.ha
-        except RemoteNotFound as ex:
-            if not (isinstance(self.endpoint, ZEndpoint) and
-                    self.endpoint.hasRemote(name.encode() if
-                                            isinstance(name, str) else name)):
-                fault(ex, "Do not know {} {}".format(name, ha))
-                return
 
         def _send(msg):
             nonlocal name, ha
-            self.endpoint.send(msg, name)
+            self.endpoint.send(msg, name, ha)
             logger.debug("Message sent (to -> {}): {}".format(ha, msg))
 
         # TODO: if we call following isConnectedTo method by ha,
@@ -188,15 +177,6 @@ class Agent(Motor, AgentNet):
             self.ensureConnectedToDest(name, ha, _send, msg)
         else:
             _send(msg)
-
-    def connectToHa(self, ha, verkey=None, pubkey=None):
-        if isinstance(self.endpoint, ZEndpoint):
-            assert pubkey
-            self.endpoint.connectTo(ha, verkey, pubkey)
-        elif isinstance(self.endpoint, REndpoint):
-            self.endpoint.connectTo(ha)
-        else:
-            RuntimeError('Non supported Endpoint type used')
 
     def registerEventListener(self, eventName, listener):
         cur = self._eventListeners.get(eventName)

@@ -6,7 +6,7 @@ from typing import Dict, Union, Tuple, Optional, Callable
 
 import pyorient
 from base58 import b58decode, b58encode
-from raet.raeting import AutoMode
+from plenum import config
 
 from plenum.client.client import Client as PlenumClient
 from plenum.common.error import fault
@@ -15,11 +15,13 @@ from plenum.common.startable import Status
 
 from plenum.common.constants import REPLY, NAME, VERSION, REQACK, REQNACK, \
     TXN_ID, TARGET_NYM, NONCE, STEWARD, OP_FIELD_NAME
-from plenum.common.types import f, HA
+from plenum.common.types import f
 from plenum.common.util import libnacl
 from plenum.persistence.orientdb_store import OrientDbStore
 from plenum.server.router import Router
-from raet.raeting import AutoMode
+from stp_core.network.auth_mode import AuthMode
+from stp_raet.rstack import SimpleRStack
+from stp_zmq.zstack import SimpleZStack
 
 from sovrin_common.constants import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
     NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
@@ -31,7 +33,6 @@ from sovrin_client.persistence.client_req_rep_store_orientdb import \
 from sovrin_client.persistence.client_txn_log import ClientTxnLog
 from sovrin_common.config_util import getConfig
 from sovrin_common.persistence.identity_graph import getEdgeByTxnType, IdentityGraph
-from stp_raet.rstack import SimpleRStack
 from stp_core.types import HA
 
 logger = getlogger()
@@ -59,18 +60,26 @@ class Client(PlenumClient):
         self.hasAnonCreds = bool(peerHA)
         if self.hasAnonCreds:
             self.peerHA = peerHA if isinstance(peerHA, HA) else HA(*peerHA)
+
             stackargs = dict(name=self.stackName,
                              ha=peerHA,
                              main=True,
-                             auto=AutoMode.always)
+                             auth_mode=AuthMode.ALLOW_ANY.value)
+
             self.peerMsgRoutes = []
             self.peerMsgRouter = Router(*self.peerMsgRoutes)
-            self.peerStack = SimpleRStack(stackargs,
+            self.peerStack = self.peerStackClass(stackargs,
                                           msgHandler=self.handlePeerMessage)
             self.peerStack.sign = self.sign
             self.peerInbox = deque()
         self._observers = {}  # type Dict[str, Callable]
         self._observerSet = set()  # makes it easier to guard against duplicates
+
+    @property
+    def peerStackClass(self):
+        if config.UseZStack:
+            return SimpleZStack
+        return SimpleRStack
 
     def handlePeerMessage(self, msg):
         """

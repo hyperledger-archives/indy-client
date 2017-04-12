@@ -76,6 +76,6 @@ class AgentVerifier(Verifier):
                  proofRequest[PROOF_REQ_SCHEMA_VERIFIABLE_ATTRIBUTES])
             ])
 
-            self.signAndSend(msg=op, linkName=link.name)
+            self.signAndSendToLink(msg=op, linkName=link.name)
         else:
             return ERR_NO_PROOF_REQUEST_SCHEMA_FOUND

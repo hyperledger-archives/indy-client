@@ -31,7 +31,7 @@ def _ensureReqCompleted(reqKey, client, clbk):
 
 def _getData(result, error):
     data = json.loads(result.get(DATA).replace("\'", '"'))
-    seqNo = None if not data else data.get(F.seqNo.name)
+    seqNo = result.get(F.seqNo.name)
     return data, seqNo
 
 
@@ -61,11 +61,11 @@ class SovrinPublicRepo(PublicRepo):
         }
         data, seqNo = await self._sendGetReq(op)
         return Schema(name=data[NAME],
-                               version=data[VERSION],
-                               schemaType=data[TYPE],
-                               attrNames=data[ATTR_NAMES].split(","),
-                               issuerId=data[ORIGIN],
-                               seqId=seqNo)
+                      version=data[VERSION],
+                      schemaType=data[TYPE],
+                      attrNames=data[ATTR_NAMES].split(","),
+                      issuerId=data[ORIGIN],
+                      seqId=seqNo)
 
     async def getPublicKey(self, id: ID) -> PublicKey:
         op = {
@@ -76,7 +76,7 @@ class SovrinPublicRepo(PublicRepo):
 
         data, seqNo = await self._sendGetReq(op)
 
-        data = data[DATA][PRIMARY]
+        data = data[PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pk
 
@@ -92,7 +92,7 @@ class SovrinPublicRepo(PublicRepo):
         if not data:
             return None
 
-        data = data[DATA][REVOCATION]
+        data = data[REVOCATION]
         pkR = RevocationPublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pkR
 

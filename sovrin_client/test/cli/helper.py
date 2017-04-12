@@ -49,7 +49,7 @@ def sendNym(cli, nym, role):
 
 
 def checkGetNym(cli, nym):
-    printeds = ["Getting nym {}".format(nym), "Transaction id for NYM {} is "
+    printeds = ["Getting nym {}".format(nym), "Sequence number for NYM {} is "
         .format(nym)]
     checks = [x in cli.lastCmdOutput for x in printeds]
     assert all(checks)

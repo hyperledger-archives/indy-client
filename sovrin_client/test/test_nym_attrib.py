@@ -23,7 +23,7 @@ from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
 from sovrin_client.test.helper import checkNacks, submitAndCheckRejects, \
-    genTestClient, createNym
+    genTestClient, createNym, checkRejects
 
 logger = getlogger()
 
@@ -250,7 +250,7 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     def chk():
         nonlocal trustAnchor, lastReqId, replies
         for node in nodeSet:
-            last = node.spylog.getLast(TestNode.getReplyFor.__name__)
+            last = node.spylog.getLast(TestNode.getReplyFromLedger.__name__)
             assert last
             result = last.result
             assert result is not None
@@ -261,7 +261,7 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
             replies[node.clientstack.name][f.RESULT.nm].pop(TXN_TIME, None)
             result.result.pop(TXN_TIME, None)
 
-            assert replies[node.clientstack.name][f.RESULT.nm] == result.result
+            assert replies[node.clientstack.name][f.RESULT.nm] == {k:v for k, v in result.result.items() if v is not None}
 
     looper.run(eventually(chk, retryWait=1, timeout=5))
 
@@ -305,7 +305,7 @@ def testTrustAnchorGetAttrsForUser(checkAddAttribute):
 
 def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA,
                                             looper, attributeData):
-    with whitelistextras("UnknownIdentifier"):
+    with whitelistextras('UnauthorizedClientRequest'):
         client, wallet = nonTrustAnchor
         attrib = Attribute(name='test1 attribute',
                            origin=wallet.defaultId,
@@ -313,10 +313,10 @@ def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
-        looper.run(eventually(checkNacks,
+        looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
-                              "UnknownIdentifier", retryWait=1, timeout=15))
+                              'UnauthorizedClientRequest', retryWait=1, timeout=15))
 
 
 def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
@@ -330,9 +330,10 @@ def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
-        looper.run(eventually(checkNacks,
+        looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
+                              'UnauthorizedClientRequest',
                               retryWait=1, timeout=15))
 
 
@@ -345,9 +346,10 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(steward, stewardWallet, attrib)
-        looper.run(eventually(checkNacks,
+        looper.run(eventually(checkRejects,
                               steward,
                               reqs[0].reqId,
+                              'UnauthorizedClientRequest',
                               retryWait=1, timeout=15))
 
 
@@ -456,7 +458,7 @@ def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
 
 def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
                                userIdA, attributeData):
-    attr1 = json.dumps({'age': 25})
+    attr1 = json.dumps({'age': "25"})
     attrib = Attribute(name='test4 attribute',
                        origin=userIdA,
                        value=attr1,
@@ -467,7 +469,7 @@ def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
 
 def testAttrWithNoDestAdded(nodeSet, looper, userClientA, userWalletA,
                                userIdA, attributeData):
-    attr1 = json.dumps({'age': 24})
+    attr1 = json.dumps({'age': "24"})
     attrib = Attribute(name='test4 attribute',
                        origin=userIdA,
                        value=attr1,

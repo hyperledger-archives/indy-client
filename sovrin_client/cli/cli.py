@@ -28,6 +28,7 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
+from plenum.common.types import f
 from plenum.common.util import randomString, getWalletFilePath
 from sovrin_client.agent.agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
@@ -464,8 +465,8 @@ class SovrinCli(PlenumCli):
         self.print("Getting nym {}".format(nym))
 
         def getNymReply(reply, err, *args):
-            self.print("Transaction id for NYM {} is {}".
-                       format(nym, reply[TXN_ID]), Token.BoldBlue)
+            self.print("Sequence number for NYM {} is {}".
+                       format(nym, reply[f.SEQ_NO.nm]), Token.BoldBlue)
             try:
                 if reply[DATA]:
                     data = json.loads(reply[DATA])

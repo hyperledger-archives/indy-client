@@ -95,8 +95,9 @@ class ZEndpoint(SimpleZStack, EndpointCore):
     def connectTo(self, ha, verkey, pubkey):
         if not self.isConnectedTo(ha=ha):
             assert pubkey, 'Need public key to connect to {}'.format(ha)
-            zvk = z85.encode(friendlyToRaw(verkey)) if verkey else None
-            zpk = z85.encode(friendlyToRaw(pubkey))
-            self.connect(name=verkey or pubkey, ha=ha, verKey=zvk, publicKey=zpk)
+            zvk = friendlyToRaw(verkey) if verkey else None
+            zpk = friendlyToRaw(pubkey)
+            self.connect(name=verkey or pubkey, ha=ha, verKeyRaw=zvk,
+                         publicKeyRaw=zpk)
         else:
             logger.debug('{} already connected {}'.format(self, ha))

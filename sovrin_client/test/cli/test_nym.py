@@ -65,7 +65,7 @@ def getNym(be, do, userCli, idr, expectedMsgs):
     be(userCli)
     do('send GET_NYM dest={}'.format(idr),
        within=3,
-       expect=["Transaction id for NYM {} is".format(idr)] + expectedMsgs
+       expect=["Sequence number for NYM {} is".format(idr)] + expectedMsgs
        )
 
 

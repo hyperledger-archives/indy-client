@@ -12,7 +12,7 @@ from plenum.common.constants import REQNACK, OP_FIELD_NAME, REJECT
 from plenum.common.types import f, HA
 from stp_core.types import Identifier
 
-from plenum.persistence.orientdb_store import OrientDbStore
+# from plenum.persistence.orientdb_store import OrientDbStore
 from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
@@ -39,13 +39,13 @@ class TestClientStorage(TempStorage):
     def cleanupDataLocation(self):
         self.cleanupDirectory(self.dataLocation)
         config = getConfig()
-        if config.ReqReplyStore == "orientdb" or config.ClientIdentityGraph:
-            try:
-                self._getOrientDbStore().client.db_drop(self.name)
-                logger.debug("Dropped db {}".format(self.name))
-            except Exception as ex:
-                logger.debug("Error while dropping db {}: {}".format(self.name,
-                                                                     ex))
+        # if config.ReqReplyStore == "orientdb" or config.ClientIdentityGraph:
+        #     try:
+        #         self._getOrientDbStore().client.db_drop(self.name)
+        #         logger.debug("Dropped db {}".format(self.name))
+        #     except Exception as ex:
+        #         logger.debug("Error while dropping db {}: {}".format(self.name,
+        #                                                              ex))
 
 
 @Spyable(methods=[Client.handleOneNodeMsg])
@@ -58,12 +58,12 @@ class TestClient(Client, StackedTester, TestClientStorage):
     def stackType():
         return TestStack
 
-    def _getOrientDbStore(self):
-        config = getConfig()
-        return OrientDbStore(user=config.OrientDB["user"],
-                             password=config.OrientDB["password"],
-                             dbName=self.name,
-                             storageType=pyorient.STORAGE_TYPE_MEMORY)
+    # def _getOrientDbStore(self):
+    #     config = getConfig()
+    #     return OrientDbStore(user=config.OrientDB["user"],
+    #                          password=config.OrientDB["password"],
+    #                          dbName=self.name,
+    #                          storageType=pyorient.STORAGE_TYPE_MEMORY)
 
     def onStopping(self, *args, **kwargs):
         self.cleanupDataLocation()

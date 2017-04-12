@@ -162,7 +162,7 @@ class BaseAgent(TestWalletedAgent):
     async def addSchemasToWallet(self):
         for schemaKey in self.getSchemaKeysToBeGenerated():
             matchedAttrDefs = list(filter(lambda ad: ad.name == schemaKey.name,
-                             self.getAttrDefs()))
+                                          self.getAttrDefs()))
             assert len(matchedAttrDefs) == 1, \
                 "check if agent has attrib def and it's name is equivalent " \
                 "to it's corresponding schema key name"
@@ -172,7 +172,9 @@ class BaseAgent(TestWalletedAgent):
                                                  attrDef.attribNames(),
                                                  'CL')
             if schema:
-                schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+                schemaId = ID(schemaKey=schema.getKey(),
+                              schemaId=schema.seqId,
+                              seqId=schema.seqId)
                 p_prime, q_prime = primes["prime2"]
                 await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
                 await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)

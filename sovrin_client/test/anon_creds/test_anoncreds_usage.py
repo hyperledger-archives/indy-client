@@ -32,8 +32,7 @@ def testAnonCredsPrimaryOnly(issuer, prover, verifier, attrRepo, primes1, looper
     async def doTestAnonCredsPrimaryOnly():
         # 1. Create a Schema
         schema = await issuer.genSchema('GVT', '1.0', GVT.attribNames())
-        schemaId = ID(schemaKey=schema.getKey(),
-                        schemaId=schema.seqId)
+        schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
 
         # 2. Create keys for the Schema
         await issuer.genKeys(schemaId, **primes1)

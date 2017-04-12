@@ -41,7 +41,6 @@ class TestWalletedAgent(WalletedAgent):
                             port, loop, clientClass)
                 runAgent(agent, looper, bootstrap)
 
-
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))
             logger.error(getFormattedErrorMsg(error))

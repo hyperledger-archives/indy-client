@@ -113,11 +113,11 @@ class AcmeAgent(BaseAgent):
 
     async def postProofVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
-        oldClaims = self.availableClaimsByIdentifier.get(link.remoteIdentifier)
+        oldClaims = self.issuer.wallet.availableClaimsByIdentifier.get(link.remoteIdentifier)
         if not oldClaims:
             oldClaims = []
         oldClaims.extend(nac)
-        self.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
+        self.issuer.wallet.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):

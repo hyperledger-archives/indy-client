@@ -2,6 +2,7 @@ import json
 import os
 import re
 from _sha256 import sha256
+from typing import Dict
 
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
@@ -352,3 +353,46 @@ def getWalletState(userCli):
     totalClaimsRcvd = getTotalClaimsRcvd(userCli)
     return wallet_state(totalLinks, totalAvailClaims, totalSchemas,
                         totalClaimsRcvd)
+
+
+def compareAgentIssuerWallet(unpersistedWallet, restoredWallet):
+    def compare(old, new):
+        if isinstance(old, Dict):
+            for k, v in old.items():
+                assert v == new.get(k)
+        else:
+            assert old == new
+
+    compareList = [
+        # from anoncreds wallet
+        (unpersistedWallet.walletId, restoredWallet.walletId),
+        (unpersistedWallet._repo.wallet.name, restoredWallet._repo.wallet.name),
+
+        # from sovrin-issuer-wallet-in-memory
+        (unpersistedWallet.availableClaimsToAll, restoredWallet.availableClaimsToAll),
+        (unpersistedWallet.availableClaimsByNonce, restoredWallet.availableClaimsByNonce),
+        (unpersistedWallet.availableClaimsByIdentifier, restoredWallet.availableClaimsByIdentifier),
+        (unpersistedWallet._proofRequestsSchema, restoredWallet._proofRequestsSchema),
+
+        # from anoncreds issuer-wallet-in-memory
+        (unpersistedWallet._sks, restoredWallet._sks),
+        (unpersistedWallet._skRs, restoredWallet._skRs),
+        (unpersistedWallet._accumSks, restoredWallet._accumSks),
+        (unpersistedWallet._m2s, restoredWallet._m2s),
+        (unpersistedWallet._attributes, restoredWallet._attributes),
+
+        # from anoncreds wallet-in-memory
+        (unpersistedWallet._schemasByKey, restoredWallet._schemasByKey),
+        (unpersistedWallet._schemasById, restoredWallet._schemasById),
+        (unpersistedWallet._pks, restoredWallet._pks),
+        (unpersistedWallet._pkRs, restoredWallet._pkRs),
+        (unpersistedWallet._accums, restoredWallet._accums),
+        (unpersistedWallet._accumPks, restoredWallet._accumPks),
+        # TODO: need to check for _tails, it is little bit different than
+        # others (Dict instead of namedTuple or class)
+    ]
+
+    assert unpersistedWallet._repo.client is None
+    assert restoredWallet._repo.client is not None
+    for oldDict, newDict in compareList:
+        compare(oldDict, newDict)

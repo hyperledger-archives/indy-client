@@ -33,8 +33,8 @@ class AgentIssuer:
         name = body[NAME]
         if not self.isClaimAvailable(link, name):
             self.notifyToRemoteCaller(
-                EVENT_NOTIFY_MSG, "This claim is not yet available",
-                self.issuer.wallet.defaultId, frm,
+                EVENT_NOTIFY_MSG, "This claim is not yet available.",
+                self.wallet.defaultId, frm,
                 origReqId=body.get(f.REQ_ID.nm))
             return
 

@@ -35,8 +35,8 @@ class AgentCli(SovrinCli):
     def getContextBasedKeyringsBaseDir(self):
         return self.agent.getContextDir()
 
-    def getAllEnvDirNamesForKeyrings(self):
-        return []
+    def getAllSubDirNamesForKeyrings(self):
+        return ["issuer"]
 
     def getTopComdMappingKeysForHelp(self):
         return ['helpAction']

@@ -11,5 +11,42 @@ class SovrinIssuer(Issuer):
                  publicRepo: PublicRepo = None):
         publicRepo = publicRepo or SovrinPublicRepo(client=client,
                                                     wallet=wallet)
-        issuerWallet = IssuerWalletInMemory(wallet.name, publicRepo)
+        issuerWallet = SovrinIssuerWalletInMemory(wallet.name, publicRepo)
+
         super().__init__(issuerWallet, attrRepo)
+
+    def prepareForWalletPersistence(self):
+        # TODO: If we don't set self.wallet._repo.client to None,
+        # it hangs during wallet persistence, based on findings, it seems,
+        # somewhere it hangs during persisting client._ledger and
+        # client.ledgerManager
+        self.wallet._repo.client = None
+
+    def restorePersistedWallet(self, issuerWallet):
+        curRepoClient = self.wallet._repo.client
+        self.wallet = issuerWallet
+        self._primaryIssuer._wallet = issuerWallet
+        self._nonRevocationIssuer._wallet = issuerWallet
+        self.wallet._repo.client = curRepoClient
+
+
+class SovrinIssuerWalletInMemory(IssuerWalletInMemory):
+
+    def __init__(self, name, pubRepo):
+
+        IssuerWalletInMemory.__init__(self, name, pubRepo)
+
+        # available claims to anyone whose connection is accepted by the agent
+        self.availableClaimsToAll = []
+
+        # available claims only for certain invitation (by nonce)
+        self.availableClaimsByNonce = {}
+
+        # mapping between specific identifier and available claims which would
+        # have been available once they have provided requested information
+        # like proof etc.
+        self.availableClaimsByIdentifier = {}
+
+        self._proofRequestsSchema = {}  # Dict[str, Dict[str, any]]
+
+

@@ -69,6 +69,8 @@ class Agent(Motor, AgentNet):
         # known identifiers of this agent's owner
         self.ownerIdentifiers = {}  # type: Dict[Identifier, Identity]
 
+        self.logger = logger
+
     @property
     def client(self):
         return self._client

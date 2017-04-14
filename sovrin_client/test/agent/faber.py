@@ -38,10 +38,10 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=N
                           endpointArgs=endpoint_args)
 
     agent._invites = {
-        "b1134a647eb818069c089e7694f63e6d": 1,
-        "2a2eb72eca8b404e8d412c5bf79f2640": 2,
-        "7513d1397e87cada4214e2a650f603eb": 3,
-        "710b78be79f29fc81335abaa4ee1c5e8": 4
+        "b1134a647eb818069c089e7694f63e6d": (1, "Alice"),
+        "2a2eb72eca8b404e8d412c5bf79f2640": (2, "Carol"),
+        "7513d1397e87cada4214e2a650f603eb": (3, "Frank"),
+        "710b78be79f29fc81335abaa4ee1c5e8": (4, "Bob")
     }
 
     transcript_def = AttribDef('Transcript',

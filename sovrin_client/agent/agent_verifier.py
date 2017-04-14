@@ -36,8 +36,8 @@ class AgentVerifier(Verifier):
         result = await self.verifier.verify(proofInput, proof,
                                             revealedAttrs, nonce)
 
-        self.logger.info('Proof accepted with nonce {}'
-                              .format(nonce))
+        self.logger.info('Proof "{}" accepted with nonce {}'
+                         .format(body.get('name', ''), nonce))
         self.logger.info('Verifying proof from {}'
                               .format(link.name))
         status = 'verified' if result else 'failed verification'

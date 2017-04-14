@@ -22,13 +22,14 @@ from sovrin_node.test.conftest import tdir, conf, nodeSet, tconf, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, testNodeClass, \
     genesisTxns
 
+BANK_SEED = b'BANK0000000000000000000000000000'
 
 class RefAgent(WalletedAgent):
 
-    def create_link(self, internal_id):
+    def create_link(self, internal_id, name):
 
         nonce = str(self.verifier.generateNonce())
-        endpoint = self.endpoint.host_address()
+        # endpoint = self.endpoint.host_address()
         endpoint = "127.0.0.1" + ":" + str(self.endpoint.ha[1])  #TODO: this should be done by endpoint
 
         msg = {'link-invitation': {
@@ -41,7 +42,7 @@ class RefAgent(WalletedAgent):
             'sig': None
         }
 
-        self._invites[nonce] = internal_id
+        self._invites[nonce] = (internal_id, name)
 
         signature = self.wallet.signMsg(msg, self.wallet.defaultId)
 
@@ -50,7 +51,7 @@ class RefAgent(WalletedAgent):
         return json.dumps(msg)
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_end_to_end(tconf):
     base_dir = tconf.baseDir
 
@@ -71,11 +72,13 @@ def test_end_to_end(tconf):
                               basedirpath=base_dir,
                               client=client,
                               wallet=bank_wallet,
-                              port=8787)
+                              port=8787,
+                              endpointArgs={'seed': BANK_SEED,
+                                            'onlyListener': True})
 
         network.add(bank_agent)
 
-        bank_id, bank_verkey = bank_agent.new_identifier()
+        bank_id, bank_verkey = bank_agent.new_identifier(seed=BANK_SEED)
 
         print(bank_id)
         print(bank_verkey)
@@ -172,7 +175,7 @@ def test_end_to_end(tconf):
 
         network.runFor(1)
 
-        invitation = bank_agent.create_link(alices_id_in_banks_system)
+        invitation = bank_agent.create_link(alices_id_in_banks_system, "Alice")
 
         # Transfer of this invitation happens out-of-band (website, QR code, etc)
 
@@ -183,7 +186,7 @@ def test_end_to_end(tconf):
 
         alice_agent.accept_invitation(alices_link_to_bank)
 
-        network.runFor(3)
+        network.runFor(10)
 
         # notice that the link is accepted
         print(alices_link_to_bank)

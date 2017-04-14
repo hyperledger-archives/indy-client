@@ -1,5 +1,8 @@
 # Test for required installed modules
 import sys
+
+from stp_core.loop.eventually import eventually
+
 try:
     from sovrin_client import *
 except ImportError as e:
@@ -39,45 +42,105 @@ ignored_files = ['node.py', 'stacked.py', 'zstack.py', 'network_interface.py', '
                  'replica.py', 'propagator.py', 'upgrader.py',
                  'plugin_loader.py']
 
+log_msg = []
+
 log_out_format = Formatter(fmt=logFormat, style="{")
 
 
 def out(record, extra_cli_value=None):
     if record.filename not in ignored_files:
-        print(log_out_format.format(record))
+        msg = log_out_format.format(record)
+        print(msg)
+        log_msg.append(msg)
 
 Logger().enableCliLogging(out, override_tags={})
 
 
-def start_agents(pool, looper, base_dir):
-    start_agent(base_dir, create_faber, bootstrap_faber,
-                pool.create_client(5500), looper,
-                pool.steward_agent())
+def demo_start_agents(pool, looper, base_dir):
+    demo_start_agent(base_dir, create_faber, bootstrap_faber, pool.create_client(5500), looper, pool.steward_agent())
 
-    start_agent(base_dir, create_acme, bootstrap_acme,
-                pool.create_client(5501), looper,
-                pool.steward_agent())
+    demo_start_agent(base_dir, create_acme, bootstrap_acme, pool.create_client(5501), looper, pool.steward_agent())
 
-    start_agent(base_dir, create_thrift, bootstrap_thrift,
-                pool.create_client(5502), looper,
-                pool.steward_agent())
+    demo_start_agent(base_dir, create_thrift, bootstrap_thrift, pool.create_client(5502), looper, pool.steward_agent())
 
 
-def start_agent(base_dir, create_func, bootstrap_func, client, looper, steward):
-    looper.run_till_quiet()
+def demo_start_agent(base_dir, create_func, bootstrap_func, client, looper, steward):
+    looper.runFor(2)
     agent = create_func(base_dir_path=base_dir, client=client)
 
     steward.publish_trust_anchor(Identity(identifier=agent.wallet.defaultId,
                                           verkey=agent.wallet.getVerkey(agent.wallet.defaultId),
                                           role=TRUST_ANCHOR))
 
-    looper.run_till_quiet(4)
+    looper.runFor(4)
 
     looper.add(agent)
 
-    looper.run_till_quiet()
+    looper.runFor(2)
 
     looper.run(bootstrap_func(agent))
+
+
+def demo_wait_for_proof(looper, proof):
+    search_msg = "Proof \"{}\"".format(proof.name)
+    looper.run(eventually(_wait_for_log_msg, search_msg, retryWait=.2, timeout=10))
+
+
+def demo_wait_for_ping(looper):
+    search_msg = "_handlePong"
+    looper.run(eventually(_wait_for_log_msg, search_msg, retryWait=.2, timeout=10))
+
+
+def _wait_for_log_msg(search_msg):
+    for msg in log_msg:
+        if search_msg in msg:
+            return
+
+    assert False
+
+
+def demo_wait_for_claim_available(looper, link, claim_name):
+    def _():
+        claim = link.find_available_claim(name=claim_name)
+        assert claim
+        return claim
+
+    _wait_for(looper, _)
+
+
+def demo_wait_for_claim_received(looper, agent, claim_name):
+    async def _():
+        claims = await agent.prover.wallet.getAllClaims()
+        assert len(claims) > 0
+        for schema_key, claims in claims.items():
+            if schema_key.name == claim_name:
+                return claims
+
+        assert False
+
+    _wait_for(looper, _)
+
+
+def demo_wait_for_sync(looper, link):
+    def _():
+        last_sync = link.linkLastSynced
+        assert last_sync
+        return last_sync
+
+    _wait_for(looper, _)
+
+
+def demo_wait_for_accept(looper, link):
+    def _():
+        assert link.isAccepted
+        return link.isAccepted
+
+    _wait_for(looper, _)
+
+
+def _wait_for(looper, func, retry_wait=.1, timeout=10):
+    return looper.run(eventually(func, retryWait=retry_wait, timeout=timeout))
+
 
 FABER_INVITE = """
 {

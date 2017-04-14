@@ -1,4 +1,5 @@
 import pytest
+import time
 
 from sovrin_client.test.training.getting_started import *
 
@@ -6,7 +7,7 @@ from sovrin_client.test.training.getting_started import *
 from sovrin_node.test.conftest import tconf
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_getting_started(tconf):
     getting_started(base_dir=tconf.baseDir)
 
@@ -20,23 +21,21 @@ def getting_started(base_dir=None):
         base_dir = TemporaryDirectory().name
 
     pool = create_local_pool(base_dir)
-
-    start_agents(pool, pool, base_dir)
-
+    demo_start_agents(pool, pool, base_dir)
     # ###################################
     #  Alice's Wallet
     # ###################################
 
-    alice_wallet = Wallet()
     alice_agent = WalletedAgent(name="Alice",
                                 basedirpath=base_dir,
                                 client=pool.create_client(5403),
-                                wallet=alice_wallet,
+                                wallet=Wallet(),
                                 port=8786)
+    alice_agent.new_identifier()
 
     pool.add(alice_agent)
 
-    pool.run_till_quiet()
+    pool.runFor(1)
 
     ####################################
     #  Faber Invitation
@@ -45,37 +44,37 @@ def getting_started(base_dir=None):
     print(FABER_INVITE)
 
     link_to_faber = alice_agent.load_invitation_str(FABER_INVITE)
-    alice_agent.create_identifier_for_link(link_to_faber)
 
     print(link_to_faber)
 
     alice_agent.sync(link_to_faber.name)
 
-    pool.run_till_quiet(2)
+    demo_wait_for_sync(pool, link_to_faber)
 
     print(link_to_faber)
 
     alice_agent.accept_invitation(link_to_faber)
 
-    pool.run_till_quiet()
+    demo_wait_for_accept(pool, link_to_faber)
 
     print(link_to_faber)
 
     alice_agent.sendPing("Faber College")
 
-    pool.run_till_quiet(4)
+    demo_wait_for_ping(pool)
 
     ####################################
     #  Transcription Claim
     ####################################
 
+    demo_wait_for_claim_available(pool, link_to_faber, 'Transcript')
     claim_to_request = link_to_faber.find_available_claim(name='Transcript')
 
     print(claim_to_request)
 
     pool.run(alice_agent.send_claim(link_to_faber, claim_to_request))
 
-    pool.run_till_quiet()
+    demo_wait_for_claim_received(pool, alice_agent, 'Transcript')
 
     claims = pool.run(alice_agent.prover.wallet.getAllClaims())
 
@@ -85,19 +84,20 @@ def getting_started(base_dir=None):
     #  Acme Invitation
     ####################################
 
+    print(ACME_INVITE)
     link_to_acme = alice_agent.load_invitation_str(ACME_INVITE)
 
     print(link_to_acme)
 
     alice_agent.sync(link_to_acme.name)
 
-    pool.run_till_quiet(2)
+    demo_wait_for_sync(pool, link_to_acme)
 
     print(link_to_acme)
 
     alice_agent.accept_invitation(link_to_acme)
 
-    pool.run_till_quiet()
+    demo_wait_for_accept(pool, link_to_acme)
 
     print(link_to_acme)
 
@@ -107,13 +107,13 @@ def getting_started(base_dir=None):
 
     alice_agent.sendProof(link_to_acme, job_application_request)
 
-    pool.run_till_quiet(2)
-
-    print(link_to_acme)
-
     ####################################
     #  Job-Certificate Claim
     ####################################
+
+    demo_wait_for_claim_available(pool, link_to_acme, 'Job-Certificate')
+
+    print(link_to_acme)
 
     job_certificate = link_to_acme.find_available_claim(name='Job-Certificate')
 
@@ -121,14 +121,14 @@ def getting_started(base_dir=None):
 
     pool.run(alice_agent.send_claim(link_to_acme, job_certificate))
 
-    pool.run_till_quiet()
+    demo_wait_for_claim_received(pool, alice_agent, 'Job-Certificate')
 
     claims = pool.run(alice_agent.prover.wallet.getAllClaims())
 
     print(claims)
 
     ####################################
-    #  Acme Invitation
+    #  Thrift Invitation
     ####################################
 
     link_to_thrift = alice_agent.load_invitation_str(THRIFT_INVITE)
@@ -137,13 +137,13 @@ def getting_started(base_dir=None):
 
     alice_agent.sync(link_to_thrift.name)
 
-    pool.run_till_quiet(2)
+    demo_wait_for_sync(pool, link_to_thrift)
 
     print(link_to_thrift)
 
     alice_agent.accept_invitation(link_to_thrift)
 
-    pool.run_till_quiet()
+    demo_wait_for_accept(pool, link_to_thrift)
 
     print(link_to_thrift)
 
@@ -157,9 +157,7 @@ def getting_started(base_dir=None):
 
     alice_agent.sendProof(link_to_thrift, load_basic_request)
 
-    pool.run_till_quiet()
-
-    print(link_to_thrift)
+    demo_wait_for_proof(pool, load_basic_request)
 
     #######
 
@@ -169,9 +167,7 @@ def getting_started(base_dir=None):
 
     alice_agent.sendProof(link_to_thrift, load_kyc_request)
 
-    pool.run_till_quiet()
-
-    print(link_to_thrift)
+    demo_wait_for_proof(pool, load_kyc_request)
 
 if __name__ == "__main__":
     getting_started()

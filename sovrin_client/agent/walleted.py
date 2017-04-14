@@ -6,7 +6,7 @@ import time
 from abc import abstractmethod
 from datetime import datetime
 from typing import Any
-from typing import Dict, Union, List
+from typing import Dict, Tuple, Union, List
 from typing import Set
 
 from base58 import b58decode
@@ -37,7 +37,7 @@ from sovrin_client.agent.constants import ALREADY_ACCEPTED_FIELD, CLAIMS_LIST_FI
     REQ_MSG, PING, ERROR, EVENT, EVENT_NAME, EVENT_NOTIFY_MSG, \
     EVENT_POST_ACCEPT_INVITE, PONG, EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.exception import NonceNotFound, SignatureRejected
-from sovrin_client.agent.helper import friendlyVerkeyToPubkey
+from sovrin_client.agent.helper import friendlyVerkeyToPubkey, rawVerkeyToPubkey
 from sovrin_client.agent.msg_constants import ACCEPT_INVITE, CLAIM_REQUEST, \
     PROOF, \
     AVAIL_CLAIM_LIST, CLAIM, PROOF_STATUS, NEW_AVAILABLE_CLAIMS, \
@@ -108,7 +108,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
         self.issuer_backend = None
 
-        self._invites = {}  # type: Dict[Nonce, InternalId]
+        self._invites = {}  # type: Dict[Nonce, Tuple(InternalId, str)]
         self._attribDefs = {}  # type: Dict[str, AttribDef]
         self.defined_claims = []  # type: List[Dict[str, Any]
 
@@ -192,7 +192,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             kwargs = dict(nonce=nonce, remoteIdr=body.get(f.IDENTIFIER.nm), remoteHa=ha)
             if ha is None:
                 # Incase of ZStack,
-                kwargs.update(remotePubKey=frm)
+                kwargs.update(remotePubkey=frm)
             return self.linkFromNonce(**kwargs)
         except NonceNotFound:
             self.logAndSendErrorResp(frm, body,
@@ -200,7 +200,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                                      "Nonce not found for msg: {}".format(msg))
             return None
 
-    def linkFromNonce(self, nonce, remoteIdr, remoteHa=None, remotePubKey=None):
+    def linkFromNonce(self, nonce, remoteIdr, remoteHa=None, remotePubkey=None):
         internalId = self.get_internal_id_by_nonce(nonce)
         linkName = self.get_link_name_by_internal_id(internalId)
         link = self.wallet.getLinkBy(internalId=internalId)
@@ -214,7 +214,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                         remoteIdentifier=remoteIdr,
                         remoteEndPoint=remoteHa,
                         internalId=internalId,
-                        remotePubKey=remotePubKey)
+                        remotePubkey=remotePubkey)
             self.wallet.addLink(link)
         else:
             link.remoteIdentifier = remoteIdr
@@ -223,12 +223,14 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def get_internal_id_by_nonce(self, nonce):
         if nonce in self._invites:
-            return self._invites[nonce]
+            return self._invites[nonce][0]
         else:
             raise NonceNotFound
 
     def get_link_name_by_internal_id(self, internalId):
-        return "Faber College"
+        for invite in self._invites.values():
+            if invite[0] == internalId:
+                return invite[1]
 
     def set_issuer_backend(self, backend: BackendSystem):
         self.issuer_backend = backend
@@ -280,8 +282,8 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     async def get_claim(self, schema_id: ID):
         return await self.prover.wallet.getClaims(schema_id)
 
-    def new_identifier(self):
-        idr, _ = self.wallet.addIdentifier()
+    def new_identifier(self, seed=None):
+        idr, _ = self.wallet.addIdentifier(seed=seed)
         verkey = self.wallet.getVerkey(idr)
         return idr, verkey
 
@@ -294,13 +296,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise LinkNotReady('link is not yet established, '
                                'send/accept invitation first')
 
-        ha = link.remoteEndPoint
+        ha = link.getRemoteEndpoint(required=True)
         name = link.name
         if not ha:
             # if not remote address is present, then it's upcominh link, so we may have no
             # explicit connection (wrk in a listener mode).
             # PulicKey is used as a name in this case
-            name = link.remotePubKey
+            name = link.remotePubkey
 
         if ha:
             self.connectTo(link=link)
@@ -722,7 +724,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
 
     def sendPing(self, linkName):
         link = self.wallet.getLink(linkName, required=True)
-        self.connectTo(linkName)
+        self.connectTo(link=link)
         ha = link.getRemoteEndpoint(required=True)
         params = dict(ha=ha)
         msg = {
@@ -741,11 +743,15 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link is None:
             link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
+        verKeyRaw = friendlyToRaw(link.remoteVerkey) if link.remoteVerkey else None
+        publicKeyRaw = friendlyToRaw(link.remotePubkey) if link.remotePubkey else None
+        if publicKeyRaw is None:
+            publicKeyRaw = rawVerkeyToPubkey(verKeyRaw)
         self.endpoint.connectIfNotConnected(
                          name=link.name,
                          ha=ha,
-                         verKeyRaw=friendlyToRaw(link.remoteVerkey) if link.remoteVerkey else None,
-                         publicKeyRaw=friendlyToRaw(link.remotePubKey)) if link.remotePubKey else None
+                         verKeyRaw=verKeyRaw,
+                         publicKeyRaw=publicKeyRaw)
 
     def loadInvitationFile(self, filePath):
         with open(filePath) as data_file:

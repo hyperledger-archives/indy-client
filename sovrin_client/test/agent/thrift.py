@@ -13,6 +13,7 @@ logger = getlogger()
 
 THRIFT_SEED = b'Thrift00000000000000000000000000'
 
+
 class ThriftAgent(WalletedAgent):
 
     async def postProofVerif(self, claimName, link, frm):
@@ -45,8 +46,8 @@ def create_thrift(name=None, wallet=None, base_dir_path=None, port=7777, client=
                         endpointArgs=endpoint_args)
 
     agent._invites = {
-        "77fbf9dc8c8e6acde33de98c6d747b28c": 1,
-        "ousezru20ic4yz3j074trcgthwlsnfsef": 2
+        "77fbf9dc8c8e6acde33de98c6d747b28c": (1, "Alice"),
+        "ousezru20ic4yz3j074trcgthwlsnfsef": (2, "Bob")
     }
 
     return agent

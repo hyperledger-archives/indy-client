@@ -342,14 +342,14 @@ def checkAcceptInvitation(emptyLooper,
                                                 required=True)
     ensureAgentConnected(emptyLooper, inviteeAgent, inviteeAcceptanceLink)
 
-    inviteeAgent.acceptInvitation(linkName)
-    internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
+    inviteeAgent.accept_invitation(linkName)
+    internalId = inviterAgent.get_internal_id_by_nonce(nonce)
 
     def chk():
         assert inviteeAcceptanceLink.remoteEndPoint[1] == inviterAgent.endpoint.ha[1]
         assert inviteeAcceptanceLink.isAccepted
 
-        link = inviterWallet.getLinkByInternalId(internalId)
+        link = inviterAgent.wallet.getLinkBy(internalId=internalId)
         assert link
         assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 

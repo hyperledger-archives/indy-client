@@ -13,6 +13,11 @@ from sovrin_common.config_util import getConfig
 def processInvAccept(wallet, msg):
     pass
 
+
+def rawVerkeyToPubkey(raw_verkey):
+    return ed25519PkToCurve25519(raw_verkey)
+
+
 def friendlyVerkeyToPubkey(verkey):
     vkRaw = friendlyToRaw(verkey)
     pkraw = ed25519PkToCurve25519(vkRaw)

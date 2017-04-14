@@ -54,10 +54,10 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=No
 
     # maps invitation nonces to internal ids
     agent._invites = {
-        "57fbf9dc8c8e6acde33de98c6d747b28c": 1,
-        "3a2eb72eca8b404e8d412c5bf79f2640": 2,
-        "8513d1397e87cada4214e2a650f603eb": 3,
-        "810b78be79f29fc81335abaa4ee1c5e8": 4
+        "57fbf9dc8c8e6acde33de98c6d747b28c": (1, "Alice"),
+        "3a2eb72eca8b404e8d412c5bf79f2640": (2, "Carol"),
+        "8513d1397e87cada4214e2a650f603eb": (3, "Frank"),
+        "810b78be79f29fc81335abaa4ee1c5e8": (4, "Bob")
     }
 
     job_cert_def = AttribDef('Job-Certificate',

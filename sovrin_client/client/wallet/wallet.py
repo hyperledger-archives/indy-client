@@ -9,10 +9,10 @@ from typing import Optional
 from ledger.util import F
 from plenum.client.wallet import Wallet as PWallet
 from plenum.common.did_method import DidMethods
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
     IDENTIFIER, NYM, ROLE, VERKEY, NODE
-from plenum.common.types import Identifier, f
+from plenum.common.types import f
 
 from sovrin_client.client.wallet.attribute import Attribute, AttributeKey
 from sovrin_client.client.wallet.link import Link
@@ -22,7 +22,9 @@ from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
 from sovrin_common.identity import Identity
-from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, GET_NYM, POOL_UPGRADE
+from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, \
+    GET_NYM, POOL_UPGRADE
+from stp_core.types import Identifier
 
 ENCODING = "utf-8"
 
@@ -59,9 +61,6 @@ class Wallet(PWallet, TrustAnchoring):
         # pending transactions that have been prepared (probably submitted)
         self._prepared = {}  # type: Dict[(Identifier, int), Request]
         self.lastKnownSeqs = {}  # type: Dict[str, int]
-
-        # dict for proof request schema Dict[str, Dict[str, any]]
-        self._proofRequestsSchema = None
 
         self.replyHandler = {
             ATTRIB: self._attribReply,
@@ -262,7 +261,7 @@ class Wallet(PWallet, TrustAnchoring):
         if idy:
             idy.seqNo = result[F.seqNo.name]
         else:
-            logger.warn("Target {} not found in trust anchored".format(target))
+            logger.warning("Target {} not found in trust anchored".format(target))
 
     def _nodeReply(self, result, preparedReq):
         _, nodeKey = preparedReq
@@ -334,11 +333,9 @@ class Wallet(PWallet, TrustAnchoring):
         self.pendRequest(req, key=key)
         return self.preparePending()[0]
 
-    # DEPR
-    # Why shouldn't we fetch link by nonce
-    def getLinkByNonce(self, nonce) -> Optional[Link]:
+    def getLinkByNonce(self, nonce, identifier=None) -> Optional[Link]:
         for _, li in self._links.items():
-            if li.invitationNonce == nonce:
+            if li.invitationNonce == nonce and (not identifier or li.remoteIdentifier == identifier):
                 return li
 
     def getLinkByInternalId(self, internalId) -> Optional[Link]:

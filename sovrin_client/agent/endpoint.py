@@ -1,17 +1,28 @@
-from typing import Callable, Any, List
+from typing import Callable
 
-from plenum.common.log import getlogger
-from plenum.common.raet import getHaFromLocalEstate
-from plenum.common.stacked import SimpleStack
-from plenum.common.types import HA
+from plenum import config
+from plenum.common.message_processor import MessageProcessor
+
+from stp_core.common.log import getlogger
+from stp_core.network.auth_mode import AuthMode
+from stp_raet.util import getHaFromLocalEstate
 from plenum.common.util import randomString
-from raet.raeting import AutoMode
-from raet.road.estating import RemoteEstate
+from stp_core.crypto.util import randomSeed
+from stp_raet.rstack import SimpleRStack
+from stp_core.types import HA
+from stp_zmq.zstack import SimpleZStack
 
 logger = getlogger()
 
 
-class Endpoint(SimpleStack):
+class EndpointCore(MessageProcessor):
+
+    def tracedMsgHandler(self, msg):
+        logger.debug("Got {}".format(msg))
+        self.msgHandler(msg)
+
+
+class REndpoint(SimpleRStack, EndpointCore):
     def __init__(self, port: int, msgHandler: Callable,
                  name: str=None, basedirpath: str=None):
         if name and basedirpath:
@@ -23,47 +34,32 @@ class Endpoint(SimpleStack):
             "name": name or randomString(8),
             "ha": HA("0.0.0.0", port),
             "main": True,
-            "auto": AutoMode.always,
-            "mutable": "mutable"
+            "auth_mode": AuthMode.ALLOW_ANY.value,
+            "mutable": "mutable",
+            "messageTimeout": config.RAETMessageTimeout
         }
         if basedirpath:
             stackParams["basedirpath"] = basedirpath
 
-        super().__init__(stackParams, self.baseMsgHandler)
+            SimpleRStack.__init__(self, stackParams, self.tracedMsgHandler)
 
         self.msgHandler = msgHandler
 
-    def transmitToClient(self, msg: Any, remoteName: str):
-        """
-        Transmit the specified message to the remote client specified by
-         `remoteName`.
-        :param msg: a message
-        :param remoteName: the name of the remote
-        """
-        # At this time, nodes are not signing messages to clients, beyond what
-        # happens inherently with RAET
-        payload = self.prepForSending(msg)
-        try:
-            self.send(payload, remoteName)
-        except Exception as ex:
-            logger.error("{} unable to send message {} to client {}; "
-                         "Exception: {}".format(self.name, msg, remoteName,
-                                               ex.__repr__()))
+class ZEndpoint(SimpleZStack, EndpointCore):
+    def __init__(self, port: int, msgHandler: Callable,
+                 name: str=None, basedirpath: str=None, seed=None,
+                 onlyListener=False):
+        stackParams = {
+            "name": name or randomString(8),
+            "ha": HA("0.0.0.0", port),
+            "auth_mode": AuthMode.ALLOW_ANY.value
+        }
+        if basedirpath:
+            stackParams["basedirpath"] = basedirpath
 
-    def transmitToClients(self, msg: Any, remoteNames: List[str]):
-        for nm in remoteNames:
-            self.transmitToClient(msg, nm)
+        seed = seed or randomSeed()
+        SimpleZStack.__init__(self, stackParams, self.tracedMsgHandler,
+                              seed=seed, onlyListener=onlyListener)
 
-    # TODO: Rename method
-    def baseMsgHandler(self, msg):
-        logger.debug("Got {}".format(msg))
-        self.msgHandler(msg)
+        self.msgHandler = msgHandler
 
-    def connectTo(self, ha):
-        remote = self.findInRemotesByHA(ha)
-        if not remote:
-            remote = RemoteEstate(stack=self, ha=ha)
-            self.addRemote(remote)
-            # updates the store time so the join timer is accurate
-            self.updateStamp()
-            self.join(uid=remote.uid, cascade=True, timeout=30)

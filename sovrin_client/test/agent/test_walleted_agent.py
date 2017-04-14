@@ -1,13 +1,10 @@
-from plenum.common.log import getlogger
-from plenum.common.types import f
+from stp_core.common.log import getlogger
 from plenum.common.util import getFormattedErrorMsg
 from plenum.test.testable import Spyable
 
 from sovrin_client.agent.agent import WalletedAgent, createAgent, runAgent
 from sovrin_client.client.client import Client
-from sovrin_common.exceptions import LinkNotFound
-from sovrin_common.constants import NONCE
-from sovrin_client.test.agent.helper import getAgentCmdLineParams
+from sovrin_client.test.agent.helper import getAgentCmdLineParams, runAgentCli
 
 logger = getlogger()
 
@@ -15,32 +12,36 @@ logger = getlogger()
 @Spyable(
     methods=[WalletedAgent._handlePing, WalletedAgent._handlePong])
 class TestWalletedAgent(WalletedAgent):
-    def getLinkForMsg(self, msg):
-        nonce = msg.get(NONCE)
-        identifier = msg.get(f.IDENTIFIER.nm)
-        link = None
-        for _, li in self.wallet._links.items():
-            if li.invitationNonce == nonce and li.remoteIdentifier == identifier:
-                link = li
-                break
-        if link:
-            return link
-        else:
-            raise LinkNotFound
 
     @staticmethod
     def getPassedArgs():
         return getAgentCmdLineParams()
 
-    def createAndRunAgent(agentClass, name, wallet=None, basedirpath=None,
-                      port=None, looper=None, clientClass=Client, bootstrap=True):
+    @staticmethod
+    def getEndpointArgs(wallet):
+        endpointSeed = wallet._signerById(wallet.defaultId).seed if wallet \
+            else None
+        onlyListener = True
+        return {'seed': endpointSeed,
+                'onlyListener': onlyListener}
+
+    @staticmethod
+    def createAndRunAgent(name:str, agentClass=None, wallet=None, basedirpath=None,
+                          port=None, looper=None, clientClass=Client,
+                          bootstrap=True, cliAgentCreator=None):
+
+        loop = looper.loop if looper else None
+        _, with_cli = TestWalletedAgent.getPassedArgs()
         try:
-            loop = looper.loop if looper else None
-            agent = createAgent(agentClass, name, wallet, basedirpath, port,
-                                loop,
-                                clientClass)
-            runAgent(agent, looper, bootstrap)
-            return agent
+            if cliAgentCreator and with_cli:
+                runAgentCli(name=name, agentCreator=cliAgentCreator)
+            else:
+                assert agentClass
+                agent = createAgent(agentClass, name, wallet, basedirpath,
+                            port, loop, clientClass)
+                runAgent(agent, looper, bootstrap)
+
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))
             logger.error(getFormattedErrorMsg(error))
+

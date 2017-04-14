@@ -1,8 +1,7 @@
-from plenum.common.port_dispenser import genHa
 from plenum.common.signer_did import DidSigner
-
-from sovrin_common.strict_types import strict_types
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.strict_types import strict_types
+from stp_core.network.port_dispenser import genHa
 
 
 strict_types.defaultShouldCheck = True
@@ -21,9 +20,9 @@ import os
 import pytest
 
 import sample
-from plenum.common.looper import Looper
+from stp_core.loop.looper import Looper
 from plenum.common.util import randomString
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.helper import assertFunc
 from sovrin_client.agent.agent import runAgent
 from sovrin_client.agent.agent import WalletedAgent
@@ -32,8 +31,8 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
-from sovrin_client.test.agent.helper import ensureAgentsConnected, buildFaberWallet, \
-    buildAcmeWallet, buildThriftWallet
+from sovrin_client.test.agent.helper import ensureAgentConnected, \
+    buildFaberWallet, buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
 from sovrin_node.test.helper import addAttributeAndCheck
 from sovrin_client.test.helper import createNym, TestClient
@@ -161,6 +160,7 @@ def faberAdded(nodeSet, steward, stewardWallet,
                faberAgent):
     addAgent(emptyLooper, faberAgent, steward, stewardWallet)
 
+
 def startAgent(looper, agent, wallet):
     agent = agent
     wallet.pendSyncRequests()
@@ -169,6 +169,7 @@ def startAgent(looper, agent, wallet):
 
     runAgent(agent, looper)
     return agent, wallet
+
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
@@ -330,26 +331,23 @@ def checkAcceptInvitation(emptyLooper,
     assert nonce
     inviterAgent, inviterWallet = inviterAgentAndWallet  # type: WalletedAgent, Wallet
 
-    inviteeWallet = inviteeAgent.wallet
     inviteeAgent.connectTo(linkName)
-    ensureAgentsConnected(emptyLooper, inviteeAgent, inviterAgent)
+    inviteeAcceptanceLink = inviteeAgent.wallet.getLink(linkName,
+                                                required=True)
+    ensureAgentConnected(emptyLooper, inviteeAgent, inviteeAcceptanceLink)
 
     inviteeAgent.acceptInvitation(linkName)
-    inviteeAcceptanceId = inviteeWallet.getLink(linkName,
-                                                required=True).localIdentifier
     internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
 
     def chk():
+        assert inviteeAcceptanceLink.remoteEndPoint[1] == inviterAgent.endpoint.ha[1]
+        assert inviteeAcceptanceLink.isAccepted
+
         link = inviterWallet.getLinkByInternalId(internalId)
         assert link
-        # if not link:
-        #     raise RuntimeError("Link not found for internal ID {}".
-        #                        format(internalId))
-        # TODO: Get link from invitee wallet to check.
-        assert link.remoteIdentifier == inviteeAcceptanceId
-        assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 
-    emptyLooper.run(eventually(chk))
+    emptyLooper.run(eventually(chk, timeout=10))
 
 
 def addAgent(looper, agent, steward, stewardWallet):
@@ -367,7 +365,7 @@ def addAgent(looper, agent, steward, stewardWallet):
 
     # 3. add attribute to the Agent's NYM with endpoint information (by Agent's client)
     ep = '127.0.0.1:{}'.format(agent.port)
-    attributeData = json.dumps({ENDPOINT: ep})
+    attributeData = json.dumps({ENDPOINT: {'ha': ep}})
 
     attrib = Attribute(name='{}_endpoint'.format(agentNym),
                        origin=agentNym,

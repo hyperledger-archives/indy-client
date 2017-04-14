@@ -70,7 +70,7 @@ sendIssuerKeyCmd = Command(
 
 sendProofRequestCmd = Command(
     id="send proofreq",
-    title="Send a proof request.",
+    title="Send a proof request",
     usage="send proofreq <proof-name> to <target>",
     examples="send proofreq Over-21 to JaneDo")
 

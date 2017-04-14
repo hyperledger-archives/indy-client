@@ -37,7 +37,7 @@ class AgentProver:
             NONCE: link.invitationNonce
         }
         try:
-            self.signAndSend(msg=op, linkName=link.name)
+            self.signAndSendToLink(msg=op, linkName=link.name)
         except LinkNotReady as ex:
             self.notifyMsgListener(str(ex))
 
@@ -67,7 +67,7 @@ class AgentProver:
             CLAIM_REQ_FIELD: claimReq.toStrDict()
         }
 
-        self.signAndSend(msg=op, linkName=link.name)
+        self.signAndSendToLink(msg=op, linkName=link.name)
 
     def handleProofRequest(self, msg):
         body, _ = msg
@@ -126,12 +126,15 @@ class AgentProver:
             self.loop.run_until_complete(self.sendProofAsync(link, proofReq))
 
     async def sendProofAsync(self, link: Link, proofRequest: ProofRequest):
-        nonce = getNonceForProof(link.invitationNonce)  # TODO _F_ this nonce should be from the Proof Request, not from an invitation
+        # TODO _F_ this nonce should be from the Proof Request, not from an
+        # invitation
+        nonce = getNonceForProof(link.invitationNonce)
 
         revealedAttrNames = proofRequest.verifiableAttributes
         proofInput = ProofInput(revealedAttrs=revealedAttrNames)
-        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)  # TODO rename presentProof to buildProof or generateProof
-
+        # TODO rename presentProof to buildProof or generateProof
+        proof, revealedAttrs = await self.prover.presentProof(proofInput, nonce)
+        revealedAttrs.update(proofRequest.selfAttestedAttrs)
         op = OrderedDict([
             (TYPE, PROOF),
             (NAME, proofRequest.name),
@@ -141,7 +144,7 @@ class AgentProver:
             (PROOF_INPUT_FIELD, proofInput.toStrDict()),  # TODO _F_ why do we need to send this? isn't the same data passed as keys in 'proof'?
             (REVEALED_ATTRS_FIELD, toDictWithStrValues(revealedAttrs))])
 
-        self.signAndSend(msg=op, linkName=link.name)
+        self.signAndSendToLink(msg=op, linkName=link.name)
 
     def handleProofStatusResponse(self, msg: Any):
         body, _ = msg

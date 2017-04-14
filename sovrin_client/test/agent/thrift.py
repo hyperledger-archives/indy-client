@@ -1,4 +1,5 @@
-from plenum.common.log import getlogger
+from anoncreds.protocol.types import AttribDef, AttribType
+from stp_core.common.log import getlogger
 
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG
@@ -18,19 +19,46 @@ class ThriftAgent(BaseAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
+                 loop=None,
+                 config=None):
 
-        portParam, = self.getPassedArgs()
 
         super().__init__('Thrift Bank', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         port=port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {
             "77fbf9dc8c8e6acde33de98c6d747b28c": 1
         }
 
-    async def postClaimVerif(self, claimName, link, frm):
+        self._attrDef = AttribDef('Thrift',
+                                  [AttribType('title', encode=True),
+                                   AttribType('first_name', encode=True),
+                                   AttribType('last_name', encode=True),
+                                   AttribType('address_1', encode=True),
+                                   AttribType('address_2', encode=True),
+                                   AttribType('address_3', encode=True),
+                                   AttribType('postcode_zip', encode=True),
+                                   AttribType('date_of_birth', encode=True)
+                                   ])
+
+        self._attrs = {
+            1: self._attrDef.attribs(
+                title='Mrs.',
+                first_name='Alicia',
+                last_name='Garcia',
+                address_1='H-301',
+                address_2='Street 1',
+                address_3='UK',
+                postcode_zip='G61 3NR',
+                date_of_birth='December 28, 1990')
+        }
+
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["first_name"]
+
+    async def postProofVerif(self, claimName, link, frm):
         if claimName == "Loan-Application-Basic":
             self.notifyToRemoteCaller(EVENT_NOTIFY_MSG,
                                       "    Loan eligibility criteria satisfied,"
@@ -49,6 +77,8 @@ def createThrift(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
+    port = 7777
     TestWalletedAgent.createAndRunAgent(
-        ThriftAgent, "Thrift Bank", wallet=buildThriftWallet(), basedirpath=None,
-        port=7777, looper=None, clientClass=TestClient)
+        "Thrift Bank", agentClass=ThriftAgent, wallet=buildThriftWallet(),
+        basedirpath=None, port=port, looper=None, clientClass=TestClient,
+        cliAgentCreator=lambda: createThrift(port=port))

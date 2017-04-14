@@ -1,14 +1,15 @@
 import json
 
 import pytest
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.constants import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces, \
+    getTotalLinks, getTotalSchemas, getTotalClaimsRcvd, getTotalAvailableClaims
 
 
 def getSampleLinkInvitation():
@@ -36,6 +37,38 @@ def getSampleLinkInvitation():
     }
 
 
+
+@pytest.fixture(scope="module")
+def philCli(be, do, philCLI):
+    be(philCLI)
+    do('prompt Phil', expect=prompt_is('Phil'))
+
+    do('new keyring Phil', expect=['New keyring Phil created',
+                                   'Active keyring set to "Phil"'])
+
+    mapper = {
+        'seed': '11111111111111111111111111111111',
+        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+    do('new key with seed {seed}', expect=['Key created in keyring Phil',
+                                           'Identifier for key is {idr}',
+                                           'Current identifier set to {idr}'],
+       mapper=mapper)
+
+    return philCLI
+
+
+def checkIfInvalidAttribIsRejected(do, map):
+    data = json.loads(map.get('invalidEndpointAttr'))
+    endpoint = data.get(ENDPOINT).get('ha')
+    errorMsg = 'client request invalid: InvalidClientRequest(' \
+               '"invalid endpoint: \'{}\'",)'.format(endpoint)
+
+    do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
+       within=5,
+       expect=[errorMsg],
+       mapper=map)
+
+
 def checkIfValidEndpointIsAccepted(do, map, attribAdded):
     validEndpoints = []
     validPorts = ["1", "3457", "65535"]
@@ -43,7 +76,7 @@ def checkIfValidEndpointIsAccepted(do, map, attribAdded):
         validEndpoints.append("127.0.0.1:{}".format(validPort))
 
     for validEndpoint in validEndpoints:
-        endpoint = json.dumps({ENDPOINT: validEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha':validEndpoint}})
         map["validEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={validEndpointAttr}",
            within=5,
@@ -65,7 +98,7 @@ def checkIfInvalidEndpointIsRejected(do, map):
         errorMsg = 'client request invalid: InvalidClientRequest(' \
                    '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
                                                             invalidEndpoint)
-        endpoint = json.dumps({ENDPOINT: invalidEndpoint})
+        endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
         do("send ATTRIB dest={target} raw={invalidEndpointAttr}",
            within=5,
@@ -108,31 +141,6 @@ def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
         do('connect test', within=3,
            expect=expectMsgs,
            mapper=userMap)
-
-
-def getTotalLinks(userCli):
-    return len(userCli.activeWallet._links)
-
-
-def getTotalAvailableClaims(userCli):
-    availableClaimsCount = 0
-    for li in userCli.activeWallet._links.values():
-        availableClaimsCount += len(li.availableClaims)
-    return availableClaimsCount
-
-
-def getTotalSchemas(userCli):
-    async def getTotalSchemasCoro():
-        return 0 if userCli.agent.prover is None \
-            else len(await userCli.agent.prover.wallet.getAllSchemas())
-    return userCli.looper.run(getTotalSchemasCoro)
-
-
-def getTotalClaimsRcvd(userCli):
-    async def getTotalClaimsRcvdCoro():
-        return 0 if userCli.agent.prover is None \
-            else len((await userCli.agent.prover.wallet.getAllClaims()).keys())
-    return userCli.looper.run(getTotalClaimsRcvdCoro)
 
 
 def setPromptAndKeyring(do, name, newKeyringOut, userMap):
@@ -604,7 +612,7 @@ def proofRequestShown(be, do, userCli, agentMap,
        within=3)
 
 
-def testShowJobAppClaimReqWithShortName(be, do, aliceCli, acmeMap,
+def testShowJobAppProofReqWithShortName(be, do, aliceCli, acmeMap,
                                         showJobAppProofRequestOut,
                                         jobApplicationProofRequestMap,
                                         transcriptClaimAttrValueMap,
@@ -661,14 +669,18 @@ def aliceSelfAttestsAttributes(be, do, aliceCli, acmeMap,
     return mapping
 
 
-def testShowJobApplicationClaimReqAfterSetAttr(be, do, aliceCli,
+def showProofReq(do, expectMsgs, mapper):
+    do("show proof request {proof-request-to-show}",
+       expect=expectMsgs,
+       mapper=mapper,
+       within=3)
+
+
+def testShowJobApplicationProofReqAfterSetAttr(be, do, aliceCli,
                                                showJobAppProofRequestOut,
                                                aliceSelfAttestsAttributes):
     be(aliceCli)
-    do("show proof request {proof-request-to-show}",
-       expect=showJobAppProofRequestOut,
-       mapper=aliceSelfAttestsAttributes,
-       within=3)
+    showProofReq(do, showJobAppProofRequestOut, aliceSelfAttestsAttributes)
 
 
 # def testInvalidSigErrorResponse(be, do, aliceCli, faberMap,
@@ -834,6 +846,7 @@ def testAliceLoadedThriftLoanApplication(thriftInviteLoadedByAlice):
     pass
 
 
+@pytest.mark.skip('Cannot ping if not synced since will not have public key')
 def testPingThriftBeforeSync(be, do, aliceCli, thriftMap,
                              thriftInviteLoadedByAlice):
     be(aliceCli)
@@ -878,7 +891,7 @@ def testAliceShowProofIncludeSingleClaim(
 
 
 @pytest.fixture(scope="module")
-def bankBasicClaimSent(be, do, aliceCli, thriftMap,
+def bankBasicProofSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)
@@ -888,13 +901,13 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
     sendProof(be, do, aliceCli, mapping, None, extraMsgs)
 
 
-def testAliceSendBankBasicClaim(bankBasicClaimSent):
+def testAliceSendBankBasicClaim(bankBasicProofSent):
     pass
 
 
 @pytest.fixture(scope="module")
 def bankKYCProofSent(be, do, aliceCli, thriftMap,
-                     bankBasicClaimSent):
+                     bankBasicProofSent):
     mapping = {}
     mapping.update(thriftMap)
     mapping["proof-req-to-match"] = "Loan-Application-KYC"

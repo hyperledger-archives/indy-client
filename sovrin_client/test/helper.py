@@ -5,47 +5,39 @@ from typing import Union, Tuple
 import pyorient
 
 from config.config import cmod
-from plenum.common.log import getlogger
-from plenum.common.looper import Looper
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
-from plenum.common.types import f, Identifier, HA
+from plenum.common.types import f, HA
+from stp_core.types import Identifier
+
 from plenum.persistence.orientdb_store import OrientDbStore
-from plenum.common.eventually import eventually
-from plenum.test.helper import initDirWithGenesisTxns
+from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
-from plenum.test.cli.helper import newCLI as newPlenumCLI
+
+from sovrin_common.config_util import getConfig
+from sovrin_common.identity import Identity
+from sovrin_common.constants import NULL
+from sovrin_common.test.helper import TempStorage
 
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
-from sovrin_common.constants import Environment
-from sovrin_common.identity import Identity
-
 from sovrin_client.client.client import Client
-from sovrin_common.constants import NULL
 
 logger = getlogger()
 
 
-class TestClientStorage:
+class TestClientStorage(TempStorage):
     def __init__(self, name, baseDir):
         self.name = name
         self.baseDir = baseDir
 
     def cleanupDataLocation(self):
-        loc = os.path.join(self.baseDir, "data/clients", self.name)
-        logger.debug('Cleaning up location {} of test client {}'.
-                     format(loc, self.name))
-        try:
-            shutil.rmtree(loc)
-        except Exception as ex:
-            logger.debug("Error while removing temporary directory {}".format(
-                ex))
+        self.cleanupDirectory(self.dataLocation)
         config = getConfig()
         if config.ReqReplyStore == "orientdb" or config.ClientIdentityGraph:
             try:
@@ -74,7 +66,8 @@ class TestClient(Client, StackedTester, TestClientStorage):
                              storageType=pyorient.STORAGE_TYPE_MEMORY)
 
     def onStopping(self, *args, **kwargs):
-        self.cleanupDataLocation()
+        # TODO: Why we needed following line?
+        # self.cleanupDataLocation()
         super().onStopping(*args, **kwargs)
 
 
@@ -106,50 +99,6 @@ def buildStewardClient(looper, tdir, stewardWallet):
     looper.run(s.ensureConnectedToNodes())
     makePendingTxnsRequest(s, stewardWallet)
     return s
-
-
-# def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-#            domainDir=None, multiPoolNodes=None, unique_name=None):
-#     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
-#     if poolDir or domainDir:
-#         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
-#
-#     if multiPoolNodes:
-#         conf.ENVS = {}
-#         for pool in multiPoolNodes:
-#             conf.poolTransactionsFile = "pool_transactions_{}".format(pool.name)
-#             conf.domainTransactionsFile = "transactions_{}".format(pool.name)
-#             conf.ENVS[pool.name] = \
-#                 Environment("pool_transactions_{}".format(pool.name),
-#                                 "transactions_{}".format(pool.name))
-#             initDirWithGenesisTxns(
-#                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
-#                 os.path.join(pool.tdirWithDomainTxns, pool.name))
-#
-#     from sovrin_node.test.helper import TestNode
-#     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-#                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-#                         unique_name=unique_name)
-#
-#
-# def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-#                   multiPoolNodes=None):
-#     def _(subdir, looper=None, unique_name=None):
-#         def new():
-#             return newCLI(looper,
-#                           tdir,
-#                           subDirectory=subdir,
-#                           conf=tconf,
-#                           poolDir=tdirWithPoolTxns,
-#                           domainDir=tdirWithDomainTxns,
-#                           multiPoolNodes=multiPoolNodes,
-#                           unique_name=unique_name)
-#         if looper:
-#             yield new()
-#         else:
-#             with Looper(debug=False) as looper:
-#                 yield new()
-#     return _
 
 
 def addRole(looper, creatorClient, creatorWallet, name, useDid=True,

@@ -1,9 +1,10 @@
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 
 from anoncreds.protocol.types import SchemaKey, ID
 
 
-def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, emptyLooper):
+def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme,
+                  acmeAgent, emptyLooper):
     # 1. request Claims from Faber
     faberLink = aliceAgent.wallet.getLink('Faber College')
     name, version, origin = faberLink.availableClaims[0]
@@ -18,7 +19,8 @@ def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme, acmeAgent, 
     emptyLooper.run(eventually(chkClaims, timeout=20))
 
     # 3. send proof to Acme
-    acme_link, acme_proof_req = aliceAgent.wallet.getMatchingLinksWithProofReq("Job-Application", "Acme Corp")[0]
+    acme_link, acme_proof_req = aliceAgent.wallet.getMatchingLinksWithProofReq(
+        "Job-Application", "Acme Corp")[0]
     aliceAgent.sendProof(acme_link, acme_proof_req)
 
     # 4. check that proof is verified by Acme

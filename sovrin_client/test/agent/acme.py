@@ -1,8 +1,7 @@
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 from plenum.common.constants import NAME, VERSION
 
-from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, \
-    ID
+from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey, ID
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
@@ -20,12 +19,12 @@ class AcmeAgent(BaseAgent):
                  client: Client = None,
                  wallet: Wallet = None,
                  port: int = None,
-                 loop=None):
-
-        portParam, = self.getPassedArgs()
+                 loop=None,
+                 config=None):
 
         super().__init__('Acme Corp', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         port=port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -100,6 +99,9 @@ class AcmeAgent(BaseAgent):
     def getAttrs(self):
         return self._attrs
 
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["first_name"]
+
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Job-Certificate", "0.2",
                           self.wallet.defaultId),
@@ -109,13 +111,13 @@ class AcmeAgent(BaseAgent):
     def getSchemaKeysForClaimsAvailableToAll(self):
         return []
 
-    async def postClaimVerif(self, claimName, link, frm):
+    async def postProofVerif(self, claimName, link, frm):
         nac = await self.newAvailableClaimsPostClaimVerif(claimName)
-        oldClaims = self.availableClaimsByIdentifier.get(link.remoteIdentifier)
+        oldClaims = self.issuer.wallet.availableClaimsByIdentifier.get(link.remoteIdentifier)
         if not oldClaims:
             oldClaims = []
         oldClaims.extend(nac)
-        self.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
+        self.issuer.wallet.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
         self.sendNewAvailableClaimsData(nac, frm, link)
 
     async def newAvailableClaimsPostClaimVerif(self, claimName):
@@ -136,12 +138,14 @@ class AcmeAgent(BaseAgent):
 
 
 def createAcme(name=None, wallet=None, basedirpath=None, port=None):
-    return createAgent(AcmeAgent, name or "Acme Corp",
-                       wallet or buildAcmeWallet(),
-                       basedirpath, port, clientClass=TestClient)
+    return createAgent(AcmeAgent, name=name or "Acme Corp",
+                       wallet=wallet or buildAcmeWallet(),
+                       basedirpath=basedirpath, port=port, clientClass=TestClient)
 
 
 if __name__ == "__main__":
+    port=6666
     TestWalletedAgent.createAndRunAgent(
-        AcmeAgent, "Acme Corp", wallet=buildAcmeWallet(), basedirpath=None,
-        port=6666, looper=None, clientClass=TestClient)
+        name="Acme Corp",  agentClass=AcmeAgent, wallet=buildAcmeWallet(),
+        basedirpath=None, port=port, looper=None, clientClass=TestClient,
+        cliAgentCreator=lambda: createAcme(port=port))

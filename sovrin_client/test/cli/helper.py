@@ -2,26 +2,27 @@ import json
 import os
 import re
 from _sha256 import sha256
+from typing import Dict
 
-import pytest
+from stp_core.loop.eventually import eventually
+from stp_core.loop.looper import Looper
 
-from plenum.cli.cli import Exit
-from plenum.common.eventually import eventually
-from plenum.common.looper import Looper
-from plenum.common.log import getlogger
-from plenum.common.port_dispenser import genHa
+from stp_core.common.log import getlogger
+
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     CLIENT_PORT, NODE_PORT, NODE_IP, ALIAS, CLIENT_IP, TXN_ID, SERVICES, \
     VALIDATOR, STEWARD
 from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
-    checkAllNodesStarted, newCLI as newPlenumCLI
+    waitAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
 from plenum.test.testable import Spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
+from sovrin_client.test.helper import TestClient
 from sovrin_common.constants import Environment
+from stp_core.network.port_dispenser import genHa
 from sovrin_common.constants import NYM
 from sovrin_client.test.helper import TestClient
 from sovrin_common.txn_util import getTxnOrderedFields
@@ -35,6 +36,11 @@ logger = getlogger()
 @Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     # new = logging.StreamHandler(sys.stdout)
+    #     # Logger()._setHandler('std', new)
+    #     Logger().enableStdLogging()
 
 
 def sendNym(cli, nym, role):
@@ -97,7 +103,7 @@ def ensureNodesCreated(cli, nodeNames):
     cli.enterCmd("new node all")
     # TODO: Why 2 different interfaces one with list and one with varags
     assertAllNodesCreated(cli, nodeNames)
-    checkAllNodesStarted(cli, *nodeNames)
+    waitAllNodesStarted(cli, *nodeNames)
 
 
 def getFileLines(path, caller_file=None):
@@ -295,3 +301,98 @@ def wallet_state(totalLinks=0,
                  totalSchemas=0,
                  totalClaimsRcvd=0):
     return locals()
+
+
+def getAgentCliHelpString():
+    return """Sovrin-CLI, a simple command-line interface for a Sovrin Identity platform.
+   Commands:
+       help - Shows this or specific help message for given command
+         Usage:
+            help [<command name>]
+       prompt - Changes the prompt to given principal (a person like Alice, an organization like Faber College, or an IoT-style thing)
+       list keyrings - Lists all keyrings
+       list ids - Lists all identifiers of active keyring
+       show - Shows content of given file
+       show link - Shows link info in case of one matching link, otherwise shows all the matching link names
+       ping - Pings given target's endpoint
+       list links - List available links in active wallet
+       send proofreq - Send a proof request
+       license - Shows the license
+       exit - Exit the command-line interface ('quit' also works)"""
+
+
+def getTotalLinks(userCli):
+    return len(userCli.activeWallet._links)
+
+
+def getTotalAvailableClaims(userCli):
+    availableClaimsCount = 0
+    for li in userCli.activeWallet._links.values():
+        availableClaimsCount += len(li.availableClaims)
+    return availableClaimsCount
+
+
+def getTotalSchemas(userCli):
+    async def getTotalSchemasCoro():
+        return 0 if userCli.agent.prover is None \
+            else len(await userCli.agent.prover.wallet.getAllSchemas())
+    return userCli.looper.run(getTotalSchemasCoro)
+
+
+def getTotalClaimsRcvd(userCli):
+    async def getTotalClaimsRcvdCoro():
+        return 0 if userCli.agent.prover is None \
+            else len((await userCli.agent.prover.wallet.getAllClaims()).keys())
+    return userCli.looper.run(getTotalClaimsRcvdCoro)
+
+
+def getWalletState(userCli):
+    totalLinks = getTotalLinks(userCli)
+    totalAvailClaims = getTotalAvailableClaims(userCli)
+    totalSchemas = getTotalSchemas(userCli)
+    totalClaimsRcvd = getTotalClaimsRcvd(userCli)
+    return wallet_state(totalLinks, totalAvailClaims, totalSchemas,
+                        totalClaimsRcvd)
+
+
+def compareAgentIssuerWallet(unpersistedWallet, restoredWallet):
+    def compare(old, new):
+        if isinstance(old, Dict):
+            for k, v in old.items():
+                assert v == new.get(k)
+        else:
+            assert old == new
+
+    compareList = [
+        # from anoncreds wallet
+        (unpersistedWallet.walletId, restoredWallet.walletId),
+        (unpersistedWallet._repo.wallet.name, restoredWallet._repo.wallet.name),
+
+        # from sovrin-issuer-wallet-in-memory
+        (unpersistedWallet.availableClaimsToAll, restoredWallet.availableClaimsToAll),
+        (unpersistedWallet.availableClaimsByNonce, restoredWallet.availableClaimsByNonce),
+        (unpersistedWallet.availableClaimsByIdentifier, restoredWallet.availableClaimsByIdentifier),
+        (unpersistedWallet._proofRequestsSchema, restoredWallet._proofRequestsSchema),
+
+        # from anoncreds issuer-wallet-in-memory
+        (unpersistedWallet._sks, restoredWallet._sks),
+        (unpersistedWallet._skRs, restoredWallet._skRs),
+        (unpersistedWallet._accumSks, restoredWallet._accumSks),
+        (unpersistedWallet._m2s, restoredWallet._m2s),
+        (unpersistedWallet._attributes, restoredWallet._attributes),
+
+        # from anoncreds wallet-in-memory
+        (unpersistedWallet._schemasByKey, restoredWallet._schemasByKey),
+        (unpersistedWallet._schemasById, restoredWallet._schemasById),
+        (unpersistedWallet._pks, restoredWallet._pks),
+        (unpersistedWallet._pkRs, restoredWallet._pkRs),
+        (unpersistedWallet._accums, restoredWallet._accums),
+        (unpersistedWallet._accumPks, restoredWallet._accumPks),
+        # TODO: need to check for _tails, it is little bit different than
+        # others (Dict instead of namedTuple or class)
+    ]
+
+    assert unpersistedWallet._repo.client is None
+    assert restoredWallet._repo.client is not None
+    for oldDict, newDict in compareList:
+        compare(oldDict, newDict)

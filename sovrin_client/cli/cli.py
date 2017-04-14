@@ -404,6 +404,7 @@ class SovrinCli(PlenumCli):
                                         basedirpath=self.basedirpath,
                                         client=self.activeClient if self.activeEnv else None,
                                         wallet=self.activeWallet,
+                                        loop=self.looper.loop,
                                         port=port)
             self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
@@ -1295,8 +1296,8 @@ class SovrinCli(PlenumCli):
         formatted = 'Attributes:\n'
 
         for k, v in attributes.items():
-            # determine if we need to show number for claims which were participated
-            # in proof generation
+            # determine if we need to show number for claims which
+            # were participated in proof generation
             attrClaimIndex = getIndex(containsAttr(k), matchingLinkAndReceivedClaim)
             showClaimNumber = attrClaimIndex > -1 and \
                               len(matchingLinkAndReceivedClaim) > 1
@@ -1364,8 +1365,9 @@ class SovrinCli(PlenumCli):
 
         c.proofRequest.attributes = attributesWithValue
         c.proofRequest.fulfilledByClaims = filteredMatchingClaims
+        return True
 
-    def _fulfillProofRequest(self, proofReqName):
+    async def fulfillProofRequest(self, proofReqName):
         proof_req_name = SovrinCli.removeSpecialChars(proofReqName)
         matchingLink, proofRequest = self._findProofRequest(proof_req_name)
 
@@ -1376,11 +1378,11 @@ class SovrinCli(PlenumCli):
             self.print('Found proof request "{}" in link "{}"'.
                        format(proofRequest.name, matchingLink.name))
 
-            self.agent.loop.call_soon(asyncio.ensure_future,
-                self._fulfillProofRequestByContext(self.curContext))
-            return True
+            return await self._fulfillProofRequestByContext(self.curContext)
+        else:
+            return False
 
-    async def _showMatchingClaimProof(self, c: Context):
+    async def _showProofWithMatchingClaims(self, c: Context):
         self.print(c.proofRequest.fixedInfo + self._formatProofRequestAttribute(
             c.proofRequest.attributes,
             c.proofRequest.verifiableAttributes,
@@ -1394,16 +1396,19 @@ class SovrinCli(PlenumCli):
             self._getSetAttrUsage() +
             self._getSendProofUsage(c.proofRequest, c.link))
 
+    async def _fulfillAndShowConstructedProof(self, proof_request_name):
+        fulfilled = await self.fulfillProofRequest(proof_request_name)
+        if fulfilled:
+            await self._showProofWithMatchingClaims(self.curContext)
+
     def _showProofRequest(self, matchedVars):
         if matchedVars.get('show_proof_req') == showProofRequestCmd.id:
             proof_request_name = SovrinCli.removeSpecialChars(
                 matchedVars.get('proof_req_name'))
-            if not self._fulfillProofRequest(proof_request_name):
-                return True
 
             self.agent.loop.call_soon(asyncio.ensure_future,
-                                      self._showMatchingClaimProof(
-                                          self.curContext))
+                                      self._fulfillAndShowConstructedProof(
+                                          proof_request_name))
             return True
 
     def _showClaim(self, matchedVars):
@@ -1603,7 +1608,7 @@ class SovrinCli(PlenumCli):
                                                 self.currPromptText)
         return env
 
-    def getAllEnvDirNamesForKeyrings(self):
+    def getAllSubDirNamesForKeyrings(self):
         lst = list(ENVS.keys())
         lst.append(NO_ENV)
         return lst

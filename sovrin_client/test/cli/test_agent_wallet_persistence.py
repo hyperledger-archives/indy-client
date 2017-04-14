@@ -11,6 +11,7 @@ from sovrin_client.test.agent.acme import createAcme as createAcmeAgent, AcmeAge
 from sovrin_client.test.agent.helper import buildAcmeWallet as agentWallet
 from sovrin_client.test.cli.conftest \
     import acmeAddedByPhil as agentAddedBySponsor
+from sovrin_client.test.cli.helper import  compareAgentIssuerWallet
 from sovrin_client.test.helper import TestClient
 from stp_core.network.port_dispenser import genHa
 
@@ -29,10 +30,13 @@ def runAgent(looper, basedir, port, name=None, agent=None):
     return startAgent(looper, agent, wallet)
 
 
+def _startAgent(looper, base_dir, port, name):
+    agent, wallet = runAgent(looper, base_dir, port, name)
+    return agent, wallet
+
 @pytest.fixture(scope="module")
 def agentStarted(emptyLooper, tdirWithPoolTxns):
-    agent, wallet = runAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
-    return agent, wallet
+    return _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
 
 
 def changeAndPersistWallet(agent):
@@ -76,3 +80,15 @@ def testAgentCreatesWalletIfItDoesntHaveOne(tdirWithPoolTxns):
                         wallet=None, basedirpath=tdirWithPoolTxns,
                         port=genHa()[1], clientClass=TestClient)
     assert agent._wallet is not None
+
+
+def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
+                  agentAddedBySponsor, agentStarted):
+    agent, wallet = agentStarted
+    unpersistedIssuerWallet = agent.issuer.wallet
+    agent.stop()
+    emptyLooper.removeProdable(agent)
+    newAgent, newWallet = _startAgent(emptyLooper, tdirWithPoolTxns,
+                                      agentPort, "Agent0")
+    restoredIssuerWallet = newAgent.issuer.wallet
+    compareAgentIssuerWallet(unpersistedIssuerWallet, restoredIssuerWallet)

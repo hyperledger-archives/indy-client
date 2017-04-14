@@ -17,7 +17,8 @@ def testSuspendNode(be, do, trusteeCli, newNodeAdded):
     doNodeCmd(do, nodeData=nodeData)
     # Re-suspend node
     nodeData['newNodeData'][SERVICES] = []
-    doNodeCmd(do, nodeData=nodeData)
+    doNodeCmd(do, nodeData=nodeData,
+              expMsgs=['node already has the same data as requested'])
 
     # Cancel suspension
     nodeData['newNodeData'][SERVICES] = [VALIDATOR]
@@ -25,7 +26,8 @@ def testSuspendNode(be, do, trusteeCli, newNodeAdded):
 
     # Re-cancel suspension
     nodeData['newNodeData'][SERVICES] = [VALIDATOR]
-    doNodeCmd(do, nodeData=nodeData)
+    doNodeCmd(do, nodeData=nodeData,
+              expMsgs=['node already has the same data as requested'])
 
 
 def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,

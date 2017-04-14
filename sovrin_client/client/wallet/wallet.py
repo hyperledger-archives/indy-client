@@ -187,24 +187,6 @@ class Wallet(PWallet, TrustAnchoring):
     def getLastKnownSeqs(self, identifier):
         return self.lastKnownSeqs.get(identifier)
 
-    # def getPendingTxnRequests(self, *identifiers):
-    #     if not identifiers:
-    #         identifiers = self.idsToSigners.keys()
-    #     else:
-    #         identifiers = set(identifiers).intersection(
-    #             set(self.idsToSigners.keys()))
-    #     requests = []
-    #     for identifier in identifiers:
-    #         lastTxn = self.getLastKnownSeqs(identifier)
-    #         op = {
-    #             TARGET_NYM: identifier,
-    #             TXN_TYPE: GET_TXNS,
-    #         }
-    #         if lastTxn:
-    #             op[DATA] = lastTxn
-    #         requests.append(self.signOp(op, identifier=identifier))
-    #     return requests
-
     def pendSyncRequests(self):
         # pendingTxnsReqs = self.getPendingTxnRequests()
         # for req in pendingTxnsReqs:

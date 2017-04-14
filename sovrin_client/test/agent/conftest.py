@@ -1,5 +1,4 @@
 from plenum.common.signer_did import DidSigner
-from sovrin_client.agent.endpoint import REndpoint
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.strict_types import strict_types
 from stp_core.network.port_dispenser import genHa
@@ -32,7 +31,7 @@ from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.agent.faber import createFaber
-from sovrin_client.test.agent.helper import ensureAgentsConnected, \
+from sovrin_client.test.agent.helper import ensureAgentConnected, \
     buildFaberWallet, buildAcmeWallet, buildThriftWallet
 from sovrin_client.test.agent.thrift import createThrift
 from sovrin_node.test.helper import addAttributeAndCheck
@@ -332,25 +331,21 @@ def checkAcceptInvitation(emptyLooper,
     assert nonce
     inviterAgent, inviterWallet = inviterAgentAndWallet  # type: WalletedAgent, Wallet
 
-    inviteeWallet = inviteeAgent.wallet
     inviteeAgent.connectTo(linkName)
-    ensureAgentsConnected(emptyLooper, inviteeAgent, inviterAgent)
+    inviteeAcceptanceLink = inviteeAgent.wallet.getLink(linkName,
+                                                required=True)
+    ensureAgentConnected(emptyLooper, inviteeAgent, inviteeAcceptanceLink)
 
     inviteeAgent.acceptInvitation(linkName)
-    inviteeAcceptanceId = inviteeWallet.getLink(linkName,
-                                                required=True).localIdentifier
     internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
 
     def chk():
+        assert inviteeAcceptanceLink.remoteEndPoint[1] == inviterAgent.endpoint.ha[1]
+        assert inviteeAcceptanceLink.isAccepted
+
         link = inviterWallet.getLinkByInternalId(internalId)
         assert link
-        # if not link:
-        #     raise RuntimeError("Link not found for internal ID {}".
-        #                        format(internalId))
-        # TODO: Get link from invitee wallet to check.
-        assert link.remoteIdentifier == inviteeAcceptanceId
-        if isinstance(inviteeAgent.endpoint, REndpoint):
-            assert link.remoteEndPoint[1] == inviteeAgent.endpoint.ha[1]
+        assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 
     emptyLooper.run(eventually(chk, timeout=10))
 

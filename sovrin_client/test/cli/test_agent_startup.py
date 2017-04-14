@@ -66,7 +66,7 @@ def testStartAgentWithoutAddedToSovrin(poolNodesStarted, emptyLooper,
                  name=newAgentName)
     assert "error occurred during operation: client request invalid: " \
            "UnknownIdentifier('{}',)".format(agentWallet().defaultId) \
-           in str(oeinfo)
+           in str(oeinfo), str(oeinfo)
     stopAgent(emptyLooper, newAgentName)
 
 

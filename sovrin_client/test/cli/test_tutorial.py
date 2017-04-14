@@ -8,7 +8,8 @@ from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.constants import ENDPOINT
 
 from sovrin_client.client.wallet.link import Link, constant
-from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces
+from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces, \
+    getTotalLinks, getTotalSchemas, getTotalClaimsRcvd, getTotalAvailableClaims
 
 
 def getSampleLinkInvitation():
@@ -139,31 +140,6 @@ def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
         do('connect test', within=3,
            expect=expectMsgs,
            mapper=userMap)
-
-
-def getTotalLinks(userCli):
-    return len(userCli.activeWallet._links)
-
-
-def getTotalAvailableClaims(userCli):
-    availableClaimsCount = 0
-    for li in userCli.activeWallet._links.values():
-        availableClaimsCount += len(li.availableClaims)
-    return availableClaimsCount
-
-
-def getTotalSchemas(userCli):
-    async def getTotalSchemasCoro():
-        return 0 if userCli.agent.prover is None \
-            else len(await userCli.agent.prover.wallet.getAllSchemas())
-    return userCli.looper.run(getTotalSchemasCoro)
-
-
-def getTotalClaimsRcvd(userCli):
-    async def getTotalClaimsRcvdCoro():
-        return 0 if userCli.agent.prover is None \
-            else len((await userCli.agent.prover.wallet.getAllClaims()).keys())
-    return userCli.looper.run(getTotalClaimsRcvdCoro)
 
 
 def setPromptAndKeyring(do, name, newKeyringOut, userMap):
@@ -635,7 +611,7 @@ def proofRequestShown(be, do, userCli, agentMap,
        within=3)
 
 
-def testShowJobAppClaimReqWithShortName(be, do, aliceCli, acmeMap,
+def testShowJobAppProofReqWithShortName(be, do, aliceCli, acmeMap,
                                         showJobAppProofRequestOut,
                                         jobApplicationProofRequestMap,
                                         transcriptClaimAttrValueMap,
@@ -914,7 +890,7 @@ def testAliceShowProofIncludeSingleClaim(
 
 
 @pytest.fixture(scope="module")
-def bankBasicClaimSent(be, do, aliceCli, thriftMap,
+def bankBasicProofSent(be, do, aliceCli, thriftMap,
                        aliceAcceptedThriftLoanApplication):
     mapping = {}
     mapping.update(thriftMap)
@@ -924,13 +900,13 @@ def bankBasicClaimSent(be, do, aliceCli, thriftMap,
     sendProof(be, do, aliceCli, mapping, None, extraMsgs)
 
 
-def testAliceSendBankBasicClaim(bankBasicClaimSent):
+def testAliceSendBankBasicClaim(bankBasicProofSent):
     pass
 
 
 @pytest.fixture(scope="module")
 def bankKYCProofSent(be, do, aliceCli, thriftMap,
-                     bankBasicClaimSent):
+                     bankBasicProofSent):
     mapping = {}
     mapping.update(thriftMap)
     mapping["proof-req-to-match"] = "Loan-Application-KYC"

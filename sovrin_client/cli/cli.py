@@ -1625,7 +1625,7 @@ class SovrinCli(PlenumCli):
                                                 self.currPromptText)
         return env
 
-    def getAllEnvDirNamesForKeyrings(self):
+    def getAllSubDirNamesForKeyrings(self):
         lst = list(ENVS.keys())
         lst.append(NO_ENV)
         return lst

@@ -21,7 +21,7 @@ from plenum.common.keygen_utils import initNodeKeysForBothStacks
 # plenum.common.util.loggingConfigured = False
 
 from stp_core.loop.looper import Looper
-from plenum.test.cli.helper import newKeyPair, checkAllNodesStarted, \
+from plenum.test.cli.helper import newKeyPair, waitAllNodesStarted, \
     doByCtx
 
 from sovrin_common.config_util import getConfig
@@ -57,7 +57,7 @@ def looper():
 def nodesCli(looper, tdir, nodeNames):
     cli = newCLI(looper, tdir)
     cli.enterCmd("new node all")
-    checkAllNodesStarted(cli, *nodeNames)
+    waitAllNodesStarted(cli, *nodeNames)
     return cli
 
 

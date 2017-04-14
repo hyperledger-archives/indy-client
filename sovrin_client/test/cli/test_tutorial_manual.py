@@ -67,7 +67,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                reqClaimOut, reqClaimOut1, susanCLI, susanMap):
     eventually.slowFactor = 3
 
-    # Create steward and add nyms and endpoint atttributes of all agents
+    # Create steward and add nyms and endpoint attributes of all agents
     _, stewardSeed = poolTxnStewardData
     be(philCLI)
     do('new keyring Steward', expect=['New keyring Steward created',
@@ -232,7 +232,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('load sample/thrift-loan-application.sovrin')
         acceptInvitation(be, do, userCLI, tMap,
                          syncedInviteAcceptedOutWithoutClaims)
-        # Send claims
+        # Send proofs
         bankBasicProofSent(be, do, userCLI, tMap, None)
 
         thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(

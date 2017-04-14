@@ -81,8 +81,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             self.syncClient()
         self.rcvdMsgStore = {}  # type: Dict[reqId, [reqMsg]]
 
-        self._proofRequestsSchema = {}  # Dict[str, Dict[str, any]]
-
         self.msgHandlers = {
             ERROR: self._handleError,
             EVENT: self._eventHandler,

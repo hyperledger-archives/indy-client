@@ -213,7 +213,7 @@ class WalletedAgent(Walleted, Agent, Caching):
         self._wallet = None
 
         # restore any active wallet belonging to this agent
-        self._restoreLastActiveWallet()
+        self._restoreWallet()
 
         # if no persisted wallet is restored and a wallet is passed,
         # then use given wallet, else ignore the given wallet
@@ -230,6 +230,8 @@ class WalletedAgent(Walleted, Agent, Caching):
 
         if self.client:
             self._initIssuerProverVerifier()
+
+        self._restoreIssuerWallet()
 
     def _initIssuerProverVerifier(self):
         self.issuer = SovrinIssuer(client=self.client, wallet=self._wallet,
@@ -251,49 +253,69 @@ class WalletedAgent(Walleted, Agent, Caching):
         if self.client:
             self._initIssuerProverVerifier()
 
-    def getContextDir(self):
-        # TODO: Will we need any environment context for agent's walletS?
-        return os.path.expanduser(os.path.join(
-            self.config.baseDir, self.config.keyringsDir, "agents",
-            self.name.lower().replace(" ", "-")))
-
     def start(self, loop):
         super().start(loop)
-
-    def _saveAllWallets(self):
-        self._saveActiveWallet()
-        # TODO: There are some other wallets in issuer, prover and verifier,
-        # which also should be persisted.
 
     def stop(self, *args, **kwargs):
         self._saveAllWallets()
         super().stop(*args, **kwargs)
 
-    def _saveActiveWallet(self):
+    def getContextDir(self):
+        return os.path.expanduser(os.path.join(
+            self.config.baseDir, self.config.keyringsDir, "agents",
+            self.name.lower().replace(" ", "-")))
+
+    def _getIssuerWalletContextDir(self):
+        return os.path.join(self.getContextDir(), "issuer")
+
+    def _saveAllWallets(self):
         self._saveWallet(self._wallet, self.getContextDir())
+        self._saveIssuerWallet()
+        # TODO: There are some other wallets for prover and verifier,
+        # which we may also have to persist/restore as need arises
+
+    def _saveIssuerWallet(self):
+        self.issuer.prepareForWalletPersistence()
+        self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
+                         walletName="issuer")
 
     def _saveWallet(self, wallet: Wallet, contextDir, walletName=None):
         try:
-            fileName = normalizedWalletFileName(walletName or wallet.name)
+            walletName = walletName or wallet.name
+            fileName = normalizedWalletFileName(walletName)
             walletFilePath = saveGivenWallet(wallet, fileName, contextDir)
             self.logger.info('Active keyring "{}" saved ({})'.
-                             format(self._wallet.name, walletFilePath))
+                             format(walletName, walletFilePath))
         except IOError as ex:
             self.logger.info("Error occurred while saving wallet. " +
                              "error no.{}, error.{}"
                              .format(ex.errno, ex.strerror))
 
-    def _restoreLastActiveWallet(self):
+    def _restoreWallet(self):
+        restoredWallet, walletFilePath = self._restoreLastActiveWallet(
+            self.getContextDir())
+        if restoredWallet:
+            self.wallet = restoredWallet
+            self.logger.info('Saved keyring "{}" restored ({})'.
+                             format(self.wallet.name, walletFilePath))
+
+    def _restoreIssuerWallet(self):
+        if self.issuer:
+            restoredWallet, walletFilePath = self._restoreLastActiveWallet(
+                self._getIssuerWalletContextDir())
+            if restoredWallet:
+                self.issuer.restorePersistedWallet(restoredWallet)
+                self.logger.info('Saved keyring "issuer" restored ({})'.
+                             format(walletFilePath))
+
+    def _restoreLastActiveWallet(self, contextDir):
         walletFilePath = None
         try:
-            contextDir = self.getContextDir()
             walletFileName = getLastSavedWalletFileName(contextDir)
             walletFilePath = os.path.join(contextDir, walletFileName)
             wallet = getWalletByPath(walletFilePath)
             # TODO: What about current wallet if any?
-            self.wallet = wallet
-            self.logger.info('Saved keyring "{}" restored ({})'.
-                             format(self.wallet.name, walletFilePath))
+            return wallet, walletFilePath
         except ValueError as e:
             if not str(e) == "max() arg is an empty sequence":
                 self.logger.info("No wallet to restore")
@@ -307,6 +329,7 @@ class WalletedAgent(Walleted, Agent, Caching):
                               format(walletFilePath))
             else:
                 raise exc
+        return None, None
 
 
 def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,

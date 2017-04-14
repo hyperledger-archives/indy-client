@@ -15,7 +15,7 @@ from plenum.common.constants import TARGET_NYM, ROLE, NODE, TXN_TYPE, DATA, \
     VALIDATOR, STEWARD
 from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
-    checkAllNodesStarted, newCLI as newPlenumCLI
+    waitAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
 from plenum.test.testable import Spyable
 from sovrin_client.cli.cli import SovrinCli
@@ -103,7 +103,7 @@ def ensureNodesCreated(cli, nodeNames):
     cli.enterCmd("new node all")
     # TODO: Why 2 different interfaces one with list and one with varags
     assertAllNodesCreated(cli, nodeNames)
-    checkAllNodesStarted(cli, *nodeNames)
+    waitAllNodesStarted(cli, *nodeNames)
 
 
 def getFileLines(path, caller_file=None):

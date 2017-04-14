@@ -14,7 +14,7 @@ from stp_core.common.log import getlogger
 from plenum.common.startable import Status
 
 from plenum.common.constants import REPLY, NAME, VERSION, REQACK, REQNACK, \
-    TXN_ID, TARGET_NYM, NONCE, STEWARD, OP_FIELD_NAME
+    TXN_ID, TARGET_NYM, NONCE, STEWARD, OP_FIELD_NAME, REJECT
 from plenum.common.types import f, HA
 from plenum.common.util import libnacl
 # from plenum.persistence.orientdb_store import OrientDbStore
@@ -53,7 +53,6 @@ class Client(PlenumClient):
                          basedirpath,
                          config,
                          sighex)
-        # self.graphStore = self.getGraphStore()
         self.autoDiscloseAttributes = False
         self.requestedPendingTxns = False
         self.hasAnonCreds = bool(peerHA)
@@ -81,18 +80,8 @@ class Client(PlenumClient):
         """
         return self.peerMsgRouter.handle(msg)
 
-    # def _getOrientDbStore(self):
-    #     return OrientDbStore(user=self.config.OrientDB["user"],
-    #                          password=self.config.OrientDB["password"],
-    #                          dbName=self.name,
-    #                          storageType=pyorient.STORAGE_TYPE_PLOCAL)
-
     def getReqRepStore(self):
         return ClientReqRepStoreFile(self.name, self.basedirpath)
-
-    # def getGraphStore(self):
-    #     return IdentityGraph(self._getOrientDbStore()) if \
-    #         self.config.ClientIdentityGraph else None
 
     def getTxnLogStore(self):
         return ClientTxnLog(self.name, self.basedirpath)
@@ -104,8 +93,9 @@ class Client(PlenumClient):
         excludeReqAcks = msg.get(OP_FIELD_NAME) == REQACK
         excludeReqNacks = msg.get(OP_FIELD_NAME) == REQNACK
         excludeReply = msg.get(OP_FIELD_NAME) == REPLY
+        excludeReject = msg.get(OP_FIELD_NAME) == REJECT
         excludeFromCli = excludeFromCli or excludeReqAcks or excludeReqNacks \
-                         or excludeReply
+                         or excludeReply or excludeReject
         super().handleOneNodeMsg(wrappedMsg, excludeFromCli)
         if OP_FIELD_NAME not in msg:
             logger.error("Op absent in message {}".format(msg))
@@ -124,47 +114,8 @@ class Client(PlenumClient):
                     # being shown on the cli since the clients would anyway
                     # collect enough replies from other nodes.
                     logger.debug("Observer threw an exception", exc_info=ex)
-            # if isinstance(self.reqRepStore, ClientReqRepStoreOrientDB):
-            #     self.reqRepStore.setConsensus(identifier, reqId)
-            # if result[TXN_TYPE] == NYM:
-            #     if self.graphStore:
-            #         self.addNymToGraph(result)
-            # elif result[TXN_TYPE] == ATTRIB:
-            #     if self.graphStore:
-            #         self.graphStore.addAttribTxnToGraph(result)
-            # elif result[TXN_TYPE] == GET_NYM:
-            #     if self.graphStore:
-            #         if DATA in result and result[DATA]:
-            #             self.addNymToGraph(json.loads(result[DATA]))
-            # elif result[TXN_TYPE] == GET_TXNS:
-            #     if DATA in result and result[DATA]:
-            #         data = json.loads(result[DATA])
-            #         self.reqRepStore.setLastTxnForIdentifier(
-            #             result[f.IDENTIFIER.nm], data[LAST_TXN])
-            #         if self.graphStore:
-            #             for txn in data[TXNS]:
-            #                 if txn[TXN_TYPE] == NYM:
-            #                     self.addNymToGraph(txn)
-            #                 elif txn[TXN_TYPE] == ATTRIB:
-            #                     try:
-            #                         self.graphStore.addAttribTxnToGraph(txn)
-            #                     except pyorient.PyOrientCommandException as ex:
-            #                         fault(ex, "An exception was raised while "
-            #                                   "adding attribute")
-
-            # elif result[TXN_TYPE] == SCHEMA:
-            #     if self.graphStore:
-            #         self.graphStore.addSchemaTxnToGraph(result)
-            # elif result[TXN_TYPE] == ISSUER_KEY:
-            #     if self.graphStore:
-            #         self.graphStore.addIssuerKeyTxnToGraph(result)
-                    # else:
-                    #    logger.debug("Unknown type {}".format(result[TXN_TYPE]))
 
     def requestConfirmed(self, identifier: str, reqId: int) -> bool:
-        # if isinstance(self.reqRepStore, ClientReqRepStoreOrientDB):
-        #     return self.reqRepStore.requestConfirmed(identifier, reqId)
-        # else:
         return self.txnLog.hasTxnWithReqId(identifier, reqId)
 
     def hasConsensus(self, identifier: str, reqId: int) -> Optional[str]:
@@ -173,42 +124,11 @@ class Client(PlenumClient):
         # else:
         return super().hasConsensus(identifier, reqId)
 
-    # def addNymToGraph(self, txn):
-    #     origin = txn.get(f.IDENTIFIER.nm)
-    #     if txn.get(ROLE) == TRUST_ANCHOR:
-    #         if not self.graphStore.hasSteward(origin):
-    #             try:
-    #                 self.graphStore.addNym(None, nym=origin, role=STEWARD)
-    #             except pyorient.PyOrientCommandException as ex:
-    #                 logger.trace("Error occurred adding nym to graph")
-    #                 logger.trace(traceback.format_exc())
-    #     self.graphStore.addNymTxnToGraph(txn)
-
-    # def getTxnById(self, txnId: str):
-    #     if self.graphStore:
-    #         txns = list(self.graphStore.getResultForTxnIds(txnId).values())
-    #         return txns[0] if txns else {}
-    #     else:
-    #         # TODO: Add support for fetching reply by transaction id
-    #         # serTxn = self.reqRepStore.getResultForTxnId(txnId)
-    #         pass
-    #         # TODO Add merkleInfo as well
-
     def getTxnsByNym(self, nym: str):
         raise NotImplementedError
 
     def getTxnsByType(self, txnType):
-        # if self.graphStore:
-        #     edgeClass = getEdgeByTxnType(txnType)
-        #     if edgeClass:
-        #         cmd = "select from {}".format(edgeClass)
-        #         result = self.graphStore.client.command(cmd)
-        #         if result:
-        #             return [r.oRecordData for r in result]
-        #     return []
-        # else:
         txns = self.txnLog.getTxnsByType(txnType)
-        # TODO: Fix ASAP
         if txnType == SCHEMA:
             for txn in txns:
                 txn[DATA] = json.loads(txn[DATA].replace("\'", '"')
@@ -250,9 +170,6 @@ class Client(PlenumClient):
         return json.loads(decData)
 
     def hasNym(self, nym):
-        # if self.graphStore:
-        #     return self.graphStore.hasNym(nym)
-        # else:
         for txn in self.txnLog.getTxnsByType(NYM):
             if txn.get(TXN_TYPE) == NYM:
                 return True
@@ -267,10 +184,6 @@ class Client(PlenumClient):
             self.peerStack.start()
 
     async def prod(self, limit) -> int:
-        # s = await self.nodestack.service(limit)
-        # if self.isGoing():
-        #     await self.nodestack.serviceLifecycle()
-        # self.nodestack.flushOutBoxes()
         s = await super().prod(limit)
         if self.hasAnonCreds:
             return s + await self.peerStack.service(limit)

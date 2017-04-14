@@ -188,7 +188,7 @@ def makeIdentityRequest(looper, actingClient, actingWallet, idy):
     def chk():
         assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
 
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+    looper.run(eventually(chk, retryWait=1, timeout=10))
     return reqs
 
 

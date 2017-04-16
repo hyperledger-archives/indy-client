@@ -69,7 +69,7 @@ class PostInstallDev(develop):
 
 
 setup(
-    name='sovrin-client-dev',
+    name='sovrin-client-3pc-batch',
     version=__version__,
     description='Sovrin client',
     url='https://github.com/sovrin-foundation/sovrin-client.git',
@@ -83,9 +83,9 @@ setup(
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
     include_package_data=True,
-    install_requires=['sovrin-common-dev==0.2.29', 'anoncreds-dev==0.3.4'],
+    install_requires=['sovrin-common-3pc-batch==0.2.2', 'anoncreds-dev==0.3.4'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'sovrin-node-dev==0.3.24'],
+    tests_require=['pytest', 'sovrin-node-3pc-batch==0.3.5'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',
              'scripts/add_new_node', 'scripts/reset_client'],
     cmdclass={

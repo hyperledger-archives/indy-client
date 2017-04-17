@@ -55,7 +55,7 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
 def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
-               schemaAdded, issuerKeyAdded, aliceCLI, newKeyringOut, aliceMap,
+               schemaAdded, claimDefAdded, aliceCLI, newKeyringOut, aliceMap,
                tdir, syncLinkOutWithEndpoint, jobCertificateClaimMap,
                syncedInviteAcceptedOutWithoutClaims, transcriptClaimMap,
                reqClaimOut, reqClaimOut1, susanCLI, susanMap):
@@ -147,8 +147,8 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema
         assert schema.seqId
 
-        issuerKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey  # TODO isinstance(issuerKey, PublicKey)
+        issuerPublicKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
+        assert issuerPublicKey  # TODO isinstance(issuerPublicKey, PublicKey)
 
     async def checkJobCertWritten():
         acmeId = acmeAgent.wallet.defaultId
@@ -157,9 +157,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema
         assert schema.seqId
 
-        issuerKey = await acmeAgent.issuer.wallet.getPublicKey(schemaId)
-        assert issuerKey
-        assert issuerKey.seqId
+        issuerPublicKey = await acmeAgent.issuer.wallet.getPublicKey(schemaId)
+        assert issuerPublicKey
+        assert issuerPublicKey.seqId
 
     philCLI.looper.run(eventually(checkTranscriptWritten, timeout=10))
     philCLI.looper.run(eventually(checkJobCertWritten, timeout=10))
@@ -200,11 +200,11 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None)  # Passing None since its not used
 
         faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
-        faberIssuerKey = userCLI.looper.run(
+        faberIssuerPublicKey = userCLI.looper.run(
             getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
-        userFaberIssuerKey = userCLI.looper.run(
+        userFaberIssuerPublicKey = userCLI.looper.run(
             getPublicKey(userCLI.agent.prover.wallet, faberSchemaId))
-        assert faberIssuerKey == userFaberIssuerKey
+        assert faberIssuerPublicKey == userFaberIssuerPublicKey
 
         do('show claim Transcript')
         assert userCLI.looper.run(getClaim(faberSchemaId))
@@ -232,11 +232,11 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
         acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
-        acmeIssuerKey = userCLI.looper.run(getPublicKey(
+        acmeIssuerPublicKey = userCLI.looper.run(getPublicKey(
             acmeAgent.issuer.wallet, acmeSchemaId))
-        userAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+        userAcmeIssuerPublicKey = userCLI.looper.run(getPublicKey(
             userCLI.agent.prover.wallet, acmeSchemaId))
-        assert acmeIssuerKey == userAcmeIssuerKey
+        assert acmeIssuerPublicKey == userAcmeIssuerPublicKey
 
         do('show claim Job-Certificate')
         assert userCLI.looper.run(getClaim(acmeSchemaId))
@@ -252,17 +252,17 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         # Send proofs
         bankBasicProofSent(be, do, userCLI, tMap, None)
 
-        thriftAcmeIssuerKey = userCLI.looper.run(getPublicKey(
+        thriftAcmeIssuerPublicKey = userCLI.looper.run(getPublicKey(
             thriftAgent.issuer.wallet, acmeSchemaId))
-        assert acmeIssuerKey == thriftAcmeIssuerKey
+        assert acmeIssuerPublicKey == thriftAcmeIssuerPublicKey
         passed = False
         try:
             bankKYCProofSent(be, do, userCLI, tMap, None)
             passed = True
         except:
-            thriftFaberIssuerKey = userCLI.looper.run(getPublicKey(
+            thriftFaberIssuerPublicKey = userCLI.looper.run(getPublicKey(
                 thriftAgent.issuer.wallet, faberSchemaId))
-            assert faberIssuerKey == thriftFaberIssuerKey
+            assert faberIssuerPublicKey == thriftFaberIssuerPublicKey
         assert passed
 
     executeGstFlow("Alice", aliceCLI, aliceMap, be, connectedToTest, do, fMap,

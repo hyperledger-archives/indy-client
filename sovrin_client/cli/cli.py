@@ -35,7 +35,7 @@ from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_IN
 from sovrin_client.agent.msg_constants import ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
 from sovrin_client.cli.command import acceptLinkCmd, connectToCmd, \
     disconnectCmd, loadFileCmd, newIdentifierCmd, pingTargetCmd, reqClaimCmd, \
-    sendAttribCmd, sendProofCmd, sendGetNymCmd, sendIssuerKeyCmd, sendNodeCmd, \
+    sendAttribCmd, sendProofCmd, sendGetNymCmd, sendClaimDefCmd, sendNodeCmd, \
     sendNymCmd, sendPoolUpgCmd, sendSchemaCmd, setAttrCmd, showClaimCmd, \
     listClaimsCmd, showFileCmd, showLinkCmd, syncLinkCmd, addGenesisTxnCmd, \
     sendProofRequestCmd, showProofRequestCmd, reqAvailClaimsCmd, listLinksCmd
@@ -128,7 +128,7 @@ class SovrinCli(PlenumCli):
             'send_get_nym',
             'send_attrib',
             'send_schema',
-            'send_isr_key',
+            'send_claim_def',
             'send_node',
             'send_pool_upg',
             'add_genesis',
@@ -165,7 +165,7 @@ class SovrinCli(PlenumCli):
         completers["send_get_nym"] = PhraseWordCompleter(sendGetNymCmd.id)
         completers["send_attrib"] = PhraseWordCompleter(sendAttribCmd.id)
         completers["send_schema"] = PhraseWordCompleter(sendSchemaCmd.id)
-        completers["send_isr_key"] = PhraseWordCompleter(sendIssuerKeyCmd.id)
+        completers["send_claim_def"] = PhraseWordCompleter(sendClaimDefCmd.id)
         completers["send_node"] = PhraseWordCompleter(sendNodeCmd.id)
         completers["send_pool_upg"] = PhraseWordCompleter(sendPoolUpgCmd.id)
         completers["add_genesis"] = PhraseWordCompleter(
@@ -208,7 +208,7 @@ class SovrinCli(PlenumCli):
                         self._sendNodeAction,
                         self._sendPoolUpgAction,
                         self._sendSchemaAction,
-                        self._sendIssuerKeyAction,
+                        self._sendClaimDefAction,
                         self._addGenTxnAction,
                         self._showFile,
                         self._loadFile,
@@ -728,8 +728,8 @@ class SovrinCli(PlenumCli):
 
             return True
 
-    def _sendIssuerKeyAction(self, matchedVars):
-        if matchedVars.get('send_isr_key') == sendIssuerKeyCmd.id:
+    def _sendClaimDefAction(self, matchedVars):
+        if matchedVars.get('send_claim_def') == sendClaimDefCmd.id:
             if not self.canMakeSovrinRequest:
                 return True
             reference = int(matchedVars.get(REF))
@@ -1794,7 +1794,7 @@ class SovrinCli(PlenumCli):
         mappings['sendNodeAction'] = sendNodeCmd
         mappings['sendPoolUpgAction'] = sendPoolUpgCmd
         mappings['sendSchemaAction'] = sendSchemaCmd
-        mappings['sendIssuerKeyAction'] = sendIssuerKeyCmd
+        mappings['sendClaimDefAction'] = sendClaimDefCmd
         mappings['showFile'] = showFileCmd
         mappings['loadFile'] = loadFileCmd
         mappings['showLink'] = showLinkCmd

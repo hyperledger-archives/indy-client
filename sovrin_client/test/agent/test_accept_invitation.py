@@ -49,7 +49,7 @@ def testAddSchema():
 
 
 @pytest.mark.skip(reason="SOV-562. Not yet implemented")
-def testAddIssuerKeys():
+def testAddClaimDefs():
     raise NotImplementedError
 
 

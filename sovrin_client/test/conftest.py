@@ -51,6 +51,7 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
 def warnfilters(plenum_warnfilters):
     def _():
         plenum_warnfilters()
+        warnings.filterwarnings('ignore', category=ResourceWarning, message='unclosed file')
     return _
 
 

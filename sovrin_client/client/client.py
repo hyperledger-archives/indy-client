@@ -24,7 +24,7 @@ from stp_raet.rstack import SimpleRStack
 from stp_zmq.zstack import SimpleZStack
 
 from sovrin_common.constants import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
-    NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, ISSUER_KEY, SKEY, DISCLO,\
+    NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, CLAIM_DEF, SKEY, DISCLO,\
     GET_ATTR, TRUST_ANCHOR
 
 from sovrin_client.persistence.client_req_rep_store_file import ClientReqRepStoreFile
@@ -167,9 +167,9 @@ class Client(PlenumClient):
             elif result[TXN_TYPE] == SCHEMA:
                 if self.graphStore:
                     self.graphStore.addSchemaTxnToGraph(result)
-            elif result[TXN_TYPE] == ISSUER_KEY:
+            elif result[TXN_TYPE] == CLAIM_DEF:
                 if self.graphStore:
-                    self.graphStore.addIssuerKeyTxnToGraph(result)
+                    self.graphStore.addClaimDefTxnToGraph(result)
                     # else:
                     #    logger.debug("Unknown type {}".format(result[TXN_TYPE]))
 

@@ -1142,8 +1142,8 @@ def schemaAdded():
 
 
 @pytest.fixture(scope="module")
-def issuerKeyAdded():
-    return ["issuer key is published"]
+def claimDefAdded():
+    return ["claim definition is published"]
 
 
 @pytest.fixture(scope='module')

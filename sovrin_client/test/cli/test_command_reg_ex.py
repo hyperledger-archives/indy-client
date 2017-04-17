@@ -56,13 +56,12 @@ def testGetNym(grammar):
 def testSendSchema(grammar):
     name = "Degree"
     version = "1.0"
-    type = "CL"
     keys = "undergrad,last_name,first_name,birth_date,postgrad,expiry_date"
     matchedVars = getMatchedVariables(grammar,
-                                      'send SCHEMA name={} version={} type={} keys={}'
-                                      .format(name, version, type, keys))
+                                      'send SCHEMA name={} version={} keys={}'
+                                      .format(name, version, keys))
     assertCliTokens(matchedVars, {
-        "send_schema": "send SCHEMA", NAME: name, VERSION: version, TYPE: type, KEYS: keys})
+        "send_schema": "send SCHEMA", NAME: name, VERSION: version, KEYS: keys})
 
 
 def testSendAttribRegEx(grammar):
@@ -86,10 +85,11 @@ def testAddAttrProverRegEx(grammar):
                         "attribute known to BYU first_name=Tyler, last_name=Ruff, birth_date=12/17/1991, undergrad=True, postgrad=True, expiry_date=12/31/2101")
 
 
-def testSendIssuerKeyRegEx(grammar):
-    matchedVars = getMatchedVariables(grammar, "send ISSUER_KEY ref=15")
+def testSendClaimDefRegEx(grammar):
+    matchedVars = getMatchedVariables(grammar, "send CLAIM_DEF ref=15 signature_type=CL")
+    from sovrin_common.constants import SIGNATURE_TYPE
     assertCliTokens(matchedVars, {
-        "send_isr_key": "send ISSUER_KEY", REF: "15"})
+        "send_claim_def": "send CLAIM_DEF", REF: "15", SIGNATURE_TYPE: "CL"})
 
 
 def testShowFileCommandRegEx(grammar):

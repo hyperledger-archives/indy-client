@@ -1,4 +1,7 @@
+from sovrin_client.test import waits
+
 from plenum.common.signer_did import DidSigner
+from plenum.test import waits as plenumWaits
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.strict_types import strict_types
 from stp_core.network.port_dispenser import genHa
@@ -347,7 +350,8 @@ def checkAcceptInvitation(emptyLooper,
         assert link
         assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 
-    emptyLooper.run(eventually(chk, timeout=10))
+    timeout = waits.expectedAcceptInvitation()
+    emptyLooper.run(eventually(chk, timeout=timeout))
 
 
 def addAgent(looper, agent, steward, stewardWallet):

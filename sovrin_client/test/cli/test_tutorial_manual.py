@@ -6,6 +6,7 @@ import pytest
 from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
+from sovrin_client.test import waits
 from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
@@ -161,8 +162,10 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert issuerPublicKey
         assert issuerPublicKey.seqId
 
-    philCLI.looper.run(eventually(checkTranscriptWritten, timeout=10))
-    philCLI.looper.run(eventually(checkJobCertWritten, timeout=10))
+    timeout = waits.expectedTranscriptWritten()
+    philCLI.looper.run(eventually(checkTranscriptWritten, timeout=timeout))
+    timeout = waits.expectedJobCertWritten()
+    philCLI.looper.run(eventually(checkJobCertWritten, timeout=timeout))
 
     # Defining inner method for closures
     def executeGstFlow(name, userCLI, userMap, be, connectedToTest, do, fMap,

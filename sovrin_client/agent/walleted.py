@@ -263,13 +263,11 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     async def publish_schema(self,
                              attrib_def_name,
                              schema_name,
-                             schema_version,
-                             sig_type=TYPE_CL):
+                             schema_version):
         attribDef = self._attribDefs[attrib_def_name]
         schema = await self.issuer.genSchema(schema_name,
                                              schema_version,
-                                             attribDef.attribNames(),
-                                             sig_type)
+                                             attribDef.attribNames())
         schema_id = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
         return schema_id
 

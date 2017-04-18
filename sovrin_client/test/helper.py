@@ -9,6 +9,7 @@ from typing import Union, Tuple
 import pyorient
 
 from config.config import cmod
+from plenum.test import waits
 from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
@@ -87,7 +88,10 @@ def createNym(looper, nym, creatorClient, creatorWallet: Wallet, role=None,
     def check():
         assert creatorWallet._trustAnchored[nym].seqNo
 
-    looper.run(eventually(check, retryWait=1, timeout=10))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(creatorClient.nodeReg)
+    )
+    looper.run(eventually(check, retryWait=1, timeout=timeout))
 
 
 def makePendingTxnsRequest(client, wallet):
@@ -137,8 +141,10 @@ def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
 
     def check():
         assert senderWallet._upgrades[upgrade.key].seqNo
-
-    looper.run(eventually(check, timeout=4))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(senderClient.nodeReg)
+    )
+    looper.run(eventually(check, timeout=timeout))
 
 
 def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):
@@ -168,10 +174,11 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
     wallet.pendRequest(req)
     reqs = wallet.preparePending()
     client.submitReqs(*reqs)
+    timeout = waits.expectedReqNAckQuorumTime()
     looper.run(eventually(checkNacks,
                           client,
                           req.reqId,
-                          contains, retryWait=1, timeout=15))
+                          contains, retryWait=1, timeout=timeout))
 
 
 def makeIdentityRequest(looper, actingClient, actingWallet, idy):
@@ -185,8 +192,10 @@ def makeIdentityRequest(looper, actingClient, actingWallet, idy):
 
     def chk():
         assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
-
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(actingClient.nodeReg)
+    )
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
     return reqs
 
 

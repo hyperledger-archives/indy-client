@@ -1,3 +1,5 @@
+from sovrin_client.test import waits
+
 from stp_core.loop.eventually import eventually
 
 from anoncreds.protocol.types import SchemaKey, ID
@@ -15,8 +17,8 @@ def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme,
     async def chkClaims():
         claim = await aliceAgent.prover.wallet.getClaims(ID(schemaKey))
         assert claim.primaryClaim
-
-    emptyLooper.run(eventually(chkClaims, timeout=20))
+    timeout = waits.expectedClaimsReceived()
+    emptyLooper.run(eventually(chkClaims, timeout=timeout))
 
     # 3. send proof to Acme
     acme_link, acme_proof_req = aliceAgent.wallet.getMatchingLinksWithProofReq(
@@ -29,4 +31,5 @@ def testAnonCreds(aliceAgent, aliceAcceptedFaber, aliceAcceptedAcme,
         link = acmeAgent.wallet.getLinkBy(internalId=internalId)
         assert "Job-Application" in link.verifiedClaimProofs
 
-    emptyLooper.run(eventually(chkProof, timeout=20))
+    timeout = waits.expectedClaimsReceived()
+    emptyLooper.run(eventually(chkProof, timeout=timeout))

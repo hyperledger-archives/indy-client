@@ -1,7 +1,9 @@
 from copy import copy
 
 import pytest
+from plenum.common import util
 
+from plenum.test import waits
 from stp_core.crypto.util import randomSeed
 from stp_core.loop.eventually import eventually
 
@@ -116,17 +118,25 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTe
         for node in nodes:
             name = newNodeData[ALIAS]
             assert name in node.nodeReg
-
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     newStewardCli.looper.run(eventually(checkClientConnected,
                                         newStewardCli.activeClient,
-                                        timeout=5))
+                                        timeout=timeout))
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     philCli.looper.run(eventually(checkClientConnected,
                                   philCli.activeClient,
-                                  timeout=5))
+                                  timeout=timeout))
 
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     poolNodesStarted.looper.run(eventually(checkNodeConnected,
                                            list(poolNodesStarted.nodes.values()),
-                                           timeout=5))
+                                           timeout=timeout))
     return vals
 
 

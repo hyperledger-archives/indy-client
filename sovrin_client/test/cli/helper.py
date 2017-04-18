@@ -4,6 +4,9 @@ import re
 from _sha256 import sha256
 from typing import Dict
 
+from plenum.common import util
+
+from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 
@@ -77,8 +80,12 @@ def checkConnectedToEnv(cli):
 def ensureConnectedToTestEnv(cli):
     if not cli.activeEnv:
         cli.enterCmd("connect test")
+        timeout = waits.expectedClientConnectionTimeout(
+            util.getMaxFailures(len(cli.nodeReg))
+        )
         cli.looper.run(
-            eventually(checkConnectedToEnv, cli, retryWait=1, timeout=10))
+            eventually(checkConnectedToEnv, cli, retryWait=1,
+                       timeout=timeout))
 
 
 def ensureNymAdded(cli, nym, role=None):
@@ -87,17 +94,20 @@ def ensureNymAdded(cli, nym, role=None):
     if role:
         cmd += " {ROLE}={role}".format(ROLE=ROLE, role=role)
     cli.enterCmd(cmd)
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
     cli.looper.run(
-        eventually(chkNymAddedOutput, cli, nym, retryWait=1, timeout=10))
+        eventually(chkNymAddedOutput, cli, nym, retryWait=1, timeout=timeout))
 
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
     cli.enterCmd("send GET_NYM {dest}={nym}".format(dest=TARGET_NYM, nym=nym))
-    cli.looper.run(eventually(checkGetNym, cli, nym, retryWait=1, timeout=10))
+    cli.looper.run(eventually(checkGetNym, cli, nym, retryWait=1, timeout=timeout))
 
     cli.enterCmd('send ATTRIB {dest}={nym} raw={raw}'.
                  format(dest=TARGET_NYM, nym=nym,
                         # raw='{\"attrName\":\"attrValue\"}'))
                         raw=json.dumps({"attrName": "attrValue"})))
-    cli.looper.run(eventually(checkAddAttr, cli, retryWait=1, timeout=10))
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
+    cli.looper.run(eventually(checkAddAttr, cli, retryWait=1, timeout=timeout))
 
 
 def ensureNodesCreated(cli, nodeNames):

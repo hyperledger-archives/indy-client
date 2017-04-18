@@ -1,3 +1,4 @@
+from sovrin_client.test import waits
 from stp_core.loop.eventually import eventually
 from plenum.test.testable import spy, SpyLog
 
@@ -21,6 +22,7 @@ def testPing(aliceAcceptedFaber, faberIsRunning, aliceAgent, emptyLooper):
         assert (recvd_pongs + 1) == alice_log.count(
             aliceAgent._handlePong.__name__)
 
-    emptyLooper.run(eventually(chk, retryWait=1, timeout=5))
+    timeout = waits.expectedAgentPing()
+    emptyLooper.run(eventually(chk, retryWait=1, timeout=timeout))
 
 

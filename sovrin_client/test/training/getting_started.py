@@ -83,12 +83,12 @@ def demo_start_agent(base_dir, create_func, bootstrap_func, client, looper, stew
 
 def demo_wait_for_proof(looper, proof):
     search_msg = "Proof \"{}\"".format(proof.name)
-    looper.run(eventually(_wait_for_log_msg, search_msg, retryWait=.2, timeout=10))
+    _wait_for(looper, _wait_for_log_msg, *[search_msg])
 
 
 def demo_wait_for_ping(looper):
     search_msg = "_handlePong"
-    looper.run(eventually(_wait_for_log_msg, search_msg, retryWait=.2, timeout=10))
+    _wait_for(looper, _wait_for_log_msg, *[search_msg])
 
 
 def _wait_for_log_msg(search_msg):
@@ -138,8 +138,8 @@ def demo_wait_for_accept(looper, link):
     _wait_for(looper, _)
 
 
-def _wait_for(looper, func, retry_wait=.1, timeout=10):
-    return looper.run(eventually(func, retryWait=retry_wait, timeout=timeout))
+def _wait_for(looper, func, *args, retry_wait=.1, timeout=20):
+    return looper.run(eventually(func, *args, retryWait=retry_wait, timeout=timeout))
 
 
 FABER_INVITE = """

@@ -1,6 +1,8 @@
 import json
 
 import pytest
+
+from sovrin_client.test import waits
 from stp_core.loop.eventually import eventually
 from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
@@ -495,8 +497,9 @@ def aliceRequestedTranscriptClaim(be, do, aliceCli, transcriptClaimMap,
         assert totalClaimsRcvdBefore + 1 == \
                len((await aliceCli.agent.prover.wallet.getAllClaims()).keys())
 
+    timeout = waits.expectedClaimsReceived()
     aliceCli.looper.run(
-        eventually(assertTotalClaimsRcvdIncreasedByOne, timeout=2))
+        eventually(assertTotalClaimsRcvdIncreasedByOne, timeout=timeout))
 
 
 def testAliceReqClaim(aliceRequestedTranscriptClaim):

@@ -161,8 +161,7 @@ class BaseAgent(TestWalletedAgent):
                                  "get id from repo: {}".format( str(schemaKey)))
                 schema = await self.issuer.genSchema(schemaKey.name,
                                                  schemaKey.version,
-                                                 attrDef.attribNames(),
-                                                 'CL')
+                                                 attrDef.attribNames())
                 if schema:
                     schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
                     p_prime, q_prime = primes["prime2"]

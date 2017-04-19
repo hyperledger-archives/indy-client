@@ -25,7 +25,13 @@ def testUbuntu = {
             testHelpers.installDeps(deps)
 
             echo 'Ubuntu Test: Test'
-            sh 'python runner.py --pytest \"python -m pytest\" --output "test-result.txt"'
+            def resFile = "test-result.${NODE_NAME}.txt"
+            try {
+                sh "python runner.py --pytest \"python -m pytest\" --output \"$resFile\""
+            }
+            finally {
+                archiveArtifacts allowEmptyArchive: true, artifacts: "$resFile"
+            }
             //testHelpers.testJunit()
         }
     }
@@ -67,15 +73,10 @@ def testWindowsNoDocker = {
 }
 
 //testAndPublish(name, [ubuntu: testUbuntu, windows: testWindowsNoDocker, windowsNoDocker: testWindowsNoDocker])
-testAndPublish(name, [ubuntu: testUbuntu], false) // run tests only
 
-if (env.BRANCH_NAME == '3pc-batch') { // not PR
-    def releaseVersion = ''
-    stage('Get release version') {
-        node('ubuntu-master') {
-            releaseVersion = getReleaseVersion()
-        }
-    }
-
-    testAndPublish.publishPypi('Publish to pypi', [:], releaseVersion)
-}
+options = new TestAndPublishOptions()
+options.skip([StagesEnum.GITHUB_RELEASE])
+options.enable([StagesEnum.PACK_RELEASE_DEPS, StagesEnum.PACK_RELEASE_ST_DEPS])
+options.setPublishableBranches(['3pc-batch']) //REMOVE IT BEFORE MERGE
+options.setPostfixes([master: '3pc-batch']) //REMOVE IT BEFORE MERGE
+testAndPublish(name, [ubuntu: testUbuntu], true, options)

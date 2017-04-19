@@ -1,8 +1,4 @@
-import os
-import shutil
 from typing import Union, Tuple
-
-import pyorient
 
 from config.config import cmod
 from stp_core.common.log import getlogger
@@ -12,14 +8,12 @@ from plenum.common.constants import REQNACK, OP_FIELD_NAME, REJECT
 from plenum.common.types import f, HA
 from stp_core.types import Identifier
 
-# from plenum.persistence.orientdb_store import OrientDbStore
 from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
 
-from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
 from sovrin_common.constants import NULL
 from sovrin_common.test.helper import TempStorage
@@ -38,6 +32,7 @@ class TestClientStorage(TempStorage):
 
     def cleanupDataLocation(self):
         self.cleanupDirectory(self.dataLocation)
+
 
 @Spyable(methods=[Client.handleOneNodeMsg])
 class TestClient(Client, StackedTester, TestClientStorage):

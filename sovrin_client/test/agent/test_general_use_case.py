@@ -207,4 +207,24 @@ def test_end_to_end(tconf):
         claim = run_async(alice_agent.get_claim(schema_id))
         print(claim)
 
+        # ########
+        # # PROOF
+        # ########
+        # bank_agent._proofRequestsSchema['Address'] = {
+        #     "name": "Address",
+        #     "version": "0.2",
+        #     "attributes": {
+        #         "address_1": "string",
+        #         "address_2": "string",
+        #         "address_3": "string",
+        #         "state": "string",
+        #         "postcode_zip": "string",
+        #     },
+        #     "verifiableAttributes": ["postcode_zip"]
+        # }
+        #
+        # bank_agent.sendProofReq(banks_link_to_alice, 'Address')
+        #
+        # network.runFor(3)
+        # print()
 

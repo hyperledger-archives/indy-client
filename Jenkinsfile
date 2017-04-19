@@ -16,23 +16,14 @@ def testUbuntu = {
 
         testEnv.inside('--network host') {
             echo 'Ubuntu Test: Install dependencies'
-
             def sovrinNode = helpers.extractVersion('sovrin-node')
             def sovrinCommon = helpers.extractVersionOfSubdependency(sovrinNode, 'sovrin-common')
             def plenum = helpers.extractVersionOfSubdependency(sovrinCommon, 'plenum')
-
-            deps = [plenum, sovrinNode]
-            testHelpers.installDeps(deps)
+            testHelpers.install(deps: [plenum, sovrinNode])
 
             echo 'Ubuntu Test: Test'
-            def resFile = "test-result.${NODE_NAME}.txt"
-            try {
-                sh "python runner.py --pytest \"python -m pytest\" --output \"$resFile\""
-            }
-            finally {
-                archiveArtifacts allowEmptyArchive: true, artifacts: "$resFile"
-            }
-            //testHelpers.testJunit()
+            testHelpers.testRunner(resFile: "test-result.${NODE_NAME}.txt")
+            //testHelpers.testJUnit(resFile: "test-result.${NODE_NAME}.xml")
         }
     }
     finally {
@@ -57,13 +48,11 @@ def testWindowsNoDocker = {
 
         testHelpers.createVirtualEnvAndExecute({ python, pip ->
             echo 'Windows No Docker Test: Install dependencies'
-
             def sovrinNode = helpers.extractVersion('sovrin-node')
-
-            testHelpers.installDepsBat(python, pip, [sovrinNode])
+            testHelpers.install(python: python, pip: pip, deps: [sovrinNode], isVEnv: true)
 
             echo 'Windows No Docker Test: Test'
-            testHelpers.testJunitBat(python, pip)
+            testHelpers.testJUnit(resFile: "test-result.${NODE_NAME}.xml", python: python)
         })
     }
     finally {

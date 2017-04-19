@@ -32,16 +32,6 @@ class AcmeAgent(WalletedAgent):
                     claims = self.get_available_claim_list(link)
                     self.sendNewAvailableClaimsData(claims, frm, link)
 
-    async def postProofVerif(self, claimName, link, frm):
-        nac = await self.newAvailableClaimsPostClaimVerif(claimName)
-        oldClaims = self.issuer.wallet.availableClaimsByIdentifier.get(link.remoteIdentifier)
-        if not oldClaims:
-            oldClaims = []
-        oldClaims.extend(nac)
-        self.issuer.wallet.availableClaimsByIdentifier[link.remoteIdentifier] = oldClaims
-        self.sendNewAvailableClaimsData(nac, frm, link)
-
-
 def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=None):
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)

@@ -198,6 +198,8 @@ class Link:
         elif isinstance(self.remoteEndPoint, str):
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
+        elif self.remoteEndPoint is None:
+            return None
         else:
             raise ValueError('Cannot convert endpoint {} to HA'.
                              format(self.remoteEndPoint))

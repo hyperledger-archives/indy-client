@@ -292,7 +292,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
             raise LinkNotReady('link is not yet established, '
                                'send/accept invitation first')
 
-        ha = link.getRemoteEndpoint(required=True)
+        ha = link.getRemoteEndpoint(required=False)
         name = link.name
         if not ha:
             # if not remote address is present, then it's upcominh link, so we may have no

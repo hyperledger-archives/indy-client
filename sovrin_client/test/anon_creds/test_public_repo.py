@@ -92,7 +92,7 @@ def testSubmitSchema(submittedSchemaDefGvt, schemaDefGvt):
     assert submittedSchemaDefGvt.seqId
     # initial schema has stub seqno - excluding seqno from comparison
     def withNoSeqId(schema):
-        return schema._replace(seqId=None)
+       return schema._replace(seqId=None)
     assert withNoSeqId(submittedSchemaDefGvt) == \
            withNoSeqId(schemaDefGvt)
 

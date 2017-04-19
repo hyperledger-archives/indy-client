@@ -77,7 +77,7 @@ class SovrinPublicRepo(PublicRepo):
             SIGNATURE_TYPE: signatureType
         }
         data, seqNo = await self._sendGetReq(op)
-        data = data[PRIMARY]
+        data = data[DATA][PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pk
 
@@ -93,7 +93,7 @@ class SovrinPublicRepo(PublicRepo):
         data, seqNo = await self._sendGetReq(op)
         if not data:
             return None
-        data = data[REVOCATION]
+        data = data[DATA][REVOCATION]
         pkR = RevocationPublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pkR
 

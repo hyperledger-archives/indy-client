@@ -271,9 +271,10 @@ class WalletedAgent(Walleted, Agent, Caching):
         # which we may also have to persist/restore as need arises
 
     def _saveIssuerWallet(self):
-        self.issuer.prepareForWalletPersistence()
-        self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
-                         walletName="issuer")
+        if self.issuer:
+            self.issuer.prepareForWalletPersistence()
+            self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
+                     walletName="issuer")
 
     def _saveWallet(self, wallet: Wallet, contextDir, walletName=None):
         try:

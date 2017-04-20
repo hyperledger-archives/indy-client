@@ -11,7 +11,6 @@ from typing import Set
 
 from base58 import b58decode
 
-from plenum.common.error import fault
 from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signing import serializeMsg

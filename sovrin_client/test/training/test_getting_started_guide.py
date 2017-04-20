@@ -7,7 +7,7 @@ from sovrin_client.test.training.getting_started import *
 from sovrin_node.test.conftest import tconf
 
 
-# @pytest.mark.skip()
+@pytest.mark.first()
 def test_getting_started(tconf):
     getting_started(base_dir=tconf.baseDir)
 
@@ -19,6 +19,8 @@ def getting_started(base_dir=None):
 
     if base_dir is None:
         base_dir = TemporaryDirectory().name
+
+    demo_setup_logging(base_dir)
 
     pool = create_local_pool(base_dir)
     demo_start_agents(pool, pool, base_dir)

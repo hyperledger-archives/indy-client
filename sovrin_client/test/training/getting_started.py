@@ -44,16 +44,18 @@ ignored_files = ['node.py', 'stacked.py', 'zstack.py', 'network_interface.py', '
 
 log_msg = []
 
-log_out_format = Formatter(fmt=logFormat, style="{")
+LOG_FORMAT = Formatter(fmt=logFormat, style="{")
 
 
 def out(record, extra_cli_value=None):
     if record.filename not in ignored_files:
-        msg = log_out_format.format(record)
+        msg = LOG_FORMAT.format(record)
         print(msg)
         log_msg.append(msg)
 
-Logger().enableCliLogging(out, override_tags={})
+
+def demo_setup_logging(base_dir):
+    Logger().enableCliLogging(out, override_tags={})
 
 
 def demo_start_agents(pool, looper, base_dir):

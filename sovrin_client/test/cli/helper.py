@@ -20,7 +20,7 @@ from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     waitAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_client.test.helper import TestClient
@@ -36,7 +36,7 @@ from ledger.serializers.compact_serializer import CompactSerializer
 logger = getlogger()
 
 
-@Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
+@spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
     # def __init__(self, *args, **kwargs):

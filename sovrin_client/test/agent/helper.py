@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+from sovrin_client.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
@@ -23,7 +24,8 @@ def ensureAgentConnected(looper, agent, link):
     def _checkConnected():
         assert agent.endpoint.isConnectedTo(ha=linkHa)
 
-    looper.run(eventually(_checkConnected, timeout=10))
+    timeout = waits.expectedAgentConnected()
+    looper.run(eventually(_checkConnected, timeout=timeout))
 
 
 def getAgentCmdLineParams():

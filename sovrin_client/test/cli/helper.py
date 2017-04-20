@@ -4,6 +4,9 @@ import re
 from _sha256 import sha256
 from typing import Dict
 
+from plenum.common import util
+
+from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 
@@ -17,7 +20,7 @@ from plenum.common.types import f
 from plenum.test.cli.helper import TestCliCore, assertAllNodesCreated, \
     waitAllNodesStarted, newCLI as newPlenumCLI
 from plenum.test.helper import initDirWithGenesisTxns
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
 from sovrin_client.test.helper import TestClient
@@ -33,7 +36,7 @@ from ledger.serializers.compact_serializer import CompactSerializer
 logger = getlogger()
 
 
-@Spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
+@spyable(methods=[SovrinCli.print, SovrinCli.printTokens])
 class TestCLI(SovrinCli, TestCliCore):
     pass
     # def __init__(self, *args, **kwargs):
@@ -76,8 +79,12 @@ def checkConnectedToEnv(cli):
 def ensureConnectedToTestEnv(cli):
     if not cli.activeEnv:
         cli.enterCmd("connect test")
+        timeout = waits.expectedClientConnectionTimeout(
+            util.getMaxFailures(len(cli.nodeReg))
+        )
         cli.looper.run(
-            eventually(checkConnectedToEnv, cli, retryWait=1, timeout=10))
+            eventually(checkConnectedToEnv, cli, retryWait=1,
+                       timeout=timeout))
 
 
 def ensureNymAdded(cli, nym, role=None):
@@ -86,17 +93,20 @@ def ensureNymAdded(cli, nym, role=None):
     if role:
         cmd += " {ROLE}={role}".format(ROLE=ROLE, role=role)
     cli.enterCmd(cmd)
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
     cli.looper.run(
-        eventually(chkNymAddedOutput, cli, nym, retryWait=1, timeout=10))
+        eventually(chkNymAddedOutput, cli, nym, retryWait=1, timeout=timeout))
 
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
     cli.enterCmd("send GET_NYM {dest}={nym}".format(dest=TARGET_NYM, nym=nym))
-    cli.looper.run(eventually(checkGetNym, cli, nym, retryWait=1, timeout=10))
+    cli.looper.run(eventually(checkGetNym, cli, nym, retryWait=1, timeout=timeout))
 
     cli.enterCmd('send ATTRIB {dest}={nym} raw={raw}'.
                  format(dest=TARGET_NYM, nym=nym,
                         # raw='{\"attrName\":\"attrValue\"}'))
                         raw=json.dumps({"attrName": "attrValue"})))
-    cli.looper.run(eventually(checkAddAttr, cli, retryWait=1, timeout=10))
+    timeout = waits.expectedTransactionExecutionTime(len(cli.nodeReg))
+    cli.looper.run(eventually(checkAddAttr, cli, retryWait=1, timeout=timeout))
 
 
 def ensureNodesCreated(cli, nodeNames):

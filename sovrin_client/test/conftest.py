@@ -1,5 +1,5 @@
 from plenum.common.keygen_utils import initLocalKeys
-
+from plenum.test import waits as plenumWaits
 
 from stp_core.loop.eventually import eventually
 import warnings
@@ -51,6 +51,7 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
 def warnfilters(plenum_warnfilters):
     def _():
         plenum_warnfilters()
+        warnings.filterwarnings('ignore', category=ResourceWarning, message='unclosed file')
     return _
 
 
@@ -348,7 +349,8 @@ def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
     def chk():
         assert newStewardWallet.getNode(node.id).seqNo is not None
 
-    looper.run(eventually(chk, retryWait=1, timeout=10))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
 
     initLocalKeys(newNodeName, tdirWithPoolTxns, sigseed, override=True)
 

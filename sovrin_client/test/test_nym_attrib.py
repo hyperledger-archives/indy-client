@@ -5,6 +5,7 @@ import base58
 import libnacl.public
 import pytest
 
+from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
@@ -188,13 +189,15 @@ def nymsAddedInQuickSuccession(nodeSet, addedTrustAnchor, looper,
     def check():
         assert trustAnchorWallet._trustAnchored[nym].seqNo
 
-    looper.run(eventually(check, timeout=2))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(check, timeout=timeout))
 
+    timeout = waits.expectedReqNAckQuorumTime()
     looper.run(eventually(checkNacks,
                           trustAnchor,
                           req.reqId,
                           "is already added",
-                          retryWait=1, timeout=15))
+                          retryWait=1, timeout=timeout))
     count = 0
     for node in nodeSet:
         txns = node.domainLedger.getAllTxn()
@@ -263,7 +266,8 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
 
             assert replies[node.clientstack.name][f.RESULT.nm] == result.result
 
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
 
 
 def checkGetAttr(reqKey, trustAnchor, attrName, attrValue):
@@ -283,9 +287,10 @@ def getAttribute(looper, trustAnchor, trustAnchorWallet, userIdA, attributeName,
     req = trustAnchorWallet.requestAttribute(attrib,
                                          sender=trustAnchorWallet.defaultId)
     trustAnchor.submitReqs(req)
+    timeout = waits.expectedTransactionExecutionTime(len(trustAnchor.nodeReg))
     looper.run(eventually(checkGetAttr, req.key, trustAnchor,
                           attributeName, attributeValue, retryWait=1,
-                          timeout=20))
+                          timeout=timeout))
 
 
 @pytest.fixture(scope="module")
@@ -313,10 +318,11 @@ def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
+        timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
         looper.run(eventually(checkNacks,
                               client,
                               reqs[0].reqId,
-                              "UnknownIdentifier", retryWait=1, timeout=15))
+                              "UnknownIdentifier", retryWait=1, timeout=timeout))
 
 
 def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
@@ -330,10 +336,11 @@ def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
+        timeout = waits.expectedReqNAckQuorumTime()
         looper.run(eventually(checkNacks,
                               client,
                               reqs[0].reqId,
-                              retryWait=1, timeout=15))
+                              retryWait=1, timeout=timeout))
 
 
 def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
@@ -345,10 +352,11 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(steward, stewardWallet, attrib)
+        timeout = waits.expectedReqNAckQuorumTime()
         looper.run(eventually(checkNacks,
                               steward,
                               reqs[0].reqId,
-                              retryWait=1, timeout=15))
+                              retryWait=1, timeout=timeout))
 
 
 @pytest.mark.skip(reason="SOV-560. Attribute encryption is done in client")
@@ -437,6 +445,7 @@ def testGetTxnsSeqNo(nodeSet, addedTrustAnchor, tdir, trustAnchorWallet, looper)
     def chk():
         assert trustAnchor.spylog.count(trustAnchor.requestPendingTxns.__name__) > 0
 
+    # TODO choose or create timeout in 'waits' on this case.
     looper.run(eventually(chk, retryWait=1, timeout=3))
 
 
@@ -451,7 +460,8 @@ def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
     looper.run(someClient.ensureConnectedToNodes())
     needle = trustAnchorWallet.defaultId
     makeGetNymRequest(someClient, wallet, needle)
-    looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=timeout))
 
 
 def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,

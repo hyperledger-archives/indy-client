@@ -7,9 +7,7 @@ from typing import Tuple
 import errno
 
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
-from plenum.common.error import fault
 from plenum.common.signer_simple import SimpleSigner
-from stp_core.network.exceptions import RemoteNotFound
 from plenum.common.exceptions import NoConsensusYet
 from stp_core.common.log import getlogger
 from stp_core.loop.looper import Looper
@@ -273,9 +271,10 @@ class WalletedAgent(Walleted, Agent, Caching):
         # which we may also have to persist/restore as need arises
 
     def _saveIssuerWallet(self):
-        self.issuer.prepareForWalletPersistence()
-        self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
-                         walletName="issuer")
+        if self.issuer:
+            self.issuer.prepareForWalletPersistence()
+            self._saveWallet(self.issuer.wallet, self._getIssuerWalletContextDir(),
+                     walletName="issuer")
 
     def _saveWallet(self, wallet: Wallet, contextDir, walletName=None):
         try:

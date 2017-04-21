@@ -49,7 +49,7 @@ from sovrin_common.config import agentLoggingLevel
 from plenum.common.constants import PUBKEY
 
 logger = getlogger()
-# logger.setLevel(agentLoggingLevel)
+logger.setLevel(agentLoggingLevel)
 
 
 class Walleted(AgentIssuer, AgentProver, AgentVerifier):

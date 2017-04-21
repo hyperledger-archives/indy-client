@@ -36,7 +36,7 @@ from stp_core.network.port_dispenser import genHa
 from plenum.common.util import randomString
 
 logger = getlogger()
-# logger.setLevel(agentLoggingLevel)
+logger.setLevel(agentLoggingLevel)
 
 
 @decClassMethods(strict_types())

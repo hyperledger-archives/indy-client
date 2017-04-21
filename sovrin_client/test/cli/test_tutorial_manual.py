@@ -54,7 +54,6 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 
 
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
-@pytest.mark.skipif('sys.platform == "linux"', reason='SOV-501')
 def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                connectedToTest, nymAddedOut, attrAddedOut,
                schemaAdded, claimDefAdded, aliceCLI, newKeyringOut, aliceMap,

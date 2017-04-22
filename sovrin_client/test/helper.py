@@ -5,47 +5,40 @@ from typing import Union, Tuple
 import pyorient
 
 from config.config import cmod
-from plenum.common.log import getlogger
-from plenum.common.looper import Looper
+from plenum.test import waits
+from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import REQNACK, OP_FIELD_NAME
-from plenum.common.types import f, Identifier, HA
+from plenum.common.types import f, HA
+from stp_core.types import Identifier
+
 from plenum.persistence.orientdb_store import OrientDbStore
-from plenum.common.eventually import eventually
-from plenum.test.helper import initDirWithGenesisTxns
+from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import Spyable
-from plenum.test.cli.helper import newCLI as newPlenumCLI
+
+from sovrin_common.config_util import getConfig
+from sovrin_common.identity import Identity
+from sovrin_common.constants import NULL
+from sovrin_common.test.helper import TempStorage
 
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.config_util import getConfig
-from sovrin_common.constants import Environment
-from sovrin_common.identity import Identity
-
 from sovrin_client.client.client import Client
-from sovrin_common.constants import NULL
 
 logger = getlogger()
 
 
-class TestClientStorage:
+class TestClientStorage(TempStorage):
     def __init__(self, name, baseDir):
         self.name = name
         self.baseDir = baseDir
 
     def cleanupDataLocation(self):
-        loc = os.path.join(self.baseDir, "data/clients", self.name)
-        logger.debug('Cleaning up location {} of test client {}'.
-                     format(loc, self.name))
-        try:
-            shutil.rmtree(loc)
-        except Exception as ex:
-            logger.debug("Error while removing temporary directory {}".format(
-                ex))
+        self.cleanupDirectory(self.dataLocation)
         config = getConfig()
         if config.ReqReplyStore == "orientdb" or config.ClientIdentityGraph:
             try:
@@ -74,7 +67,8 @@ class TestClient(Client, StackedTester, TestClientStorage):
                              storageType=pyorient.STORAGE_TYPE_MEMORY)
 
     def onStopping(self, *args, **kwargs):
-        self.cleanupDataLocation()
+        # TODO: Why we needed following line?
+        # self.cleanupDataLocation()
         super().onStopping(*args, **kwargs)
 
 
@@ -90,7 +84,10 @@ def createNym(looper, nym, creatorClient, creatorWallet: Wallet, role=None,
     def check():
         assert creatorWallet._trustAnchored[nym].seqNo
 
-    looper.run(eventually(check, retryWait=1, timeout=10))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(creatorClient.nodeReg)
+    )
+    looper.run(eventually(check, retryWait=1, timeout=timeout))
 
 
 def makePendingTxnsRequest(client, wallet):
@@ -106,50 +103,6 @@ def buildStewardClient(looper, tdir, stewardWallet):
     looper.run(s.ensureConnectedToNodes())
     makePendingTxnsRequest(s, stewardWallet)
     return s
-
-
-# def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
-#            domainDir=None, multiPoolNodes=None, unique_name=None):
-#     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
-#     if poolDir or domainDir:
-#         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
-#
-#     if multiPoolNodes:
-#         conf.ENVS = {}
-#         for pool in multiPoolNodes:
-#             conf.poolTransactionsFile = "pool_transactions_{}".format(pool.name)
-#             conf.domainTransactionsFile = "transactions_{}".format(pool.name)
-#             conf.ENVS[pool.name] = \
-#                 Environment("pool_transactions_{}".format(pool.name),
-#                                 "transactions_{}".format(pool.name))
-#             initDirWithGenesisTxns(
-#                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
-#                 os.path.join(pool.tdirWithDomainTxns, pool.name))
-#
-#     from sovrin_node.test.helper import TestNode
-#     return newPlenumCLI(looper, tempDir, cliClass=TestCLI,
-#                         nodeClass=TestNode, clientClass=TestClient, config=conf,
-#                         unique_name=unique_name)
-#
-#
-# def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
-#                   multiPoolNodes=None):
-#     def _(subdir, looper=None, unique_name=None):
-#         def new():
-#             return newCLI(looper,
-#                           tdir,
-#                           subDirectory=subdir,
-#                           conf=tconf,
-#                           poolDir=tdirWithPoolTxns,
-#                           domainDir=tdirWithDomainTxns,
-#                           multiPoolNodes=multiPoolNodes,
-#                           unique_name=unique_name)
-#         if looper:
-#             yield new()
-#         else:
-#             with Looper(debug=False) as looper:
-#                 yield new()
-#     return _
 
 
 def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
@@ -184,8 +137,10 @@ def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
 
     def check():
         assert senderWallet._upgrades[upgrade.key].seqNo
-
-    looper.run(eventually(check, timeout=4))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(senderClient.nodeReg)
+    )
+    looper.run(eventually(check, timeout=timeout))
 
 
 def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):
@@ -215,10 +170,11 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
     wallet.pendRequest(req)
     reqs = wallet.preparePending()
     client.submitReqs(*reqs)
+    timeout = waits.expectedReqNAckQuorumTime()
     looper.run(eventually(checkNacks,
                           client,
                           req.reqId,
-                          contains, retryWait=1, timeout=15))
+                          contains, retryWait=1, timeout=timeout))
 
 
 def makeIdentityRequest(looper, actingClient, actingWallet, idy):
@@ -232,8 +188,10 @@ def makeIdentityRequest(looper, actingClient, actingWallet, idy):
 
     def chk():
         assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
-
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(
+        len(actingClient.nodeReg)
+    )
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
     return reqs
 
 

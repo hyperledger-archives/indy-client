@@ -49,12 +49,13 @@ ADD_ATTRIB_REG_EX = \
 SEND_SCHEMA_REG_EX = "(\s*(?P<send_schema>send\s+{schema})" \
                      "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
                      "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
-                     "\s*(?P<type_key>type=)\s*(?P<type>[A-Z0-9]+)" \
                      "\s+(?P<keys_key>keys=)\s*(?P<keys>[a-zA-Z-_,\s]+)\s*)".format(
     schema=SovrinTransactions.SCHEMA.name)
 
-SEND_ISSUER_KEY_REG_EX = "(\s*(?P<send_isr_key>send\s+{issKey})" \
-                         "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)".format(issKey=SovrinTransactions.ISSUER_KEY.name)
+SEND_CLAIM_DEF_REG_EX = "(\s*(?P<send_claim_def>send\s+{issKey})" \
+                        "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)"\
+                        "\s*(?P<signature_type_key>signature_type=)\s*(?P<signature_type>[A-Z0-9]+)" \
+    .format(issKey=SovrinTransactions.CLAIM_DEF.name)
 
 
 ADD_ATTRS_PROVER_REG_EX = "(\s*(?P<add_attrs>attribute \s+ known \s+ to) " \
@@ -145,7 +146,7 @@ SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
 GET_NYM_FORMATTED_REG_EX = getPipedRegEx(GET_NYM_REG_EX)
 ADD_ATTRIB_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRIB_REG_EX)
 SEND_SCHEMA_FORMATTED_REG_EX = getPipedRegEx(SEND_SCHEMA_REG_EX)
-SEND_ISSUER_KEY_FORMATTED_REG_EX = getPipedRegEx(SEND_ISSUER_KEY_REG_EX)
+SEND_CLAIM_DEF_FORMATTED_REG_EX = getPipedRegEx(SEND_CLAIM_DEF_REG_EX)
 ADD_GENESIS_FORMATTED_REG_EX = getPipedRegEx(ADD_GENESIS_NYM_REG_EX)
 INIT_ATTR_REPO_FORMATTED_REG_EX = getPipedRegEx(INIT_ATTR_REPO_REG_EX)
 ADD_ATTRS_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRS_REG_EX)

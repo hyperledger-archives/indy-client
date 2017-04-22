@@ -5,7 +5,7 @@ from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from anoncreds.protocol.types import Schema, ID
 from anoncreds.protocol.wallet.issuer_wallet import IssuerWalletInMemory
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from sovrin_client.anon_creds.sovrin_public_repo import SovrinPublicRepo
 from sovrin_client.test.anon_creds.conftest import GVT
@@ -27,8 +27,11 @@ def issuerGvt(publicRepo):
 
 @pytest.fixture(scope="module")
 def schemaDefGvt(stewardWallet):
-    return Schema('GVT', '1.0', GVT.attribNames(), 'CL',
-                           stewardWallet.defaultId)
+    return Schema(name='GVT',
+                  version='1.0',
+                  attrNames=GVT.attribNames(),
+                  issuerId=stewardWallet.defaultId,
+                  seqId=None)
 
 
 @pytest.fixture(scope="module")
@@ -68,8 +71,10 @@ def submittedPublicKeys(submittedSchemaDefGvtID, publicRepo, publicSecretKey,
                         publicSecretRevocationKey, looper):
     pk, sk = publicSecretKey
     pkR, skR = publicSecretRevocationKey
-    return looper.run(
-        publicRepo.submitPublicKeys(id=submittedSchemaDefGvtID, pk=pk, pkR=pkR))
+    return looper.run(publicRepo.submitPublicKeys(id=submittedSchemaDefGvtID,
+                                                  pk=pk,
+                                                  pkR=pkR,
+                                                  signatureType='CL'))
 
 
 @pytest.fixture(scope="module")
@@ -85,10 +90,11 @@ def submittedPublicRevocationKey(submittedPublicKeys):
 def testSubmitSchema(submittedSchemaDefGvt, schemaDefGvt):
     assert submittedSchemaDefGvt
     assert submittedSchemaDefGvt.seqId
-    # initial schema didn't have seqNo
-    submittedSchemaDefGvt = submittedSchemaDefGvt._replace(seqId=None)
-    assert submittedSchemaDefGvt == schemaDefGvt
-
+    # initial schema has stub seqno - excluding seqno from comparison
+    def withNoSeqId(schema):
+        schema._replace(seqId=None)
+    assert withNoSeqId(submittedSchemaDefGvt) == \
+           withNoSeqId(schemaDefGvt)
 
 def testGetSchema(submittedSchemaDefGvt, publicRepo, looper):
     schema = looper.run(
@@ -102,7 +108,8 @@ def testSubmitPublicKey(submittedPublicKeys):
 
 def testGetPrimaryPublicKey(submittedSchemaDefGvtID, submittedPublicKey,
                             publicRepo, looper):
-    pk = looper.run(publicRepo.getPublicKey(id=submittedSchemaDefGvtID))
+    pk = looper.run(publicRepo.getPublicKey(id=submittedSchemaDefGvtID,
+                                            signatureType='CL'))
     assert pk == submittedPublicKey
 
 
@@ -110,7 +117,8 @@ def testGetRevocationPublicKey(submittedSchemaDefGvtID,
                                submittedPublicRevocationKey,
                                publicRepo, looper):
     pk = looper.run(
-        publicRepo.getPublicKeyRevocation(id=submittedSchemaDefGvtID))
+        publicRepo.getPublicKeyRevocation(id=submittedSchemaDefGvtID,
+                                          signatureType='CL'))
 
     if sys.platform == 'win32':
         assert pk

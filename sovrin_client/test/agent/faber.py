@@ -1,29 +1,29 @@
-from plenum.common.log import getlogger
+from stp_core.common.log import getlogger
 
 from anoncreds.protocol.types import AttribType, AttribDef, SchemaKey
-from sovrin_client.agent.agent import createAgent
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.agent.base_agent import BaseAgent
 from sovrin_client.test.agent.helper import buildFaberWallet
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_client.test.helper import TestClient
+from sovrin_client.agent.agent import createAgent
 
 logger = getlogger()
 
 
 class FaberAgent(BaseAgent):
     def __init__(self,
-                 basedirpath: str,
-                 client: Client = None,
-                 wallet: Wallet = None,
+                 basedirpath: str=None,
+                 client: Client=None,
+                 wallet: Wallet=None,
                  port: int = None,
-                 loop=None):
-
-        portParam, = self.getPassedArgs()
+                 loop=None,
+                 config=None):
 
         super().__init__('Faber College', basedirpath, client, wallet,
-                         portParam or port, loop=loop)
+                         port=port, loop=loop, config=config,
+                         endpointArgs=self.getEndpointArgs(wallet))
 
         # maps invitation nonces to internal ids
         self._invites = {
@@ -68,12 +68,14 @@ class FaberAgent(BaseAgent):
                 status="graduated")
         }
 
-
     def getAttrDefs(self):
         return [self._attrDef]
 
     def getAttrs(self):
         return self._attrs
+
+    def getLinkNameByInternalId(self, internalId):
+        return self._attrs[internalId]._vals["student_name"]
 
     def getSchemaKeysToBeGenerated(self):
         return [SchemaKey("Transcript", "1.2", self.wallet.defaultId)]
@@ -86,6 +88,8 @@ def createFaber(name=None, wallet=None, basedirpath=None, port=None):
 
 
 if __name__ == "__main__":
+    port=5555
     TestWalletedAgent.createAndRunAgent(
-        FaberAgent, "Faber College", wallet=buildFaberWallet(),
-        basedirpath=None, port=5555, looper=None, clientClass=TestClient)
+        "Faber College", agentClass=FaberAgent, wallet=buildFaberWallet(),
+        basedirpath=None, port=port, looper=None, clientClass=TestClient,
+        cliAgentCreator=lambda: createFaber(port=port))

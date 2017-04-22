@@ -1,4 +1,4 @@
-# Sovrin Client
+# Sovrin Client    
 
 [![Build Status](https://jenkins.evernym.com/buildStatus/icon?job=Sovrin Client/stable)](https://jenkins.evernym.com/job/Sovrin%20Client/job/stable/)    
 

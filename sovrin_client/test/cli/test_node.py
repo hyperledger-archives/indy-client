@@ -1,12 +1,17 @@
 from copy import copy
 
 import pytest
-from plenum.common.eventually import eventually
-from plenum.common.port_dispenser import genHa
+from plenum.common import util
+
+from plenum.test import waits
+from stp_core.crypto.util import randomSeed
+from stp_core.loop.eventually import eventually
+
+from stp_core.network.port_dispenser import genHa
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NODE_IP, CLIENT_IP, CLIENT_PORT, NODE_PORT, \
     ALIAS, CLIENT_STACK_SUFFIX, SERVICES, VALIDATOR
-from plenum.common.util import randomSeed, randomString
+from plenum.common.util import randomString
 from plenum.test.cli.helper import exitFromCli
 from sovrin_common.roles import Roles
 
@@ -44,10 +49,10 @@ def newStewardCLI(CliBuilder):
 
 
 @pytest.fixture(scope="module")
-def newStewardCli(be, do, poolNodesStarted, philCli,
+def newStewardCli(be, do, poolNodesStarted, trusteeCli,
                   connectedToTest, nymAddedOut, newStewardCLI):
-    be(philCli)
-    if not philCli._isConnectedToAnyEnv():
+    be(trusteeCli)
+    if not trusteeCli._isConnectedToAnyEnv():
         do('connect test', within=3,
            expect=connectedToTest)
 
@@ -94,7 +99,13 @@ def tconf(tconf, request):
 
 
 @pytest.fixture(scope="module")
-def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
+def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTest):
+    be(philCli)
+
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
     be(newStewardCli)
     doNodeCmd(do)
     newNodeData = vals["newNodeData"]
@@ -107,17 +118,25 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli):
         for node in nodes:
             name = newNodeData[ALIAS]
             assert name in node.nodeReg
-
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     newStewardCli.looper.run(eventually(checkClientConnected,
                                         newStewardCli.activeClient,
-                                        timeout=5))
+                                        timeout=timeout))
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     philCli.looper.run(eventually(checkClientConnected,
                                   philCli.activeClient,
-                                  timeout=5))
+                                  timeout=timeout))
 
+    timeout = waits.expectedClientConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
     poolNodesStarted.looper.run(eventually(checkNodeConnected,
                                            list(poolNodesStarted.nodes.values()),
-                                           timeout=5))
+                                           timeout=timeout))
     return vals
 
 

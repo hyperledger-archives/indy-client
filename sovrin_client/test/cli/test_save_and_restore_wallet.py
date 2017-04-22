@@ -3,7 +3,9 @@ from time import sleep
 
 import pytest
 from plenum.cli.cli import Exit, Cli
-from plenum.common.util import createDirIfNotExists
+from plenum.cli.constants import NO_ENV
+from plenum.common.util import createDirIfNotExists, normalizedWalletFileName, \
+    getWalletFilePath
 from plenum.test.cli.helper import checkWalletFilePersisted, checkWalletRestored, \
     createAndAssertNewCreation, createAndAssertNewKeyringCreation, \
     useAndAssertKeyring, exitFromCli, restartCliAndAssert
@@ -19,24 +21,24 @@ def performExit(do):
 
 def testPersistentWalletName():
     # Connects to "test" environment
-    walletFileName = Cli._normalizedWalletFileName("test")
+    walletFileName = normalizedWalletFileName("test")
     assert "test.wallet" == walletFileName
     assert "test" == Cli.getWalletKeyName(walletFileName)
 
     # New default wallet (keyring) gets created
-    walletFileName = Cli._normalizedWalletFileName("Default")
+    walletFileName = normalizedWalletFileName("Default")
     assert "default.wallet" == walletFileName
     assert "default" == Cli.getWalletKeyName(walletFileName)
 
     # User creates new wallet (keyring)
-    walletFileName = Cli._normalizedWalletFileName("MyVault")
+    walletFileName = normalizedWalletFileName("MyVault")
     assert "myvault.wallet" == walletFileName
     assert "myvault" == Cli.getWalletKeyName(walletFileName)
 
 
-def getWalletFilePath(cli):
+def getActiveWalletFilePath(cli):
     fileName = cli.getActiveWalletPersitentFileName()
-    return Cli.getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
+    return getWalletFilePath(cli.getContextBasedKeyringsBaseDir(), fileName)
 
 
 def _connectTo(envName, do, cli):
@@ -64,7 +66,7 @@ def connectTo(envName, do, cli, activeWalletPresents, identifiers,
 
 def switchEnv(newEnvName, do, cli, checkIfWalletRestored=False,
               restoredWalletKeyName=None, restoredIdentifiers=0):
-    walletFilePath = getWalletFilePath(cli)
+    walletFilePath = getActiveWalletFilePath(cli)
     _connectTo(newEnvName, do, cli)
 
     # check wallet should have been persisted
@@ -143,7 +145,7 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
                          '"mykr0" conflicts with an existing keyring',
                          'Please choose a new name.'])
 
-    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
+    filePath = getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
                                      cliForMultiNodePools.walletFileName)
     switchEnv("pool1", do, cliForMultiNodePools, checkIfWalletRestored=True,
               restoredWalletKeyName="mykr1", restoredIdentifiers=1)
@@ -157,21 +159,20 @@ def testSaveAndRestoreWallet(do, be, cliForMultiNodePools,
     exitFromCli(do)
 
     # different tests for restoring saved wallet
-    filePath = Cli.getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
+    filePath = getWalletFilePath(cliForMultiNodePools.getContextBasedKeyringsBaseDir(),
                                      cliForMultiNodePools.walletFileName)
     restartCli(aliceMultiNodePools, be, do, "mykr1", 1)
     restartCliWithCorruptedWalletFile(earlMultiNodePools, be, do, filePath)
 
 
-@pytest.mark.skip(reason='SOV-174')
 def testRestoreWalletFile(aliceCLI):
     import shutil
     fileName = "tmp_wallet_restore_issue"
     curPath = os.path.dirname(os.path.realpath(__file__))
     walletFilePath = os.path.join(curPath, fileName)
-    keyringsDir = aliceCLI.getKeyringsBaseDir()
-    createDirIfNotExists(keyringsDir)
-    shutil.copy2(walletFilePath, keyringsDir)
-    targetWalletFilePath = os.path.join(keyringsDir, fileName)
-    wallet = aliceCLI.restoreWalletByPath(targetWalletFilePath)
-    assert wallet is not None and isinstance(wallet, Wallet)
+    noEnvKeyringsDir = os.path.join(aliceCLI.getKeyringsBaseDir(), NO_ENV)
+    createDirIfNotExists(noEnvKeyringsDir)
+    shutil.copy2(walletFilePath, noEnvKeyringsDir)
+    targetWalletFilePath = os.path.join(noEnvKeyringsDir, fileName)
+    restored = aliceCLI.restoreWalletByPath(targetWalletFilePath)
+    assert restored and isinstance(aliceCLI.activeWallet, Wallet)

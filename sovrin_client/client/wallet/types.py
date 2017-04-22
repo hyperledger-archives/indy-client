@@ -12,6 +12,8 @@ class ProofRequest:
         self.version = version
         self.attributes = attributes
         self.verifiableAttributes = verifiableAttributes
+        self.fulfilledByClaims = []
+        self.selfAttestedAttrs = {}
         # TODO _F_ need to add support for predicates on unrevealed attibutes
 
     @property

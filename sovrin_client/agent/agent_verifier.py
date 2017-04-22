@@ -23,24 +23,23 @@ class AgentVerifier(Verifier):
         self.verifier = verifier
 
     async def verifyProof(self, msg: Any):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError
 
-        claimName = body[NAME]
+        proofName = body[NAME]
         nonce = getNonceForProof(body[NONCE])
         proof = FullProof.fromStrDict(body[PROOF_FIELD])
         proofInput = ProofInput.fromStrDict(body[PROOF_INPUT_FIELD])
         revealedAttrs = fromDictWithStrValues(body[REVEALED_ATTRS_FIELD])
+        result = await self.verifier.verify(proofInput, proof,
+                                            revealedAttrs, nonce)
 
-        result = await self.verifier.verify(proofInput, proof, revealedAttrs,
-                                            nonce)
-
-        self.logger.info('Proof accepted with nonce {}'
-                              .format(nonce))
-        self.logger.info('Verifying proof from {}'
-                              .format(link.name))
+        self.logger.info('Proof "{}" accepted with nonce {}'
+                              .format(proofName, nonce))
+        self.logger.info('Verifying proof "{}" from {}'
+                              .format(proofName, link.name))
         status = 'verified' if result else 'failed verification'
         resp = {
             TYPE: PROOF_STATUS,
@@ -53,12 +52,16 @@ class AgentVerifier(Verifier):
         if result:
             for attribute in proofInput.revealedAttrs:
                 # Log attributes that were verified
-                self.logger.info('verified {}: {}'.format(
-                    attribute, revealedAttrs[attribute]))
-            self.logger.info('verified proof contains attributes from '
-                             'claim issued by: {}'.format(", ".join(
-                sorted([sk.issuerId for sk in proof.schemaKeys]))))
-            await self._postClaimVerif(claimName, link, frm)
+                self.logger.info('verified {}: {}'.
+                                 format(attribute, revealedAttrs[attribute]))
+            self.logger.info('Verified that proof "{}" contains attributes '
+                             'from claim(s) issued by: {}'.format(
+                proofName, ", ".join(
+                    sorted([sk.issuerId for sk in proof.schemaKeys]))))
+            await self._postProofVerif(proofName, link, frm)
+        else:
+            self.logger.info('Verification failed for proof {} from {} '
+                              .format(proofName, link.name))
 
     def sendProofReq(self, link: Link, proofReqSchemaKey):
         if self._proofRequestsSchema and (
@@ -73,7 +76,6 @@ class AgentVerifier(Verifier):
                  proofRequest[PROOF_REQ_SCHEMA_VERIFIABLE_ATTRIBUTES])
             ])
 
-            self.signAndSend(msg=op, linkName=link.name)
+            self.signAndSendToLink(msg=op, linkName=link.name)
         else:
             return ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
-

@@ -26,15 +26,15 @@ class AgentIssuer:
         self.signAndSend(resp, link.localIdentifier, frm)
 
     async def processReqClaim(self, msg):
-        body, (frm, ha) = msg
+        body, (frm, _) = msg
         link = self.verifyAndGetLink(msg)
         if not link:
             raise NotImplementedError
         name = body[NAME]
         if not self.isClaimAvailable(link, name):
             self.notifyToRemoteCaller(
-                EVENT_NOTIFY_MSG, "This claim is not yet available",
-                self.issuer.wallet.defaultId, frm,
+                EVENT_NOTIFY_MSG, "This claim is not yet available.",
+                self.wallet.defaultId, frm,
                 origReqId=body.get(f.REQ_ID.nm))
             return
 

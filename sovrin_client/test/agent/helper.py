@@ -2,10 +2,10 @@ import argparse
 import os
 import sys
 
-from plenum.common.eventually import eventually
-from plenum.common.looper import Looper
+from sovrin_client.test import waits
+from stp_core.loop.eventually import eventually
+from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.test.test_stack import checkRemoteExists, CONNECTED
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
@@ -19,13 +19,13 @@ def connectAgents(agent1, agent2):
     e1.connectTo(e2.ha)
 
 
-def ensureAgentsConnected(looper, agent1, agent2):
-    e1 = agent1.endpoint
-    e2 = agent2.endpoint
-    looper.run(eventually(checkRemoteExists, e1, e2.name, CONNECTED,
-                          timeout=10))
-    looper.run(eventually(checkRemoteExists, e2, e1.name, CONNECTED,
-                          timeout=10))
+def ensureAgentConnected(looper, agent, link):
+    linkHa = link.getRemoteEndpoint(required=True)
+    def _checkConnected():
+        assert agent.endpoint.isConnectedTo(ha=linkHa)
+
+    timeout = waits.expectedAgentConnected()
+    looper.run(eventually(_checkConnected, timeout=timeout))
 
 
 def getAgentCmdLineParams():
@@ -36,11 +36,16 @@ def getAgentCmdLineParams():
         parser.add_argument('--port', required=False,
                             help='port where agent will listen')
 
+        parser.add_argument('--withcli',
+                            help='if given, agent will start in cli mode',
+                            action='store_true')
+
         args = parser.parse_args()
         port = int(args.port) if args.port else None
-        return port,
+        with_cli = args.withcli
+        return port, with_cli
     else:
-        return None,
+        return None, False
 
     
 def buildAgentWallet(name, seed):
@@ -64,7 +69,7 @@ def buildThriftWallet():
 def bootstrapAgentCli(name, agentCreator, looper, bootstrap):
     curDir = os.getcwd()
     logFilePath = os.path.join(curDir, config.logFilePath)
-    cli = AgentCli(name='{}-Agent'.format(name),
+    cli = AgentCli(name='{}-Agent'.format(name).lower().replace(" ", "-"),
                    agentCreator=agentCreator,
                    looper=looper,
                    basedirpath=config.baseDir,

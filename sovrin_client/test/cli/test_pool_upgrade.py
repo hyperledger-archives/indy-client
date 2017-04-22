@@ -2,7 +2,8 @@ from copy import copy
 
 import pytest
 
-from plenum.common.eventually import eventually
+from sovrin_node.test import waits
+from stp_core.loop.eventually import eventually
 from plenum.common.constants import VERSION
 from sovrin_common.constants import ACTION, CANCEL, JUSTIFICATION
 from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \
@@ -26,9 +27,10 @@ def poolUpgradeSubmitted(be, do, trusteeCli, validUpgrade, trusteeMap):
 @pytest.fixture(scope="module")
 def poolUpgradeScheduled(poolUpgradeSubmitted, poolNodesStarted, validUpgrade):
     nodes = poolNodesStarted.nodes.values()
+    timeout = waits.expectedUpgradeScheduled()
     poolNodesStarted.looper.run(
         eventually(checkUpgradeScheduled, nodes,
-                   validUpgrade[VERSION], retryWait=1, timeout=10))
+                   validUpgrade[VERSION], retryWait=1, timeout=timeout))
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +52,7 @@ def testPoolUpgradeSent(poolUpgradeScheduled):
 
 def testPoolUpgradeCancelled(poolUpgradeCancelled, poolNodesStarted):
     nodes = poolNodesStarted.nodes.values()
+    timeout = waits.expectedNoUpgradeScheduled()
     poolNodesStarted.looper.run(
         eventually(checkNoUpgradeScheduled,
-                   nodes, retryWait=1, timeout=10))
+                   nodes, retryWait=1, timeout=timeout))

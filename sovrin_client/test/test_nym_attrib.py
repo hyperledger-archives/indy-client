@@ -5,18 +5,21 @@ import base58
 import libnacl.public
 import pytest
 
-from plenum.common.eventually import eventually
-from plenum.common.log import getlogger
+from plenum.test import waits
+from stp_core.loop.eventually import eventually
+from stp_core.common.log import getlogger
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, OP_FIELD_NAME
+from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, \
+    OP_FIELD_NAME, NYM, TARGET_NYM, \
+    TXN_TYPE, ROLE, NONCE
+from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
+from sovrin_common.constants import SKEY
 from plenum.common.types import f
 from plenum.common.util import adict
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.identity import Identity
-from sovrin_common.constants import ATTRIB, NYM, TARGET_NYM, TXN_TYPE, ROLE, \
-    NONCE, SKEY, TRUST_ANCHOR
 from sovrin_common.util import getSymmetricallyEncryptedVal
 from sovrin_node.test.helper import submitAndCheck, \
     makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
@@ -186,13 +189,15 @@ def nymsAddedInQuickSuccession(nodeSet, addedTrustAnchor, looper,
     def check():
         assert trustAnchorWallet._trustAnchored[nym].seqNo
 
-    looper.run(eventually(check, timeout=2))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(check, timeout=timeout))
 
+    timeout = waits.expectedReqNAckQuorumTime()
     looper.run(eventually(checkNacks,
                           trustAnchor,
                           req.reqId,
                           "is already added",
-                          retryWait=1, timeout=15))
+                          retryWait=1, timeout=timeout))
     count = 0
     for node in nodeSet:
         txns = node.domainLedger.getAllTxn()
@@ -239,8 +244,9 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
     req = trustAnchorWallet.preparePending()[0]
     _, key = trustAnchorWallet._prepared.pop((req.identifier, req.reqId))
     req.reqId = lastReqId
-    req.signature = trustAnchorWallet.signMsg(msg=req.getSigningState(),
-                                          identifier=req.identifier)
+
+    req.signature = trustAnchorWallet.signMsg(msg=req.signingState,
+                                              identifier=req.identifier)
     trustAnchorWallet._prepared[req.identifier, req.reqId] = req, key
     trustAnchor.submitReqs(req)
 
@@ -260,7 +266,8 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
 
             assert replies[node.clientstack.name][f.RESULT.nm] == result.result
 
-    looper.run(eventually(chk, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
 
 
 def checkGetAttr(reqKey, trustAnchor, attrName, attrValue):
@@ -280,9 +287,10 @@ def getAttribute(looper, trustAnchor, trustAnchorWallet, userIdA, attributeName,
     req = trustAnchorWallet.requestAttribute(attrib,
                                          sender=trustAnchorWallet.defaultId)
     trustAnchor.submitReqs(req)
+    timeout = waits.expectedTransactionExecutionTime(len(trustAnchor.nodeReg))
     looper.run(eventually(checkGetAttr, req.key, trustAnchor,
                           attributeName, attributeValue, retryWait=1,
-                          timeout=20))
+                          timeout=timeout))
 
 
 @pytest.fixture(scope="module")
@@ -310,10 +318,11 @@ def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
+        timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
         looper.run(eventually(checkNacks,
                               client,
                               reqs[0].reqId,
-                              "UnknownIdentifier", retryWait=1, timeout=15))
+                              "UnknownIdentifier", retryWait=1, timeout=timeout))
 
 
 def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
@@ -327,10 +336,11 @@ def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(client, wallet, attrib)
+        timeout = waits.expectedReqNAckQuorumTime()
         looper.run(eventually(checkNacks,
                               client,
                               reqs[0].reqId,
-                              retryWait=1, timeout=15))
+                              retryWait=1, timeout=timeout))
 
 
 def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
@@ -342,10 +352,11 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
                            dest=userIdA,
                            ledgerStore=LedgerStore.RAW)
         reqs = makeAttribRequest(steward, stewardWallet, attrib)
+        timeout = waits.expectedReqNAckQuorumTime()
         looper.run(eventually(checkNacks,
                               steward,
                               reqs[0].reqId,
-                              retryWait=1, timeout=15))
+                              retryWait=1, timeout=timeout))
 
 
 @pytest.mark.skip(reason="SOV-560. Attribute encryption is done in client")
@@ -434,6 +445,7 @@ def testGetTxnsSeqNo(nodeSet, addedTrustAnchor, tdir, trustAnchorWallet, looper)
     def chk():
         assert trustAnchor.spylog.count(trustAnchor.requestPendingTxns.__name__) > 0
 
+    # TODO choose or create timeout in 'waits' on this case.
     looper.run(eventually(chk, retryWait=1, timeout=3))
 
 
@@ -448,7 +460,8 @@ def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
     looper.run(someClient.ensureConnectedToNodes())
     needle = trustAnchorWallet.defaultId
     makeGetNymRequest(someClient, wallet, needle)
-    looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=5))
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=timeout))
 
 
 def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
@@ -458,5 +471,16 @@ def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
                        origin=userIdA,
                        value=attr1,
                        dest=userIdA,
+                       ledgerStore=LedgerStore.RAW)
+    addAttributeAndCheck(looper, userClientA, userWalletA, attrib)
+
+
+def testAttrWithNoDestAdded(nodeSet, looper, userClientA, userWalletA,
+                               userIdA, attributeData):
+    attr1 = json.dumps({'age': 24})
+    attrib = Attribute(name='test4 attribute',
+                       origin=userIdA,
+                       value=attr1,
+                       dest=None,
                        ledgerStore=LedgerStore.RAW)
     addAttributeAndCheck(looper, userClientA, userWalletA, attrib)

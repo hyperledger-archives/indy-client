@@ -1,19 +1,21 @@
 import json
 
 from ledger.util import F
-from plenum.common.eventually import eventually
+from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
-from plenum.common.log import getlogger
-from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, VERSION, TYPE, \
-    ORIGIN
+from stp_core.common.log import getlogger
+from plenum.common.constants import TARGET_NYM, TXN_TYPE, DATA, NAME, \
+    VERSION, TYPE, ORIGIN
+
+from sovrin_common.constants import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
+    GET_CLAIM_DEF, REF, CLAIM_DEF, PRIMARY, REVOCATION
 
 from anoncreds.protocol.repo.public_repo import PublicRepo
 from anoncreds.protocol.types import Schema, ID, PublicKey, \
     RevocationPublicKey, AccumulatorPublicKey, \
     Accumulator, TailsType, TimestampType
-from sovrin_common.constants import GET_SCHEMA, SCHEMA, ATTR_NAMES, \
-    GET_ISSUER_KEY, REF, ISSUER_KEY, PRIMARY, REVOCATION
 from sovrin_common.types import Request
+from sovrin_common.constants import SIGNATURE_TYPE
 
 
 def _ensureReqCompleted(reqKey, client, clbk):
@@ -60,37 +62,37 @@ class SovrinPublicRepo(PublicRepo):
         }
         data, seqNo = await self._sendGetReq(op)
         return Schema(name=data[NAME],
-                               version=data[VERSION],
-                               schemaType=data[TYPE],
-                               attrNames=data[ATTR_NAMES].split(","),
-                               issuerId=data[ORIGIN],
-                               seqId=seqNo)
+                      version=data[VERSION],
+                      attrNames=data[ATTR_NAMES].split(","),
+                      issuerId=data[ORIGIN],
+                      seqId=seqNo)
 
-    async def getPublicKey(self, id: ID) -> PublicKey:
+    async def getPublicKey(self,
+                           id: ID,
+                           signatureType = 'CL') -> PublicKey:
         op = {
-            TXN_TYPE: GET_ISSUER_KEY,
+            TXN_TYPE: GET_CLAIM_DEF,
             REF: id.schemaId,
-            ORIGIN: id.schemaKey.issuerId
+            ORIGIN: id.schemaKey.issuerId,
+            SIGNATURE_TYPE: signatureType
         }
-
         data, seqNo = await self._sendGetReq(op)
-
         data = data[DATA][PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pk
 
-    async def getPublicKeyRevocation(self, id: ID) -> RevocationPublicKey:
+    async def getPublicKeyRevocation(self,
+                                     id: ID,
+                                     signatureType = 'CL') -> RevocationPublicKey:
         op = {
-            TXN_TYPE: GET_ISSUER_KEY,
+            TXN_TYPE: GET_CLAIM_DEF,
             REF: id.schemaId,
-            ORIGIN: id.schemaKey.issuerId
+            ORIGIN: id.schemaKey.issuerId,
+            SIGNATURE_TYPE: signatureType
         }
-
         data, seqNo = await self._sendGetReq(op)
-
         if not data:
             return None
-
         data = data[DATA][REVOCATION]
         pkR = RevocationPublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pkR
@@ -113,28 +115,34 @@ class SovrinPublicRepo(PublicRepo):
             DATA: {
                 NAME: schema.name,
                 VERSION: schema.version,
-                TYPE: schema.schemaType,
                 ATTR_NAMES: ",".join(schema.attrNames)
             }
         }
-
         data, seqNo = await self._sendSubmitReq(op)
-
         if not seqNo:
             return None
         schema = schema._replace(issuerId=self.wallet.defaultId,
                                  seqId=seqNo)
         return schema
 
-    async def submitPublicKeys(self, id: ID, pk: PublicKey,
-                               pkR: RevocationPublicKey = None) -> (
-            PublicKey, RevocationPublicKey):
-        pkData = pk.toStrDict()
-        pkRData = pkR.toStrDict()
+    async def submitPublicKeys(self,
+                               id: ID,
+                               pk: PublicKey,
+                               pkR: RevocationPublicKey = None,
+                               signatureType = 'CL') -> \
+            (PublicKey, RevocationPublicKey):
+
+        data = {}
+        if pk is not None:
+            data[PRIMARY] = pk.toStrDict()
+        if pkR is not None:
+            data[REVOCATION] = pkR.toStrDict()
+
         op = {
-            TXN_TYPE: ISSUER_KEY,
+            TXN_TYPE: CLAIM_DEF,
             REF: id.schemaId,
-            DATA: {PRIMARY: pkData, REVOCATION: pkRData}
+            DATA: data,
+            SIGNATURE_TYPE: signatureType
         }
 
         data, seqNo = await self._sendSubmitReq(op)
@@ -142,7 +150,10 @@ class SovrinPublicRepo(PublicRepo):
         if not seqNo:
             return None
         pk = pk._replace(seqId=seqNo)
-        pkR = pkR._replace(seqId=seqNo)
+
+        if pkR is not None:
+            pkR = pkR._replace(seqId=seqNo)
+
         return pk, pkR
 
     async def submitAccumulator(self, id: ID, accumPK: AccumulatorPublicKey,
@@ -164,9 +175,13 @@ class SovrinPublicRepo(PublicRepo):
         req = self.wallet.prepReq(req)
         self.client.submitReqs(req)
         try:
+            # TODO: Come up with an explanation, why retryWait had to be
+            # increases to 1 from .5 to pass some tests and from 1 to 2 to
+            # pass some other tests. The client was not getting a chance to
+            # service its stack, we need to find a way to stop this starvation.
             resp = await eventually(_ensureReqCompleted,
                                     req.key, self.client, clbk,
-                                    timeout=20, retryWait=0.5)
+                                    timeout=20, retryWait=2)
         except NoConsensusYet:
             raise TimeoutError('Request timed out')
         return resp

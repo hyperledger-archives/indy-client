@@ -1,5 +1,7 @@
 import pytest
-from plenum.common.eventually import eventually
+
+from sovrin_client.test import waits
+from stp_core.loop.eventually import eventually
 
 from sovrin_client.test.cli.helper import checkConnectedToEnv, prompt_is
 
@@ -58,8 +60,9 @@ def testConnectEnv(poolNodesCreated, looper, notConnectedStatus):
 
     poolCLI.enterCmd("connect test")
     assert "Connecting to test" in poolCLI.lastCmdOutput
+    timeout = waits.expectedAgentConnected()
     looper.run(eventually(checkConnectedToEnv, poolCLI, retryWait=1,
-                          timeout=10))
+                          timeout=timeout))
     poolCLI.enterCmd("status")
     assert "Connected to test Sovrin network" == poolCLI.lastCmdOutput
 

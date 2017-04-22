@@ -6,7 +6,7 @@ from plenum.test.cli.helper import TestCliCore
 from plenum.test.testable import Spyable
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.test.agent.acme import createAcme
-from sovrin_client.test.cli.helper import getCliBuilder
+from sovrin_client.test.cli.helper import getCliBuilder, getAgentCliHelpString
 from sovrin_client.test.cli.test_tutorial import acmeWithEndpointAdded,\
     connectIfNotAlreadyConnected
 
@@ -41,6 +41,18 @@ def acmeAgentCliRunning(acmeWithEndpointAdded, acmeAgentCli, looper):
 def test_acme_cli_started_successfully(be, acmeAgentCliRunning):
     be(acmeAgentCliRunning)
     assert acmeAgentCliRunning.currPromptText == 'Acme-Agent'
+
+
+def testAgentCliHelp(be, do, acmeAgentCliRunning):
+    be(acmeAgentCliRunning)
+    do('help', expect=[getAgentCliHelpString()])
+
+
+def testAgentCliForInvalidCommand(be, do, acmeAgentCliRunning):
+    be(acmeAgentCliRunning)
+    do('set Attr1 to Value1', expect=[
+        "Invalid command: 'set Attr1 to Value1'",
+        getAgentCliHelpString()])
 
 
 def sendProofRequest(be, do, agentCli, userMap):

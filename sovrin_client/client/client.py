@@ -123,9 +123,6 @@ class Client(PlenumClient):
         return self.txnLog.hasTxnWithReqId(identifier, reqId)
 
     def hasConsensus(self, identifier: str, reqId: int) -> Optional[str]:
-        # if isinstance(self.reqRepStore, ClientReqRepStoreOrientDB):
-        #     return self.reqRepStore.hasConsensus(identifier, reqId)
-        # else:
         return super().hasConsensus(identifier, reqId)
 
     def getTxnsByNym(self, nym: str):

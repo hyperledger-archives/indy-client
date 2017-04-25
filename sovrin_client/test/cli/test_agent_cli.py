@@ -27,10 +27,10 @@ def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLo
 
 @pytest.fixture(scope='module')
 def acmeAgentCli(agentCliBuilder, acmeAgentPort, tdir):
-    yield from agentCliBuilder(
-        name='Acme-Agent',
-        agentCreator=lambda: create_acme(port=acmeAgentPort, base_dir_path=tdir, wallet=buildAcmeWallet())
-    )('Acme-Agent')
+    agent = create_acme(port=acmeAgentPort, base_dir_path=tdir, wallet=buildAcmeWallet())
+    cliBuild = agentCliBuilder(name='Acme-Agent', agent=agent)
+    cli = cliBuild('Acme-Agent')
+    yield from cli
 
 
 @pytest.fixture(scope='module')

@@ -28,7 +28,7 @@ from sovrin_common.identity import Identity
 # noinspection PyUnresolvedReferences
 from sovrin_node.pool.local_pool import create_local_pool
 # noinspection PyUnresolvedReferences
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 # noinspection PyUnresolvedReferences
 from sovrin_client.client.wallet.wallet import Wallet
 # noinspection PyUnresolvedReferences

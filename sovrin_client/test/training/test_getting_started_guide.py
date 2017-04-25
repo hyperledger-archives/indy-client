@@ -1,5 +1,4 @@
 import pytest
-import time
 
 from sovrin_client.test.training.getting_started import *
 
@@ -7,7 +6,8 @@ from sovrin_client.test.training.getting_started import *
 from sovrin_node.test.conftest import tconf
 
 
-@pytest.mark.first()
+# @pytest.mark.first()
+@pytest.mark.skip
 def test_getting_started(tconf):
     getting_started(base_dir=tconf.baseDir)
 

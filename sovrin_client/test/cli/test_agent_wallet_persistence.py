@@ -12,7 +12,7 @@ from sovrin_client.test.agent.helper import buildAcmeWallet as agentWallet
 from sovrin_client.test.cli.conftest \
     import acmeAddedByPhil as agentAddedBySponsor
 from sovrin_client.test.cli.helper import  compareAgentIssuerWallet
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.client.TestClient import TestClient
 from stp_core.network.port_dispenser import genHa
 
 agentPort = genHa()[1]

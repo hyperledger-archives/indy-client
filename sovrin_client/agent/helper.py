@@ -1,14 +1,12 @@
 import os
 
-from stp_core.crypto.util import ed25519PkToCurve25519
-from plenum.common.util import friendlyToRaw, rawToFriendly
-
 from plenum.common.signer_simple import SimpleSigner
-# from sovrin_client.agent.agent import runAgent
-# from sovrin_client.agent.agent import runBootstrap
-
+from plenum.common.util import friendlyToRaw, rawToFriendly
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
+
+from stp_core.crypto.util import ed25519PkToCurve25519
+
 
 def processInvAccept(wallet, msg):
     pass
@@ -22,6 +20,7 @@ def friendlyVerkeyToPubkey(verkey):
     vkRaw = friendlyToRaw(verkey)
     pkraw = ed25519PkToCurve25519(vkRaw)
     return rawToFriendly(pkraw)
+
 
 def getClaimVersionFileName(agentName):
     return agentName.replace(" ", "-").lower() + "-schema-version.txt"
@@ -63,16 +62,20 @@ def build_wallet_core(wallet_name, seed_file):
     return wallet
 
 
-def run_agent(looper, wallet, agent):
+async def bootstrap_schema(agent, attrib_def_name, schema_name, schema_version, p_prime, q_prime):
+    schema_id = await agent.publish_schema(attrib_def_name,
+                                           schema_name=schema_name,
+                                           schema_version=schema_version)
 
-    def run():
-        _agent = agent
-        wallet.pendSyncRequests()
-        prepared = wallet.preparePending()
-        _agent.client.submitReqs(*prepared)
+    _, _ = await agent.publish_issuer_keys(schema_id, p_prime=p_prime, q_prime=q_prime)
 
-        runAgent(_agent, looper)
+    # TODO not fully implemented yet!
+    # await agent.publish_revocation_registry(schema_id=schema_id)
 
-        return _agent, wallet
+    return schema_id
 
-    return run
+
+def buildAgentWallet(name, seed):
+    wallet = Wallet(name)
+    wallet.addIdentifier(signer=SimpleSigner(seed=seed))
+    return wallet

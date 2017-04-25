@@ -1,14 +1,15 @@
 from plenum.common.signer_simple import SimpleSigner
+from sovrin_client.agent.helper import bootstrap_schema
 from sovrin_client.client.wallet.wallet import Wallet
 from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
-from sovrin_client.agent.agent import WalletedAgent
-from sovrin_client.test.helper import primes
-from sovrin_client.test.agent.helper import bootstrap_schema, buildAcmeWallet
-from sovrin_client.test.helper import TestClient
+from sovrin_client.agent.walleted_agent import WalletedAgent
+from sovrin_client.test.constants import primes
+from sovrin_client.test.agent.helper import buildAcmeWallet
+from sovrin_client.test.client.TestClient import TestClient
 
 from anoncreds.protocol.types import AttribType, AttribDef, ID
 
@@ -108,10 +109,6 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=No
 
     agent.set_issuer_backend(backend)
 
-    return agent
-
-
-async def bootstrap_acme(agent):
     agent._proofRequestsSchema = {
         "Job-Application-v0.2": {
             "name": "Job-Application",
@@ -127,6 +124,11 @@ async def bootstrap_acme(agent):
             "verifiableAttributes": ["degree", "status", "ssn"]
         }
     }
+
+    return agent
+
+
+async def bootstrap_acme(agent):
     await bootstrap_schema(agent,
                            'Job-Certificate',
                            'Job-Certificate',
@@ -144,11 +146,12 @@ async def bootstrap_acme(agent):
 
 if __name__ == "__main__":
     args = RunnableAgent.parser_cmd_args()
-
-    port = args[0]
+    name = 'Acme Corp'
+    port = args.port
     if port is None:
         port = 6666
-    agent = create_acme(name='Acme Corp', wallet=buildAcmeWallet(),
+    with_cli = args.withcli
+    agent = create_acme(name=name, wallet=buildAcmeWallet(),
                         base_dir_path=None, port=port)
-    RunnableAgent.run_agent(agent, bootstrap=bootstrap_acme(agent))
-
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_acme(agent),
+                            with_cli=with_cli)

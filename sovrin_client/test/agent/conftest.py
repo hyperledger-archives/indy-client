@@ -28,7 +28,7 @@ from stp_core.loop.looper import Looper
 from plenum.common.util import randomString
 from stp_core.loop.eventually import eventually
 from plenum.test.helper import assertFunc
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR

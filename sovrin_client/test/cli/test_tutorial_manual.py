@@ -13,7 +13,7 @@ from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.roles import Roles
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.constants import ENDPOINT

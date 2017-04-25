@@ -29,7 +29,8 @@ from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
 from plenum.common.util import randomString, getWalletFilePath
-from sovrin_client.agent.agent import WalletedAgent
+from plenum.common.constants import TARGET_NYM
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.msg_constants import ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
@@ -395,19 +396,41 @@ class SovrinCli(PlenumCli):
         agent.registerEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
                                     self._handleNotConnectedToAnyEnv)
 
+    def deregisterAgentListeners(self, agent):
+        agent.deregisterEventListener(EVENT_NOTIFY_MSG, self._printMsg)
+        agent.deregisterEventListener(EVENT_POST_ACCEPT_INVITE,
+                                    self._printSuggestionPostAcceptLink)
+        agent.deregisterEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
+                                    self._handleNotConnectedToAnyEnv)
+
     @property
     def agent(self) -> WalletedAgent:
         if self._agent is None:
             _, port = genHa()
-            self._agent = WalletedAgent(name=randomString(6),
+            agent = WalletedAgent(name=randomString(6),
                                         basedirpath=self.basedirpath,
                                         client=self.activeClient if self.activeEnv else None,
                                         wallet=self.activeWallet,
                                         loop=self.looper.loop,
                                         port=port)
+            self.agent = agent
+            # self.registerAgentListeners(self._agent)
+            # self.looper.add(self._agent)
+        return self._agent
+
+    @agent.setter
+    def agent(self, agent):
+        if self._agent is not None:
+            self.deregisterAgentListeners(self._agent)
+            looper.removeProdable(self._agent)
+
+        self._agent = agent
+
+        if agent is not None:
             self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
-        return self._agent
+
+
 
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))

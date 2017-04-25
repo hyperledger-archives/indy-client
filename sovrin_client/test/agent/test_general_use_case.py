@@ -2,12 +2,12 @@ import json
 
 import pytest
 
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
 import anoncreds.protocol.types
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.helper import primes
+from sovrin_client.test.constants import primes
 from sovrin_common.identity import Identity
 from sovrin_common.constants import TRUST_ANCHOR
 from sovrin_node.pool.local_pool import create_local_pool

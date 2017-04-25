@@ -1,21 +1,21 @@
 from plenum.common.signer_simple import SimpleSigner
+from sovrin_client.agent.helper import bootstrap_schema, buildAgentWallet
 from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.test.client.TestClient import TestClient
+from sovrin_client.test.constants import primes
+
 from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
-from sovrin_client.client.client import Client
-from sovrin_client.test.agent.helper import bootstrap_schema
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
 from anoncreds.protocol.types import AttribType, AttribDef
-from sovrin_client.agent.agent import WalletedAgent
-from sovrin_client.test.helper import primes
-from sovrin_client.test.agent.helper import buildFaberWallet
-from sovrin_client.test.helper import TestClient
+from sovrin_client.agent.walleted_agent import WalletedAgent
 
 logger = getlogger()
 
 FABER_SEED = b'Faber000000000000000000000000000'
+
 
 def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=None):
 
@@ -103,9 +103,11 @@ async def bootstrap_faber(agent):
 
 if __name__ == "__main__":
     args = RunnableAgent.parser_cmd_args()
-    port = args[0]
+    name = "Faber College"
+    port = args.port
     if port is None:
         port = 5555
-    agent = create_faber(name="Faber College", wallet=buildFaberWallet(), base_dir_path=None, port=port)
-    RunnableAgent.run_agent(agent, bootstrap=bootstrap_faber(agent))
+    with_cli = args.withcli
+    agent = create_faber(name=name, wallet=buildAgentWallet(name, FABER_SEED), base_dir_path=None, port=port)
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_faber(agent), with_cli=with_cli)
 

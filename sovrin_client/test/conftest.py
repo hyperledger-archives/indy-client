@@ -1,5 +1,6 @@
 from plenum.common.keygen_utils import initLocalKeys
 from plenum.test import waits as plenumWaits
+from sovrin_client.test.constants import primes
 
 from stp_core.loop.eventually import eventually
 import warnings
@@ -31,11 +32,9 @@ from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
 from sovrin_common.txn_util import getTxnOrderedFields
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
-from sovrin_node.test.helper import TestNode, \
-    makePendingTxnsRequest, buildStewardClient
-from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
-    genTestClient, TestClient, createNym
-
+from sovrin_node.test.helper import TestNode, makePendingTxnsRequest
+from sovrin_client.test.helper import addRole, getClientAddedWithRole, \
+    genTestClient, TestClient, createNym, buildStewardClient
 
 # noinspection PyUnresolvedReferences
 from plenum.test.conftest import tdir, nodeReg, up, ready, \

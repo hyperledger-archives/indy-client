@@ -2,22 +2,49 @@ from sovrin_client.cli.cli import SovrinCli
 
 
 class AgentCli(SovrinCli):
-    def __init__(self, name, agentCreator=None, *args, **kwargs):
-        assert agentCreator is not None, 'agentCreator is required'
-        self._agentCreator = agentCreator
-        self.name = name
-        self._activeWallet = None
+    def __init__(self, name=None, agentCreator=None, *args, **kwargs):
+        # assert agent is not None, 'agent is required'
+        if name is not None:
+            self.name = name
+        # if 'name' in kwargs:
+        #     self.name = kwargs['name']
+        #     kwargs.pop('name')
+
+        # if 'agentCreator' in kwargs:
+        #     kwargs.pop('agentCreator')
+
         super().__init__(*args, **kwargs)
 
-    @property
-    def agent(self):
-        if self._agent is None:
-            self._agent = self._agentCreator()
-            self.registerAgentListeners(self._agent)
-            self.looper.add(self._agent)
+        self._activeWallet = None
+
+        if 'agent' in kwargs:
+            self.agent = kwargs['agent']
+
+
+        # self.registerAgentListeners(self._agent)
+        # self._activeWallet = self._agent.wallet
+        # self.wallets[self._agent.wallet.name] = self._agent.wallet
+
+
+        # looper = kwargs.get()
+        # if looper is not None and self._agent is not None:
+        #     looper.add(self._agent)
+
+    # @property
+    # def agent(self):
+    #     return super(SovrinCli, self).agent()
+
+    @SovrinCli.agent.setter
+    def agent(self, agent):
+        # this is hackish but I could not find a more elegant way
+        # was trying to do 'super(SovrinCli, self).agent = agent'
+        # but that did not work
+        super(AgentCli, type(self)).agent.fset(self, agent)
+
+        if self._agent is not None:
             self._activeWallet = self._agent.wallet
             self.wallets[self._agent.wallet.name] = self._agent.wallet
-        return self._agent
+            self.name = agent.name
 
     @property
     def actions(self):

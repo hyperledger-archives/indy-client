@@ -1,10 +1,11 @@
 import sys
 import argparse
 
-from sovrin_client.client.client import Client
-from sovrin_client.agent.agent import createAgent, runAgent, Agent
+from sovrin_client.agent.agent import Agent
+from sovrin_client.agent.run_agent import runAgentCli, runAgent
 from stp_core.common.log import getlogger
 from plenum.common.util import getFormattedErrorMsg
+from sovrin_common.config_util import getConfig
 
 logger = getlogger()
 
@@ -16,25 +17,34 @@ class RunnableAgent:
 
     @classmethod
     def parser_cmd_args(cls):
+        args = sys.argv[1:]
         if sys.stdin.isatty():
-            parser = argparse.ArgumentParser(
-                description="Starts agents with given port, cred def and issuer seq")
+            args = []
 
-            parser.add_argument('--port', required=False,
-                                help='port where agent will listen')
+        parser = argparse.ArgumentParser(
+            description="Starts agents with given port, cred def and issuer seq")
 
-            args = parser.parse_args()
-            port = int(args.port) if args.port else None
-            return port,
-        else:
-            return None,
+        parser.add_argument('--port', type=int, required=False,
+                            help='port where agent will listen')
+
+        parser.add_argument('--withcli',
+                            help='if given, agent will start in cli mode',
+                            action='store_true')
+
+        args = parser.parse_args(args=args)
+        # port = int(args.port) if args.port else None
+        return args
 
     @classmethod
-    def run_agent(cls, agent: Agent, looper=None, bootstrap=None):
+    def run_agent(cls, agent: Agent, looper=None, bootstrap=None, with_cli=False):
         try:
             loop = looper.loop if looper else None
             agent.loop = loop
-            runAgent(agent, looper, bootstrap)
+            config = getConfig()
+            if with_cli:
+                runAgentCli(agent, config, looper=looper, bootstrap=bootstrap)
+            else:
+                runAgent(agent, looper, bootstrap)
             return agent
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))

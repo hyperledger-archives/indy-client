@@ -5,9 +5,9 @@ from stp_core.common.log import getlogger
 from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
 
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.test.agent.helper import buildThriftWallet
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.client.TestClient import TestClient
 
 logger = getlogger()
 
@@ -57,10 +57,12 @@ async def bootstrap_thrift(agent):
 
 if __name__ == "__main__":
     args = RunnableAgent.parser_cmd_args()
-    port = args[0]
+    name = 'Thrift Bank'
+    port = args.port
     if port is None:
         port = 7777
-    agent = create_thrift(name='Thrift Bank', wallet=buildThriftWallet(),
+    with_cli = args.withcli
+    agent = create_thrift(name=name, wallet=buildThriftWallet(),
                           base_dir_path=None, port=port)
-    RunnableAgent.run_agent(agent, bootstrap=bootstrap_thrift(agent))
-
+    RunnableAgent.run_agent(agent, bootstrap=bootstrap_thrift(agent),
+                            with_cli=with_cli)

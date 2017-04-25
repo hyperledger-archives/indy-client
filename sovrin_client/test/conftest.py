@@ -93,7 +93,7 @@ def trusteeWallet(trusteeData):
 # TODO: This fixture is present in sovrin_node too, it should be
 # sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, trusteeWallet):
+def trustee(nodeSet, looper, tdir, up, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 
 
@@ -148,7 +148,7 @@ def updatedDomainTxnFile(tdir, tdirWithDomainTxnsUpdated, genesisTxns,
 
 
 @pytest.fixture(scope="module")
-def nodeSet(tconf, updatedDomainTxnFile, txnPoolNodeSet):
+def nodeSet(tconf, updatedPoolTxnData, updatedDomainTxnFile, txnPoolNodeSet):
     return txnPoolNodeSet
 
 

@@ -1,12 +1,12 @@
 import pytest
 
-from sovrin_client.test.training.getting_started import *
+from sovrin_client.test.training.getting_started_future import *
 
 # noinspection PyUnresolvedReferences
 from sovrin_node.test.conftest import tconf
 
 
-# @pytest.mark.first()
+# This is a test for future work
 @pytest.mark.skip
 def test_getting_started(tconf):
     getting_started(base_dir=tconf.baseDir)

@@ -29,7 +29,7 @@ from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
 from plenum.common.util import randomString, getWalletFilePath
-from plenum.common.constants import TARGET_NYM
+
 from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
@@ -430,8 +430,6 @@ class SovrinCli(PlenumCli):
             self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
 
-
-
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))
         self._printNotConnectedEnvMessage()
@@ -567,22 +565,7 @@ class SovrinCli(PlenumCli):
         return True
 
     def _addAttribToNym(self, nym, raw, enc, hsh):
-        assert int(bool(raw)) + int(bool(enc)) + int(bool(hsh)) == 1
-        if raw:
-            l = LedgerStore.RAW
-            data = raw
-        elif enc:
-            l = LedgerStore.ENC
-            data = enc
-        elif hsh:
-            l = LedgerStore.HASH
-            data = hsh
-        else:
-            raise RuntimeError('One of raw, enc, or hash are required.')
-
-        attrib = Attribute(randomString(5), data, self.activeWallet.defaultId,
-                           dest=nym, ledgerStore=LedgerStore.RAW)
-
+        attrib = self.activeWallet.build_attrib(nym, raw, enc, hsh)
         # TODO: What is the purpose of this?
         # if nym != self.activeWallet.defaultId:
         #     attrib.dest = nym
@@ -590,7 +573,7 @@ class SovrinCli(PlenumCli):
         self.activeWallet.addAttribute(attrib)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
-        self.print("Adding attributes {} for {}".format(data, nym))
+        self.print("Adding attributes {} for {}".format(attrib.value, nym))
 
         def out(reply, error, *args, **kwargs):
             if error:
@@ -917,8 +900,9 @@ class SovrinCli(PlenumCli):
         if link.isRemoteEndpointAvailable:
             self._sendAcceptInviteToTargetEndpoint(link)
         else:
-            self.print("Remote endpoint not found, "
-                       "can not connect to {}\n".format(link.name))
+            self.print("Remote endpoint ({}) not found, "
+                       "can not connect to {}\n".format(
+                link.remoteEndPoint, link.name))
             self.logger.debug("{} has remote endpoint {}".
                               format(link, link.remoteEndPoint))
 

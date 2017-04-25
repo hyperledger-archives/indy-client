@@ -73,6 +73,11 @@ def demo_start_agent(base_dir, create_func, bootstrap_func, client, looper, stew
     steward.publish_trust_anchor(Identity(identifier=agent.wallet.defaultId,
                                           verkey=agent.wallet.getVerkey(agent.wallet.defaultId),
                                           role=TRUST_ANCHOR))
+    looper.runFor(4)
+
+    raw = '{"endpoint": {"ha": "127.0.0.1:' + str(agent.port) + '"}}'
+    endpointAttrib = agent.wallet.build_attrib(agent.wallet.defaultId, raw=raw)
+    agent.publish_trust_anchor_attribute(endpointAttrib)
 
     looper.runFor(4)
 

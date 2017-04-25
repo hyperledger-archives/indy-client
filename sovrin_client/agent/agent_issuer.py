@@ -12,6 +12,8 @@ from sovrin_client.agent.msg_constants import CLAIM, CLAIM_REQ_FIELD, CLAIM_FIEL
     AVAIL_CLAIM_LIST
 from sovrin_common.identity import Identity
 
+from sovrin_client.client.wallet.attribute import Attribute
+
 
 class AgentIssuer:
     def __init__(self, issuer: Issuer):
@@ -71,5 +73,10 @@ class AgentIssuer:
 
     def publish_trust_anchor(self, idy: Identity):
         self.wallet.addTrustAnchoredIdentity(idy)
+        reqs = self.wallet.preparePending()
+        self.client.submitReqs(*reqs)
+
+    def publish_trust_anchor_attribute(self, attrib: Attribute):
+        self.wallet.addAttribute(attrib)
         reqs = self.wallet.preparePending()
         self.client.submitReqs(*reqs)

@@ -1,5 +1,6 @@
 import json
 
+from ledger.serializers.json_serializer import JsonSerializer
 from ledger.util import F
 from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
@@ -110,20 +111,20 @@ class SovrinPublicRepo(PublicRepo):
 
     async def submitSchema(self,
                            schema: Schema) -> Schema:
+        data = {
+            NAME: schema.name,
+            VERSION: schema.version,
+            ATTR_NAMES: ",".join(schema.attrNames)
+        }
         op = {
             TXN_TYPE: SCHEMA,
-            DATA: {
-                NAME: schema.name,
-                VERSION: schema.version,
-                ATTR_NAMES: ",".join(schema.attrNames)
-            }
+            DATA: JsonSerializer.dumps(data, toBytes=False)
         }
-        data, seqNo = await self._sendSubmitReq(op)
-        if not seqNo:
-            return None
-        schema = schema._replace(issuerId=self.wallet.defaultId,
-                                 seqId=seqNo)
-        return schema
+        _, seqNo = await self._sendSubmitReq(op)
+        if seqNo:
+            schema = schema._replace(issuerId=self.wallet.defaultId,
+                                     seqId=seqNo)
+            return schema
 
     async def submitPublicKeys(self,
                                id: ID,
@@ -141,20 +142,19 @@ class SovrinPublicRepo(PublicRepo):
         op = {
             TXN_TYPE: CLAIM_DEF,
             REF: id.schemaId,
-            DATA: data,
+            DATA: JsonSerializer.dumps(data, toBytes=False),
             SIGNATURE_TYPE: signatureType
         }
 
-        data, seqNo = await self._sendSubmitReq(op)
+        _, seqNo = await self._sendSubmitReq(op)
 
-        if not seqNo:
-            return None
-        pk = pk._replace(seqId=seqNo)
+        if seqNo:
+            pk = pk._replace(seqId=seqNo)
 
-        if pkR is not None:
-            pkR = pkR._replace(seqId=seqNo)
+            if pkR is not None:
+                pkR = pkR._replace(seqId=seqNo)
 
-        return pk, pkR
+            return pk, pkR
 
     async def submitAccumulator(self, id: ID, accumPK: AccumulatorPublicKey,
                                 accum: Accumulator, tails: TailsType):

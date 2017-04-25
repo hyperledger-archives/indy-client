@@ -90,11 +90,13 @@ def submittedPublicRevocationKey(submittedPublicKeys):
 def testSubmitSchema(submittedSchemaDefGvt, schemaDefGvt):
     assert submittedSchemaDefGvt
     assert submittedSchemaDefGvt.seqId
+
     # initial schema has stub seqno - excluding seqno from comparison
     def withNoSeqId(schema):
         return schema._replace(seqId=None)
-    assert withNoSeqId(submittedSchemaDefGvt) == \
-           withNoSeqId(schemaDefGvt)
+
+    assert withNoSeqId(submittedSchemaDefGvt) == withNoSeqId(schemaDefGvt)
+
 
 def testGetSchema(submittedSchemaDefGvt, publicRepo, looper):
     schema = looper.run(

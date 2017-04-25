@@ -208,11 +208,6 @@ def nymsAddedInQuickSuccession(nodeSet, addedTrustAnchor, looper,
     assert(count == len(nodeSet))
 
 
-@pytest.mark.skip(reason="SOV-560. NYM transaction now used to update too")
-def testAddNymsInQuickSuccession(nymsAddedInQuickSuccession):
-    pass
-
-
 def testTrustAnchorAddsAttributeForUser(addedRawAttribute):
     pass
 

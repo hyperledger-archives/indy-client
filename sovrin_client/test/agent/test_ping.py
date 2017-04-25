@@ -3,6 +3,7 @@ from stp_core.loop.eventually import eventually
 
 whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
 
+
 def testPing(aliceAcceptedFaber, faberIsRunning, aliceAgent, emptyLooper):
     faberAgent, _ = faberIsRunning
     recvdPings = faberAgent.spylog.count(faberAgent._handlePing.__name__)

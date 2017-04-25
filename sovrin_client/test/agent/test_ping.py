@@ -4,6 +4,8 @@ from plenum.test.testable import spy, SpyLog
 
 from sovrin_client.agent.constants import PING, PONG
 
+whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
+
 def testPing(aliceAcceptedFaber, faberIsRunning, aliceAgent, emptyLooper):
     faberAgent, _ = faberIsRunning
 

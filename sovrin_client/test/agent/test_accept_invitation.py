@@ -8,10 +8,7 @@ concerningLogLevels = [logging.WARNING,
                        logging.ERROR,
                        logging.CRITICAL]
 
-# TODO need to solve the root cause of this warning, which is agents
-# presuming an identifier is already created on startup
-whitelist = ['discarding message.*GET_TXNS.*UnknownIdentifier']
-
+whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
 
 def testFaberCreateLink(faberLinkAdded):
     pass

@@ -34,6 +34,7 @@ concerningLogLevels = [logging.WARNING,
                        logging.ERROR,
                        logging.CRITICAL]
 
+whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
 
 class TestWalletedAgent(WalletedAgent, RunnableAgent):
     pass

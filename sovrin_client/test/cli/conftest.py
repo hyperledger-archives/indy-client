@@ -15,7 +15,8 @@ from sovrin_client.cli.helper import USAGE_TEXT, NEXT_COMMANDS_TO_TRY_TEXT
 from sovrin_client.test.helper import createNym, buildStewardClient
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
 from sovrin_common.roles import Roles
-from sovrin_node.test.conftest import domainTxnOrderedFields
+from sovrin_common.test.conftest import poolTxnTrusteeNames
+from sovrin_common.test.conftest import domainTxnOrderedFields
 from plenum.common.keygen_utils import initNodeKeysForBothStacks
 
 # plenum.common.util.loggingConfigured = False

@@ -16,8 +16,9 @@ def testUbuntu = {
 
         testEnv.inside('--network host') {
             echo 'Ubuntu Test: Install dependencies'
+
+            def sovrinCommon = helpers.extractVersion('sovrin-common')
             def sovrinNode = helpers.extractVersion('sovrin-node')
-            def sovrinCommon = helpers.extractVersionOfSubdependency(sovrinNode, 'sovrin-common')
             def plenum = helpers.extractVersionOfSubdependency(sovrinCommon, 'plenum')
             testHelpers.install(deps: [plenum, sovrinNode])
 

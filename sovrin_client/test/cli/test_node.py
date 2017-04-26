@@ -87,18 +87,6 @@ def doNodeCmd(do, nodeData=None, expMsgs=None):
 
 
 @pytest.fixture(scope="module")
-def tconf(tconf, request):
-    oldVal = tconf.UpdateGenesisPoolTxnFile
-    tconf.UpdateGenesisPoolTxnFile = True
-
-    def reset():
-        tconf.UpdateGenesisPoolTxnFile = oldVal
-
-    request.addfinalizer(reset)
-    return tconf
-
-
-@pytest.fixture(scope="module")
 def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli, connectedToTest):
     be(philCli)
 

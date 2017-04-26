@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from ledger.serializers.json_serializer import JsonSerializer
 from ledger.util import F
@@ -32,7 +33,7 @@ def _ensureReqCompleted(reqKey, client, clbk):
 
 
 def _getData(result, error):
-    data = json.loads(result.get(DATA).replace("\'", '"'))
+    data = json.loads(result.get(DATA).replace("\'", '"')) if result.get(DATA) else {}
     seqNo = result.get(F.seqNo.name)
     return data, seqNo
 
@@ -52,7 +53,7 @@ class SovrinPublicRepo(PublicRepo):
         self.wallet = wallet
         self.displayer = print
 
-    async def getSchema(self, id: ID) -> Schema:
+    async def getSchema(self, id: ID) -> Optional[Schema]:
         op = {
             TARGET_NYM: id.schemaKey.issuerId,
             TXN_TYPE: GET_SCHEMA,
@@ -66,11 +67,10 @@ class SovrinPublicRepo(PublicRepo):
                       version=data[VERSION],
                       attrNames=data[ATTR_NAMES].split(","),
                       issuerId=data[ORIGIN],
-                      seqId=seqNo)
+                      seqId=seqNo) if data else None
 
-    async def getPublicKey(self,
-                           id: ID,
-                           signatureType = 'CL') -> PublicKey:
+    async def getPublicKey(self, id: ID,
+                           signatureType = 'CL') -> Optional[PublicKey]:
         op = {
             TXN_TYPE: GET_CLAIM_DEF,
             REF: id.schemaId,
@@ -78,13 +78,14 @@ class SovrinPublicRepo(PublicRepo):
             SIGNATURE_TYPE: signatureType
         }
         data, seqNo = await self._sendGetReq(op)
+        if not data:
+            return None
         data = data[PRIMARY]
         pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pk
 
-    async def getPublicKeyRevocation(self,
-                                     id: ID,
-                                     signatureType = 'CL') -> RevocationPublicKey:
+    async def getPublicKeyRevocation(self, id: ID,
+                                     signatureType = 'CL') -> Optional[RevocationPublicKey]:
         op = {
             TXN_TYPE: GET_CLAIM_DEF,
             REF: id.schemaId,

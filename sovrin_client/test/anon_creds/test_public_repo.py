@@ -1,3 +1,4 @@
+import random
 import sys
 
 import pytest
@@ -5,6 +6,7 @@ from anoncreds.protocol.issuer import Issuer
 from anoncreds.protocol.repo.attributes_repo import AttributeRepoInMemory
 from anoncreds.protocol.types import Schema, ID
 from anoncreds.protocol.wallet.issuer_wallet import IssuerWalletInMemory
+from plenum.common.util import randomString
 from stp_core.common.log import getlogger
 
 from sovrin_client.anon_creds.sovrin_public_repo import SovrinPublicRepo
@@ -99,9 +101,12 @@ def testSubmitSchema(submittedSchemaDefGvt, schemaDefGvt):
 
 
 def testGetSchema(submittedSchemaDefGvt, publicRepo, looper):
-    schema = looper.run(
-        publicRepo.getSchema(ID(schemaKey=submittedSchemaDefGvt.getKey())))
+    key = submittedSchemaDefGvt.getKey()
+    schema = looper.run(publicRepo.getSchema(ID(schemaKey=key)))
     assert schema == submittedSchemaDefGvt
+    key = key._replace(name=key.name+randomString(5))
+    non_existent_schema = looper.run(publicRepo.getSchema(ID(schemaKey=key)))
+    assert non_existent_schema is None
 
 
 def testSubmitPublicKey(submittedPublicKeys):
@@ -113,6 +118,11 @@ def testGetPrimaryPublicKey(submittedSchemaDefGvtID, submittedPublicKey,
     pk = looper.run(publicRepo.getPublicKey(id=submittedSchemaDefGvtID,
                                             signatureType='CL'))
     assert pk == submittedPublicKey
+    submittedSchemaDefGvtID = submittedSchemaDefGvtID._replace(
+        schemaId=random.randint(100, 300))
+    non_existent_cd = looper.run(publicRepo.getPublicKey(
+        id=submittedSchemaDefGvtID, signatureType='CL'))
+    assert non_existent_cd is None
 
 
 def testGetRevocationPublicKey(submittedSchemaDefGvtID,

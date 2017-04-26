@@ -108,7 +108,7 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self._attribDefs = {}  # type: Dict[str, AttribDef]
         self.defined_claims = []  # type: List[Dict[str, Any]
 
-        self.available_claims_by_internal_id = {}  # type: Dict[InternalId, Set[ID]]
+        # self.available_claims_by_internal_id = {}  # type: Dict[InternalId, Set[ID]]
 
         # dict for proof request schema Dict[str, Dict[str, any]]
         self._proofRequestsSchema = {}
@@ -149,13 +149,13 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
     async def _set_available_claim_by_internal_id(self, internal_id, schema_id):
         sd = await self.schema_dict_from_id(schema_id)
         try:
-            if not any(d == sd for d in self.available_claims_by_internal_id[internal_id]):
-                self.available_claims_by_internal_id[internal_id].append(sd)
+            if not any(d == sd for d in self.issuer.wallet.availableClaimsByInternalId[internal_id]):
+                self.issuer.wallet.availableClaimsByInternalId[internal_id].append(sd)
         except KeyError:
-            self.available_claims_by_internal_id[internal_id] = [sd]
+            self.issuer.wallet.availableClaimsByInternalId[internal_id] = [sd]
 
     def _get_available_claim_list_by_internal_id(self, internal_id):
-        return self.available_claims_by_internal_id.get(internal_id, set())
+        return self.issuer.wallet.availableClaimsByInternalId.get(internal_id, set())
 
     def get_available_claim_list(self, link):
         li = self.wallet.getLinkBy(remote=link.remoteIdentifier)

@@ -85,7 +85,7 @@ setup(
     include_package_data=True,
     install_requires=['sovrin-common-3pc-batch==0.2.20', 'anoncreds-dev==0.3.7'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'sovrin-node-3pc-batch==0.3.73'],
+    tests_require=['pytest', 'sovrin-node-3pc-batch==0.3.74'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',
              'scripts/add_new_node', 'scripts/reset_client'],
     cmdclass={

@@ -108,8 +108,6 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         self._attribDefs = {}  # type: Dict[str, AttribDef]
         self.defined_claims = []  # type: List[Dict[str, Any]
 
-        # self.available_claims_by_internal_id = {}  # type: Dict[InternalId, Set[ID]]
-
         # dict for proof request schema Dict[str, Dict[str, any]]
         self._proofRequestsSchema = {}
 

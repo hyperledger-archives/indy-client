@@ -104,10 +104,12 @@ def testGetSchema(submittedSchemaDefGvt, publicRepo, looper):
     key = submittedSchemaDefGvt.getKey()
     schema = looper.run(publicRepo.getSchema(ID(schemaKey=key)))
     assert schema == submittedSchemaDefGvt
+
+def testGetSchemaNonExistent(submittedSchemaDefGvt, publicRepo, looper):
+    key = submittedSchemaDefGvt.getKey()
     key = key._replace(name=key.name+randomString(5))
     non_existent_schema = looper.run(publicRepo.getSchema(ID(schemaKey=key)))
     assert non_existent_schema is None
-
 
 def testSubmitPublicKey(submittedPublicKeys):
     assert submittedPublicKeys
@@ -124,6 +126,12 @@ def testGetPrimaryPublicKey(submittedSchemaDefGvtID, submittedPublicKey,
         id=submittedSchemaDefGvtID, signatureType='CL'))
     assert non_existent_cd is None
 
+def testGetPrimaryPublicKeyNonExistent(submittedSchemaDefGvtID,
+                            publicRepo, looper):
+    schemaId = submittedSchemaDefGvtID._replace(schemaId=random.randint(100, 300))
+    non_existent_cd = looper.run(publicRepo.getPublicKey(
+        id=schemaId, signatureType='CL'))
+    assert non_existent_cd is None
 
 def testGetRevocationPublicKey(submittedSchemaDefGvtID,
                                submittedPublicRevocationKey,
@@ -140,3 +148,19 @@ def testGetRevocationPublicKey(submittedSchemaDefGvtID,
                        "due to an issue in charm-crypto package.")
     else:
         assert pk == submittedPublicRevocationKey
+
+def testGetRevocationPublicKeyNonExistent(submittedSchemaDefGvtID,
+                               publicRepo, looper):
+    schemaId = submittedSchemaDefGvtID._replace(schemaId=random.randint(100, 300))
+    pk = looper.run(
+        publicRepo.getPublicKeyRevocation(id=schemaId,
+                                          signatureType='CL'))
+
+    if sys.platform == 'win32':
+        assert pk
+        logger.warning("Gotten public revocation key is not verified "
+                       "on Windows for matching against submitted public "
+                       "revocation key since they are different on Windows "
+                       "due to an issue in charm-crypto package.")
+    else:
+        assert pk is None

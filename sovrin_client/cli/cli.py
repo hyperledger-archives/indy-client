@@ -466,8 +466,6 @@ class SovrinCli(PlenumCli):
         self.print("Getting nym {}".format(nym))
 
         def getNymReply(reply, err, *args):
-            self.print("Sequence number for NYM {} is {}".
-                       format(nym, reply[f.SEQ_NO.nm]), Token.BoldBlue)
             try:
                 if reply[DATA]:
                     data = json.loads(reply[DATA])

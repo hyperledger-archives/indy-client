@@ -22,13 +22,14 @@ def bootstrapAgentCli(name, agent, looper, bootstrap, config):
     curDir = os.getcwd()
     logFilePath = os.path.join(curDir, config.logFilePath)
     cli = AgentCli(name='{}-Agent'.format(name).lower().replace(" ", "-"),
-                   agentCreator=agent,
+                   agentCreator=True,
+                   agent=agent,
                    basedirpath=config.baseDir,
                    logFileName=logFilePath,
                    looper=looper)
     if bootstrap:
         try:
-            looper.run(runBootstrap(bootstrap(cli.agent)))
+            looper.run(runBootstrap(bootstrap))
         except Exception as exc:
             error = "Agent startup failed: [cause : {}]".format(str(exc))
             cli.print(error)
@@ -38,7 +39,6 @@ def bootstrapAgentCli(name, agent, looper, bootstrap, config):
 
 def runAgentCli(agent, config, looper=None, bootstrap=None):
     def run(looper):
-        looper.add(agent)
         logger.info("Running {} now (port: {})".format(agent.name, agent.port))
         agentCli = bootstrapAgentCli(agent.name, agent, looper, bootstrap, config)
         commands = sys.argv[1:]

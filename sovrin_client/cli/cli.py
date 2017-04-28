@@ -414,21 +414,21 @@ class SovrinCli(PlenumCli):
                                         loop=self.looper.loop,
                                         port=port)
             self.agent = agent
-            # self.registerAgentListeners(self._agent)
-            # self.looper.add(self._agent)
         return self._agent
 
     @agent.setter
     def agent(self, agent):
         if self._agent is not None:
             self.deregisterAgentListeners(self._agent)
-            looper.removeProdable(self._agent)
+            self.looper.removeProdable(self._agent)
 
         self._agent = agent
 
         if agent is not None:
             self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
+            self._activeWallet = self._agent.wallet
+            self.wallets[self._agent.wallet.name] = self._agent.wallet
 
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))

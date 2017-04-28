@@ -17,9 +17,9 @@ class RunnableAgent:
 
     @classmethod
     def parser_cmd_args(cls):
-        args = sys.argv[1:]
+        args = []
         if sys.stdin.isatty():
-            args = []
+            args = sys.argv[1:]
 
         parser = argparse.ArgumentParser(
             description="Starts agents with given port, cred def and issuer seq")

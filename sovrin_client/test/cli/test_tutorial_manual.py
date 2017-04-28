@@ -49,7 +49,8 @@ def getSeqNoFromCliOutput(cli):
 
 @pytest.fixture(scope="module")
 def newGuyCLI(looper, tdir, tconf):
-    Setup(tdir).setupAll()
+    # FIXME: rework logic of setup because Setup.setupAll does not exist anymore
+    # Setup(tdir).setupAll()
     return newCLI(looper, tdir, subDirectory='newguy', conf=tconf)
 
 

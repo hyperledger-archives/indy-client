@@ -40,29 +40,18 @@ for path in [BASE_DIR, SAMPLE_DIR]:
     if not os.path.exists(path):
         os.makedirs(path)
 
-# create sovrin_config.py if not already exists
-CONFIG_FILE = os.path.join(BASE_DIR, "sovrin_config.py")
-if not os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE, 'w') as f:
-        msg = "# Here you can create config entries according to your " \
-              "needs.\n " \
-              "# For help, refer config.py in the sovrin package.\n " \
-              "# Any entry you add here would override that from config " \
-              "example\n"
-        f.write(msg)
-
 
 def post_install():
     subprocess.run(['python post-setup.py'], shell=True)
 
 
-class PostInstall(install):
+class EnhancedInstall(install):
     def run(self):
         install.run(self)
         post_install()
 
 
-class PostInstallDev(develop):
+class EnhancedInstallDev(develop):
     def run(self):
         develop.run(self)
         post_install()
@@ -83,13 +72,13 @@ setup(
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
     include_package_data=True,
-    install_requires=['sovrin-common-dev==0.2.48', 'anoncreds-dev==0.3.7'],
+    install_requires=['sovrin-common-dev==0.2.51', 'anoncreds-dev==0.3.8'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'sovrin-node-dev==0.3.67'],
+    tests_require=['pytest', 'sovrin-node-dev==0.3.78'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',
              'scripts/add_new_node', 'scripts/reset_client'],
     cmdclass={
-        'install': PostInstall,
-        'develop': PostInstallDev
+        'install': EnhancedInstall,
+        'develop': EnhancedInstallDev
     }
 )

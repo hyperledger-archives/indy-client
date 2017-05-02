@@ -327,7 +327,7 @@ class Wallet(PWallet, TrustAnchoring):
         l = self._links.get(name)
         if not l and required:
             logger.debug("Wallet has links {}".format(self._links))
-            raise LinkNotFound(l.name)
+            raise LinkNotFound(name)
         return l
 
     def getLinkBy(self,

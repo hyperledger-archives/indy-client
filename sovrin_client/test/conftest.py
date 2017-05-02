@@ -1,3 +1,4 @@
+from sovrin_client.test.constants import primes
 import warnings
 from copy import deepcopy
 
@@ -17,7 +18,7 @@ from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
 from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
 from sovrin_node.test.helper import makePendingTxnsRequest, buildStewardClient, \
     TestNode
-from sovrin_client.test.helper import addRole, primes, \
+from sovrin_client.test.helper import addRole, \
     genTestClient, TestClient, createNym
 
 # noinspection PyUnresolvedReferences
@@ -93,6 +94,7 @@ def trusteeWallet(trusteeData):
 # TODO: This fixture is present in sovrin_node too, it should be
 # sovrin_common's conftest.
 @pytest.fixture(scope="module")
+#TODO devin
 def trustee(nodeSet, looper, tdir, up, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 

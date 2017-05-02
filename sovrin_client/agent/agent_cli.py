@@ -2,22 +2,23 @@ from sovrin_client.cli.cli import SovrinCli
 
 
 class AgentCli(SovrinCli):
-    def __init__(self, name, agentCreator=None, *args, **kwargs):
-        assert agentCreator is not None, 'agentCreator is required'
-        self._agentCreator = agentCreator
-        self.name = name
-        self._activeWallet = None
+    def __init__(self, name=None, agentCreator=None, *args, **kwargs):
+        if name is not None:
+            self.name = name
+
+        init_agent = kwargs.get('agent', None)
+        if 'agent' in kwargs:
+            kwargs.pop('agent')
+
         super().__init__(*args, **kwargs)
 
-    @property
-    def agent(self):
-        if self._agent is None:
-            self._agent = self._agentCreator()
-            self.registerAgentListeners(self._agent)
-            self.looper.add(self._agent)
-            self._activeWallet = self._agent.wallet
-            self.wallets[self._agent.wallet.name] = self._agent.wallet
-        return self._agent
+        self._activeWallet = None
+
+        if init_agent is not None:
+            self.agent = init_agent
+            if name is None:
+                self.name = init_agent.name
+
 
     @property
     def actions(self):

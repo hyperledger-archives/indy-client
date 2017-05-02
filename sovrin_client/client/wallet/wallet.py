@@ -9,12 +9,14 @@ from typing import Optional
 from ledger.util import F
 from plenum.client.wallet import Wallet as PWallet
 from plenum.common.did_method import DidMethods
+from plenum.common.util import randomString
 from stp_core.common.log import getlogger
 from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
     IDENTIFIER, NYM, ROLE, VERKEY, NODE
 from plenum.common.types import f
 
-from sovrin_client.client.wallet.attribute import Attribute, AttributeKey
+from sovrin_client.client.wallet.attribute import Attribute, AttributeKey, \
+    LedgerStore
 from sovrin_client.client.wallet.link import Link
 from sovrin_client.client.wallet.node import Node
 from sovrin_client.client.wallet.trustAnchoring import TrustAnchoring
@@ -36,7 +38,7 @@ class Wallet(PWallet, TrustAnchoring):
     clientNotPresentMsg = "The wallet does not have a client associated with it"
 
     def __init__(self,
-                 name: str,
+                 name: str=None,
                  supportedDidMethods: DidMethods=None):
         PWallet.__init__(self,
                          name,
@@ -174,13 +176,6 @@ class Wallet(PWallet, TrustAnchoring):
     def addLink(self, link: Link):
         self._links[link.key] = link
 
-    def getLink(self, name, required=False) -> Link:
-        l = self._links.get(name)
-        if not l and required:
-            logger.debug("Wallet has links {}".format(self._links))
-            raise LinkNotFound(name)
-        return l
-
     def addLastKnownSeqs(self, identifier, seqNo):
         self.lastKnownSeqs[identifier] = seqNo
 
@@ -294,11 +289,6 @@ class Wallet(PWallet, TrustAnchoring):
     def pendRequest(self, req, key=None):
         self._pending.appendleft((req, key))
 
-    def getLinkInvitationByTarget(self, target: str) -> Link:
-        for k, li in self._links.items():
-            if li.remoteIdentifier == target:
-                return li
-
     def getLinkInvitation(self, name: str):
         return self._links.get(name)
 
@@ -333,15 +323,25 @@ class Wallet(PWallet, TrustAnchoring):
         self.pendRequest(req, key=key)
         return self.preparePending()[0]
 
-    def getLinkByNonce(self, nonce, identifier=None) -> Optional[Link]:
-        for _, li in self._links.items():
-            if li.invitationNonce == nonce and (not identifier or li.remoteIdentifier == identifier):
-                return li
+    def getLink(self, name, required=False) -> Link:
+        l = self._links.get(name)
+        if not l and required:
+            logger.debug("Wallet has links {}".format(self._links))
+            raise LinkNotFound(name)
+        return l
 
-    def getLinkByInternalId(self, internalId) -> Optional[Link]:
+    def getLinkBy(self,
+                  remote: Identifier=None,
+                  nonce=None,
+                  internalId=None,
+                  required=False) -> Optional[Link]:
         for _, li in self._links.items():
-            if li.internalId == internalId:
+            if (not remote or li.remoteIdentifier == remote) and \
+               (not nonce or li.invitationNonce == nonce) and \
+               (not internalId or li.internalId == internalId):
                 return li
+        if required:
+            raise LinkNotFound
 
     def getIdentity(self, idr):
         # TODO, Question: Should it consider self owned identities too or
@@ -350,3 +350,20 @@ class Wallet(PWallet, TrustAnchoring):
 
     def getLinkNames(self):
         return list(self._links.keys())
+
+    def build_attrib(self, nym, raw=None, enc=None, hsh=None):
+        assert int(bool(raw)) + int(bool(enc)) + int(bool(hsh)) == 1
+        if raw:
+            l = LedgerStore.RAW
+            data = raw
+        elif enc:
+            l = LedgerStore.ENC
+            data = enc
+        elif hsh:
+            l = LedgerStore.HASH
+            data = hsh
+        else:
+            raise RuntimeError('One of raw, enc, or hash are required.')
+
+        return Attribute(randomString(5), data, self.defaultId,
+                           dest=nym, ledgerStore=LedgerStore.RAW)

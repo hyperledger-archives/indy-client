@@ -1,6 +1,8 @@
 from sovrin_client.test import waits
 
 from plenum.common.signer_did import DidSigner
+
+from sovrin_client.agent.endpoint import REndpoint
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 from sovrin_common.strict_types import strict_types
 from stp_core.network.port_dispenser import genHa
@@ -26,16 +28,15 @@ from stp_core.loop.looper import Looper
 from plenum.common.util import randomString
 from stp_core.loop.eventually import eventually
 from plenum.test.helper import assertFunc
-from sovrin_client.agent.agent import runAgent
-from sovrin_client.agent.agent import WalletedAgent
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import ENDPOINT, TRUST_ANCHOR
-from sovrin_client.test.agent.acme import createAcme
-from sovrin_client.test.agent.faber import createFaber
-from sovrin_client.test.agent.helper import ensureAgentConnected, \
-    buildFaberWallet, buildAcmeWallet, buildThriftWallet
-from sovrin_client.test.agent.thrift import createThrift
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+from sovrin_client.test.agent.helper import ensureAgentConnected, buildFaberWallet, \
+    buildAcmeWallet, buildThriftWallet, startAgent
+from sovrin_client.test.agent.thrift import create_thrift
 from sovrin_node.test.helper import addAttributeAndCheck
 from sovrin_client.test.helper import createNym, TestClient
 
@@ -92,11 +93,11 @@ def agentBuilder(tdirWithPoolTxns):
                             ha=("0.0.0.0", clientPort),
                             basedirpath=basedir)
 
-        agent = TestWalletedAgent(name=wallet.name,
-                                  basedirpath=basedir,
-                                  client=client,
-                                  wallet=wallet,
-                                  port=port)
+        agent = WalletedAgent(name=wallet.name,
+                              basedirpath=basedir,
+                              client=client,
+                              wallet=wallet,
+                              port=port)
 
         return agent
     return _
@@ -111,6 +112,7 @@ def aliceAgent(aliceWallet, agentBuilder):
 def aliceAdded(nodeSet, steward, stewardWallet,
                emptyLooper, aliceAgent):
     addAgent(emptyLooper, aliceAgent, steward, stewardWallet)
+
 
 @pytest.fixture(scope="module")
 def aliceIsRunning(emptyLooper, aliceAgent, aliceAdded):
@@ -151,57 +153,62 @@ def thriftAgentPort():
 
 @pytest.fixture(scope="module")
 def faberAgent(tdirWithPoolTxns, faberAgentPort, faberWallet):
-    return createFaber(faberWallet.name, faberWallet,
-                       basedirpath=tdirWithPoolTxns,
-                       port=faberAgentPort)
+    return create_faber(faberWallet.name, faberWallet,
+                        base_dir_path=tdirWithPoolTxns,
+                        port=faberAgentPort)
 
 
 @pytest.fixture(scope="module")
-def faberAdded(nodeSet, steward, stewardWallet,
+def faberBootstrap(faberAgent):
+    return bootstrap_faber(faberAgent)
+
+
+@pytest.fixture(scope="module")
+def acmeBootstrap(acmeAgent):
+    return bootstrap_acme(acmeAgent)
+
+
+@pytest.fixture(scope="module")
+def faberAdded(nodeSet,
+               steward,
+               stewardWallet,
                emptyLooper,
                faberAgent):
-    addAgent(emptyLooper, faberAgent, steward, stewardWallet)
-
-
-def startAgent(looper, agent, wallet):
-    agent = agent
-    wallet.pendSyncRequests()
-    prepared = wallet.preparePending()
-    agent.client.submitReqs(*prepared)
-
-    runAgent(agent, looper)
-    return agent, wallet
+    return addAgent(emptyLooper, faberAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
-                   faberAgent, faberAdded):
-    return startAgent(emptyLooper, faberAgent, faberWallet)
+                   faberAgent, faberAdded, faberBootstrap):
+    return startAgent(emptyLooper, faberAgent, faberWallet, bootstrap=faberBootstrap)
 
 
 @pytest.fixture(scope="module")
 def acmeAgent(tdirWithPoolTxns, acmeAgentPort, acmeWallet):
-    return createAcme(acmeWallet.name, acmeWallet,
-                      basedirpath=tdirWithPoolTxns,
+    return create_acme(acmeWallet.name, acmeWallet,
+                      base_dir_path=tdirWithPoolTxns,
                       port=acmeAgentPort)
 
 
 @pytest.fixture(scope="module")
-def acmeAdded(nodeSet, steward, stewardWallet,
-              emptyLooper, acmeAgent):
-    addAgent(emptyLooper, acmeAgent, steward, stewardWallet)
+def acmeAdded(nodeSet,
+              steward,
+              stewardWallet,
+              emptyLooper,
+              acmeAgent):
+    return addAgent(emptyLooper, acmeAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet, acmeAgent,
-                  acmeAdded):
-    return startAgent(emptyLooper, acmeAgent, acmeWallet)
+                  acmeAdded, acmeBootstrap):
+    return startAgent(emptyLooper, acmeAgent, acmeWallet, bootstrap=acmeBootstrap)
 
 
 @pytest.fixture(scope="module")
 def thriftAgent(tdirWithPoolTxns, thriftAgentPort, thriftWallet):
-    return createThrift(thriftWallet.name, thriftWallet,
-                        basedirpath=tdirWithPoolTxns,
+    return create_thrift(thriftWallet.name, thriftWallet,
+                        base_dir_path=tdirWithPoolTxns,
                         port=thriftAgentPort)
 
 
@@ -211,7 +218,7 @@ def thfiftAdded(nodeSet,
               stewardWallet,
               emptyLooper,
               thriftAgent):
-    addAgent(emptyLooper, thriftAgent, steward, stewardWallet)
+    return addAgent(emptyLooper, thriftAgent, steward, stewardWallet)
 
 
 @pytest.fixture(scope="module")
@@ -338,14 +345,14 @@ def checkAcceptInvitation(emptyLooper,
                                                 required=True)
     ensureAgentConnected(emptyLooper, inviteeAgent, inviteeAcceptanceLink)
 
-    inviteeAgent.acceptInvitation(linkName)
-    internalId = inviterAgent.getInternalIdByInvitedNonce(nonce)
+    inviteeAgent.accept_invitation(linkName)
+    internalId = inviterAgent.get_internal_id_by_nonce(nonce)
 
     def chk():
         assert inviteeAcceptanceLink.remoteEndPoint[1] == inviterAgent.endpoint.ha[1]
         assert inviteeAcceptanceLink.isAccepted
 
-        link = inviterWallet.getLinkByInternalId(internalId)
+        link = inviterAgent.wallet.getLinkBy(internalId=internalId)
         assert link
         assert link.remoteIdentifier == inviteeAcceptanceLink.localIdentifier
 

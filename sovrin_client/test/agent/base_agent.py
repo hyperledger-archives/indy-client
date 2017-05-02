@@ -6,7 +6,7 @@ from ioflo.base.consoling import Console
 from plenum.cli.cli import Exit
 
 from stp_core.common.log import Logger, getlogger
-from sovrin_client.agent.agent import runBootstrap
+from sovrin_client.agent.run_agent import runBootstrap
 
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
@@ -16,7 +16,7 @@ from anoncreds.protocol.types import ID
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.helper import primes
+from sovrin_client.test.constants import primes
 from sovrin_common.config import agentLoggingLevel
 from sovrin_common.config_util import getConfig
 

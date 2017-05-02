@@ -1,18 +1,27 @@
 from sovrin_client.test import waits
 from stp_core.loop.eventually import eventually
+from plenum.test.testable import spy, SpyLog
+
+from sovrin_client.agent.constants import PING, PONG
 
 whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
 
 def testPing(aliceAcceptedFaber, faberIsRunning, aliceAgent, emptyLooper):
     faberAgent, _ = faberIsRunning
-    recvdPings = faberAgent.spylog.count(faberAgent._handlePing.__name__)
-    recvdPongs = aliceAgent.spylog.count(aliceAgent._handlePong.__name__)
+
+    faber_log = SpyLog()
+    alice_log = SpyLog()
+    faberAgent.msgHandlers[PING] = spy(faberAgent._handlePing, False, True, spy_log=faber_log)
+    aliceAgent.msgHandlers[PONG] = spy(aliceAgent._handlePong, False, True, spy_log=alice_log)
+
+    recvd_pings = 0
+    recvd_pongs = 0
     aliceAgent.sendPing('Faber College')
 
     def chk():
-        assert (recvdPings + 1) == faberAgent.spylog.count(
+        assert (recvd_pings + 1) == faber_log.count(
             faberAgent._handlePing.__name__)
-        assert (recvdPongs + 1) == aliceAgent.spylog.count(
+        assert (recvd_pongs + 1) == alice_log.count(
             aliceAgent._handlePong.__name__)
 
     timeout = waits.expectedAgentPing()

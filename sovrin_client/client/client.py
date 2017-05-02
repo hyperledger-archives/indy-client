@@ -40,13 +40,13 @@ logger = getlogger()
 
 class Client(PlenumClient):
     def __init__(self,
-                 name: str,
-                 nodeReg: Dict[str, HA] = None,
-                 ha: Union[HA, Tuple[str, int]] = None,
-                 peerHA: Union[HA, Tuple[str, int]] = None,
-                 basedirpath: str = None,
+                 name: str=None,
+                 nodeReg: Dict[str, HA]=None,
+                 ha: Union[HA, Tuple[str, int]]=None,
+                 peerHA: Union[HA, Tuple[str, int]]=None,
+                 basedirpath: str=None,
                  config=None,
-                 sighex: str = None):
+                 sighex: str=None):
         config = config or getConfig()
         super().__init__(name,
                          nodeReg,

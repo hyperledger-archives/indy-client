@@ -1,41 +1,24 @@
-from plenum.common.keygen_utils import initLocalKeys
-from plenum.test import waits as plenumWaits
-
-from stp_core.loop.eventually import eventually
 import warnings
+from copy import deepcopy
 
-from plenum.common.util import randomString
-from plenum.test.helper import waitForSufficientRepliesForRequests
-from plenum.test.node_catchup.helper import \
-    ensureClientConnectedToNodesAndPoolLedgerSame
-from plenum.test.test_node import checkNodesConnected
-from sovrin_client.client.wallet.node import Node
 from sovrin_common import strict_types
-from stp_core.network.port_dispenser import genHa
 
 # typecheck during tests
 strict_types.defaultShouldCheck = True
 
 import pytest
-from copy import deepcopy
 
-from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
-from plenum.test.plugin.helper import getPluginPath
+from plenum.common.constants import VERKEY, ALIAS, STEWARD, TXN_ID, TRUSTEE, TYPE
 
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import NYM, TRUST_ANCHOR
 from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
-from sovrin_common.txn_util import getTxnOrderedFields
-from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
-from sovrin_node.test.helper import TestNode, \
-    makePendingTxnsRequest, buildStewardClient
-from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
+from sovrin_node.test.helper import makePendingTxnsRequest, buildStewardClient, \
+    TestNode
+from sovrin_client.test.helper import addRole, primes, \
     genTestClient, TestClient, createNym
-
 
 # noinspection PyUnresolvedReferences
 from plenum.test.conftest import tdir, nodeReg, up, ready, \
@@ -43,8 +26,12 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
     startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
     poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
-    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager, \
+    txnPoolNodesLooper, nodeAndClientInfoFilePath, patchPluginManager, \
     warncheck, warnfilters as plenum_warnfilters, setResourceLimits
+
+# noinspection PyUnresolvedReferences
+from sovrin_common.test.conftest import conf, tconf, poolTxnTrusteeNames, \
+    domainTxnOrderedFields, looper
 
 
 @pytest.fixture(scope="session")
@@ -68,13 +55,6 @@ def primes2():
 
 
 @pytest.fixture(scope="module")
-def tconf(conf, tdir):
-    conf.baseDir = tdir
-    conf.MinSepBetweenNodeUpgrades = 5
-    return conf
-
-
-@pytest.fixture(scope="module")
 def updatedPoolTxnData(poolTxnData):
     data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
@@ -89,11 +69,6 @@ def updatedPoolTxnData(poolTxnData):
     data["seeds"]["Trustee1"] = trusteeSeed
     data["txns"].insert(0, t)
     return data
-
-
-@pytest.fixture(scope="module")
-def poolTxnTrusteeNames():
-    return "Trustee1",
 
 
 @pytest.fixture(scope="module")
@@ -118,13 +93,8 @@ def trusteeWallet(trusteeData):
 # TODO: This fixture is present in sovrin_node too, it should be
 # sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, trusteeWallet):
+def trustee(nodeSet, looper, tdir, up, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
-
-
-@pytest.fixture(scope="module")
-def allPluginsPath():
-    return [getPluginPath('stats_consumer')]
 
 
 @pytest.fixture(scope="module")
@@ -136,14 +106,6 @@ def stewardWallet(poolTxnStewardData):
     return wallet
 
 
-@pytest.fixture(scope="module")
-def looper():
-    with Looper() as l:
-        yield l
-
-
-# TODO: This fixture is present in sovrin_node too, it should be
-# sovrin_common's conftest.
 @pytest.fixture(scope="module")
 def steward(nodeSet, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
@@ -161,16 +123,6 @@ def genesisTxns(stewardWallet: Wallet, trusteeWallet: Wallet):
             VERKEY: stewardWallet.getVerkey()
         },
     ]
-
-
-@pytest.fixture(scope="module")
-def domainTxnOrderedFields():
-    return getTxnOrderedFields()
-
-
-@pytest.fixture(scope="module")
-def conf(tdir):
-    return getConfig(tdir)
 
 
 @pytest.fixture(scope="module")
@@ -196,7 +148,7 @@ def updatedDomainTxnFile(tdir, tdirWithDomainTxnsUpdated, genesisTxns,
 
 
 @pytest.fixture(scope="module")
-def nodeSet(tconf, updatedDomainTxnFile, txnPoolNodeSet):
+def nodeSet(tconf, updatedPoolTxnData, updatedDomainTxnFile, txnPoolNodeSet):
     return txnPoolNodeSet
 
 
@@ -304,68 +256,3 @@ def userClientB(nodeSet, userWalletB, looper, tdir):
     looper.run(u.ensureConnectedToNodes())
     makePendingTxnsRequest(u, userWalletB)
     return u
-
-
-def pytest_assertrepr_compare(op, left, right):
-    if isinstance(left, str) and isinstance(right, str):
-        if op in ('in', 'not in'):
-            mod = 'not ' if 'not' in op else ''
-            lines = ['    ' + s for s in right.split('\n')]
-            return ['"{}" should {}be in...'.format(left, mod)] + lines
-
-
-@pytest.fixture("module")
-def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
-                   stewardWallet, allPluginsPath, testNodeClass,
-                   testClientClass, tdir):
-    newStewardName = "testClientSteward" + randomString(3)
-    newNodeName = "Theta"
-    newSteward, newStewardWallet = getClientAddedWithRole(nodeSet, tdir,
-                                                          looper, steward,
-                                                          stewardWallet,
-                                                          newStewardName, STEWARD)
-
-    sigseed = randomString(32).encode()
-    nodeSigner = SimpleSigner(seed=sigseed)
-
-    (nodeIp, nodePort), (clientIp, clientPort) = genHa(2)
-
-    data = {
-        NODE_IP: nodeIp,
-        NODE_PORT: nodePort,
-        CLIENT_IP: clientIp,
-        CLIENT_PORT: clientPort,
-        ALIAS: newNodeName,
-        SERVICES: [VALIDATOR, ]
-    }
-
-    node = Node(nodeSigner.identifier, data, newStewardWallet.defaultId)
-    newStewardWallet.addNode(node)
-    reqs = newStewardWallet.preparePending()
-    req, = newSteward.submitReqs(*reqs)
-
-    waitForSufficientRepliesForRequests(looper, newSteward, requests=[req])
-
-    def chk():
-        assert newStewardWallet.getNode(node.id).seqNo is not None
-
-    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
-    looper.run(eventually(chk, retryWait=1, timeout=timeout))
-
-    initLocalKeys(newNodeName, tdirWithPoolTxns, sigseed, override=True)
-
-    newNode = testNodeClass(newNodeName, basedirpath=tdir, config=tconf,
-                            ha=(nodeIp, nodePort), cliha=(clientIp, clientPort),
-                            pluginPaths=allPluginsPath)
-
-    nodeSet.append(newNode)
-    looper.add(newNode)
-    looper.run(checkNodesConnected(nodeSet))
-    ensureClientConnectedToNodesAndPoolLedgerSame(looper, steward,
-                                                  *nodeSet)
-    ensureClientConnectedToNodesAndPoolLedgerSame(looper, newSteward,
-                                                  *nodeSet)
-    return newSteward, newStewardWallet, newNode
-
-
-

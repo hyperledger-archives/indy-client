@@ -1,6 +1,9 @@
 import os
+import signal
+from os.path import expanduser
 
 from ioflo.base.consoling import Console
+from plenum.cli.cli import Exit
 
 from stp_core.common.log import Logger, getlogger
 from sovrin_client.agent.agent import runBootstrap
@@ -45,6 +48,15 @@ class BaseAgent(TestWalletedAgent):
         self._invites = {}
 
         self.updateClaimVersionFile(self.getClaimVersionFileName())
+
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+        self.setupLogging(self.getLoggerFilePath())
+
+    def getLoggerFilePath(self, name=None):
+        config = getConfig()
+        path = expanduser('{}'.format(config.baseDir))
+        return '{}/{}.log'.format(path, (name or self.name).replace(" ", "-").lower())
 
     def getClaimVersionFileName(self):
         return self.name.replace(" ","-").lower() + "-schema-version.txt"
@@ -174,4 +186,5 @@ class BaseAgent(TestWalletedAgent):
     async def bootstrap(self):
         await runBootstrap(self.addSchemasToWallet)
 
-
+    def exit_gracefully(self, signum, frame):
+        raise Exit("OS process terminated/stopped")

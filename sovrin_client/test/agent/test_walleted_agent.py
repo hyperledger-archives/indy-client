@@ -1,6 +1,6 @@
 from stp_core.common.log import getlogger
 from plenum.common.util import getFormattedErrorMsg
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 
 from sovrin_client.agent.agent import WalletedAgent, createAgent, runAgent
 from sovrin_client.client.client import Client
@@ -9,7 +9,7 @@ from sovrin_client.test.agent.helper import getAgentCmdLineParams, runAgentCli
 logger = getlogger()
 
 
-@Spyable(
+@spyable(
     methods=[WalletedAgent._handlePing, WalletedAgent._handlePong])
 class TestWalletedAgent(WalletedAgent):
 
@@ -42,6 +42,6 @@ class TestWalletedAgent(WalletedAgent):
                 runAgent(agent, looper, bootstrap)
 
         except Exception as exc:
-            error = "Agent startup failed: [cause : {}]".format(str(exc))
+            error = "Agent stopped: [cause : {}]".format(str(exc))
             logger.error(getFormattedErrorMsg(error))
 

@@ -3,7 +3,7 @@ import pytest
 from functools import partial
 
 from plenum.test.cli.helper import TestCliCore
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 from sovrin_client.agent.agent_cli import AgentCli
 from sovrin_client.test.agent.acme import createAcme
 from sovrin_client.test.cli.helper import getCliBuilder, getAgentCliHelpString
@@ -11,7 +11,7 @@ from sovrin_client.test.cli.test_tutorial import acmeWithEndpointAdded,\
     connectIfNotAlreadyConnected
 
 
-@Spyable(methods=[AgentCli.print, AgentCli.printTokens])
+@spyable(methods=[AgentCli.print, AgentCli.printTokens])
 class TestAgentCLI(AgentCli, TestCliCore):
     pass
 

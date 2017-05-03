@@ -18,7 +18,7 @@ from stp_core.loop.eventually import eventually
 from plenum.test.test_client import genTestClient as genPlenumTestClient, \
     genTestClientProvider as genPlenumTestClientProvider
 from plenum.test.test_stack import StackedTester, TestStack
-from plenum.test.testable import Spyable
+from plenum.test.testable import spyable
 
 from sovrin_common.config_util import getConfig
 from sovrin_common.identity import Identity
@@ -49,7 +49,7 @@ class TestClientStorage(TempStorage):
                                                                      ex))
 
 
-@Spyable(methods=[Client.handleOneNodeMsg])
+@spyable(methods=[Client.handleOneNodeMsg])
 class TestClient(Client, StackedTester, TestClientStorage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

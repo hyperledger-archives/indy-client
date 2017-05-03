@@ -38,8 +38,6 @@ class RunnableAgent:
     @classmethod
     def run_agent(cls, agent: Agent, looper=None, bootstrap=None, with_cli=False):
         try:
-            loop = looper.loop if looper else None
-            agent.loop = loop
             config = getConfig()
             if with_cli:
                 runAgentCli(agent, config, looper=looper, bootstrap=bootstrap)

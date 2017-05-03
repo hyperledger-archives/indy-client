@@ -39,6 +39,7 @@ def bootstrapAgentCli(name, agent, looper, bootstrap, config):
 
 def runAgentCli(agent, config, looper=None, bootstrap=None):
     def run(looper):
+        agent.loop = looper.loop
         logger.info("Running {} now (port: {})".format(agent.name, agent.port))
         agentCli = bootstrapAgentCli(agent.name, agent, looper, bootstrap, config)
         commands = sys.argv[1:]
@@ -55,6 +56,7 @@ def runAgent(agent, looper=None, bootstrap=None):
     assert agent
 
     def do_run(looper):
+        agent.loop = looper.loop
         looper.add(agent)
         logger.info("Running {} now (port: {})".format(agent.name, agent.port))
         if bootstrap:
@@ -68,16 +70,17 @@ def runAgent(agent, looper=None, bootstrap=None):
             looper.run()
 
 
-def run_agent(looper, wallet, agent):
-
-    def run():
-        _agent = agent
-        wallet.pendSyncRequests()
-        prepared = wallet.preparePending()
-        _agent.client.submitReqs(*prepared)
-
-        runAgent(_agent, looper)
-
-        return _agent, wallet
-
-    return run
+# Note: Commented it as didn't find any usage of this method
+# def run_agent(looper, wallet, agent):
+#
+#     def run():
+#         _agent = agent
+#         wallet.pendSyncRequests()
+#         prepared = wallet.preparePending()
+#         _agent.client.submitReqs(*prepared)
+#
+#         runAgent(_agent, looper)
+#
+#         return _agent, wallet
+#
+#     return run

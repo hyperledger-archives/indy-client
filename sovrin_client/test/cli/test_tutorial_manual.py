@@ -7,17 +7,21 @@ from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
 from sovrin_client.test import waits
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+
 from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
+from sovrin_common.roles import Roles
+from sovrin_client.agent.walleted_agent import WalletedAgent
+from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.test.agent.acme import AcmeAgent
-from sovrin_client.test.agent.faber import FaberAgent
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
     buildThriftWallet
-from sovrin_client.test.agent.thrift import ThriftAgent
+from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift
 from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
@@ -25,13 +29,15 @@ from sovrin_client.test.cli.test_tutorial import syncInvite, acceptInvitation, \
     aliceRequestedTranscriptClaim, jobApplicationProofSent, \
     jobCertClaimRequested, bankBasicProofSent, bankKYCProofSent, \
     setPromptAndKeyring
-from sovrin_client.test.helper import TestClient
 
 concerningLogLevels = [logging.WARNING,
                        logging.ERROR,
                        logging.CRITICAL]
 
 whitelist = ["is not connected - message will not be sent immediately.If this problem does not resolve itself - check your firewall settings"]
+
+class TestWalletedAgent(WalletedAgent, RunnableAgent):
+    pass
 
 def getSeqNoFromCliOutput(cli):
     seqPat = re.compile("Sequence number is ([0-9]+)")
@@ -80,6 +86,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     faberAgentPort = 5555
     acmeAgentPort = 6666
     thriftAgentPort = 7777
+    faberEndpoint = "{}:{}".format(agentIpAddress, faberAgentPort)
+    acmeEndpoint = "{}:{}".format(agentIpAddress, acmeAgentPort)
+    thriftEndpoint = "{}:{}".format(agentIpAddress, thriftAgentPort)
 
     faberHa = "{}:{}".format(agentIpAddress, faberAgentPort)
     acmeHa = "{}:{}".format(agentIpAddress, acmeAgentPort)
@@ -93,55 +102,41 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for nym, ha, pk in [(faberId, faberHa, faberPk),
                     (acmeId, acmeHa, acmePk),
                     (thriftId, thriftHa, thriftPk)]:
-        m = {'target': nym, 'endpoint': json.dumps({ENDPOINT:
+        m = {'remote': nym, 'endpoint': json.dumps({ENDPOINT:
                                                     {'ha': ha, PUBKEY: pk}})}
-        do('send NYM dest={{target}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+        do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
             within=5,
             expect=nymAddedOut, mapper=m)
-        do('send ATTRIB dest={target} raw={endpoint}', within=5,
+        do('send ATTRIB dest={remote} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent
+
     fMap = faberMap(agentIpAddress, faberAgentPort)
     aMap = acmeMap(agentIpAddress, acmeAgentPort)
     tMap = thriftMap(agentIpAddress, thriftAgentPort)
 
     agentParams = [
-        (FaberAgent, "Faber College", faberAgentPort,
-         buildFaberWallet),
-        (AcmeAgent, "Acme Corp", acmeAgentPort,
-         buildAcmeWallet),
-        (ThriftAgent, "Thrift Bank", thriftAgentPort,
-         buildThriftWallet)
+        (create_faber, "Faber College", faberAgentPort,
+         buildFaberWallet, bootstrap_faber),
+        (create_acme, "Acme Corp", acmeAgentPort,
+         buildAcmeWallet, bootstrap_acme),
+        (create_thrift, "Thrift Bank", thriftAgentPort,
+         buildThriftWallet, bootstrap_thrift)
     ]
 
-    faberAgent, acmeAgent, thriftAgent = None, None, None
+    for create_agent_fuc, agentName, agentPort, buildAgentWalletFunc, bootstrap_func in agentParams:
+        agent = create_agent_fuc(name=agentName, wallet=buildAgentWalletFunc(),
+                                 base_dir_path=tdir, port=agentPort)
+        RunnableAgent.run_agent(agent, bootstrap=bootstrap_func(agent), looper=philCLI.looper)
 
-    def startAgents():
-        for agentCls, agentName, agentPort, buildAgentWalletFunc in \
-                agentParams:
-            agentCls.getPassedArgs = lambda _: (agentPort, False)
-            TestWalletedAgent.createAndRunAgent(
-                agentName, agentCls, buildAgentWalletFunc(), tdir, agentPort,
-                philCLI.looper, TestClient)
-        _faberAgent, _acmeAgent, _thriftAgent = None, None, None
-        for p in philCLI.looper.prodables:
-            if p.name == 'Faber College':
-                _faberAgent = p
-            if p.name == 'Acme Corp':
-                _acmeAgent = p
-            if p.name == 'Thrift Bank':
-                _thriftAgent = p
-        philCLI.looper.runFor(5)
-        return _faberAgent, _acmeAgent, _thriftAgent
-
-    def restartAgents():
-        for agent in [faberAgent, acmeAgent, thriftAgent]:
-            agent.stop()
-            philCLI.looper.removeProdable(name=agent.name)
-        return startAgents()
-
-    faberAgent, acmeAgent, thriftAgent = startAgents()
+    for p in philCLI.looper.prodables:
+        if p.name == 'Faber College':
+            faberAgent = p
+        if p.name == 'Acme Corp':
+            acmeAgent = p
+        if p.name == 'Thrift Bank':
+            thriftAgent = p
 
     async def checkTranscriptWritten():
         faberId = faberAgent.wallet.defaultId
@@ -150,7 +145,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert schema
         assert schema.seqId
 
-        issuerPublicKey = faberAgent.issuer.wallet.getPublicKey(schemaId)
+        issuerPublicKey = await faberAgent.issuer.wallet.getPublicKey(schemaId)
         assert issuerPublicKey  # TODO isinstance(issuerPublicKey, PublicKey)
 
     async def checkJobCertWritten():
@@ -193,10 +188,6 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('show link faber')
         acceptInvitation(be, do, userCLI, fMap,
                          syncedInviteAcceptedOutWithoutClaims)
-
-        # TODO: restart agents to test everything still works fine
-        # faberAgent, acmeAgent, thriftAgent = restartAgents()
-
         # Request claim
         do('show claim Transcript')
         aliceRequestedTranscriptClaim(be, do, userCLI, transcriptClaimMap,
@@ -204,7 +195,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                                       None,  # Passing None since its not used
                                       None)  # Passing None since its not used
 
-        faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['target']))
+        faberSchemaId = ID(SchemaKey('Transcript', '1.2', fMap['remote']))
         faberIssuerPublicKey = userCLI.looper.run(
             getPublicKey(faberAgent.issuer.wallet, faberSchemaId))
         userFaberIssuerPublicKey = userCLI.looper.run(
@@ -227,16 +218,12 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('show claim request Job-Application')
         # Passing some args as None since they are not used in the method
         jobApplicationProofSent(be, do, userCLI, aMap, None, None, None)
-
-        # TODO: restart agents to test everything still works fine
-        # faberAgent, acmeAgent, thriftAgent = restartAgents()
-
         do('show claim Job-Certificate')
         # Request new available claims Job-Certificate
         jobCertClaimRequested(be, do, userCLI, None,
                               jobCertificateClaimMap, reqClaimOut1, None)
 
-        acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['target']))
+        acmeSchemaId = ID(SchemaKey('Job-Certificate', '0.2', aMap['remote']))
         acmeIssuerPublicKey = userCLI.looper.run(getPublicKey(
             acmeAgent.issuer.wallet, acmeSchemaId))
         userAcmeIssuerPublicKey = userCLI.looper.run(getPublicKey(
@@ -250,10 +237,6 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         do('load sample/thrift-loan-application.sovrin')
         acceptInvitation(be, do, userCLI, tMap,
                          syncedInviteAcceptedOutWithoutClaims)
-
-        # TODO: restart agents to test everything still works fine
-        # faberAgent, acmeAgent, thriftAgent = restartAgents()
-
         # Send proofs
         bankBasicProofSent(be, do, userCLI, tMap, None)
 
@@ -276,11 +259,13 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
                    syncedInviteAcceptedOutWithoutClaims, tMap,
                    transcriptClaimMap)
 
-    # TODO: restart agents to test everything still works fine
-    # faberAgent, acmeAgent, thriftAgent = restartAgents()
+    aliceCLI.looper.runFor(3)
 
-    executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
-                   aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
-                   reqClaimOut1, syncLinkOutWithEndpoint,
-                   syncedInviteAcceptedOutWithoutClaims, tMap,
-                   transcriptClaimMap)
+    # Same flow is executed by different cli
+    # What is the purpose of this test? This should not work because its a different person
+    # with different data or it is the same person but from a different state
+    # executeGstFlow("Susan", susanCLI, susanMap, be, connectedToTest, do, fMap,
+    #                aMap, jobCertificateClaimMap, newKeyringOut, reqClaimOut,
+    #                reqClaimOut1, syncLinkOutWithEndpoint,
+    #                syncedInviteAcceptedOutWithoutClaims, tMap,
+    #                transcriptClaimMap)

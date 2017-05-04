@@ -23,15 +23,15 @@ from plenum.test.helper import initDirWithGenesisTxns
 from plenum.test.testable import spyable
 from sovrin_client.cli.cli import SovrinCli
 from sovrin_client.client.wallet.link import Link
-from sovrin_client.test.helper import TestClient
 from sovrin_common.constants import Environment
 from stp_core.network.port_dispenser import genHa
 from sovrin_common.constants import NYM
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.client.TestClient import TestClient
 from sovrin_common.txn_util import getTxnOrderedFields
 from ledger.compact_merkle_tree import CompactMerkleTree
 from ledger.ledger import Ledger
 from ledger.serializers.compact_serializer import CompactSerializer
+from sovrin_common.roles import Roles
 
 logger = getlogger()
 
@@ -210,7 +210,7 @@ def addTrusteeTxnsToGenesis(trusteeList, trusteeData, txnDir, txnFileName):
 
 def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
            domainDir=None, multiPoolNodes=None, unique_name=None,
-           logFileName=None, cliClass=TestCLI, name=None, agentCreator=None):
+           logFileName=None, cliClass=TestCLI, name=None, agent=None):
     tempDir = os.path.join(tdir, subDirectory) if subDirectory else tdir
     if poolDir or domainDir:
         initDirWithGenesisTxns(tempDir, conf, poolDir, domainDir)
@@ -227,15 +227,18 @@ def newCLI(looper, tdir, subDirectory=None, conf=None, poolDir=None,
                 tempDir, conf, os.path.join(pool.tdirWithPoolTxns, pool.name),
                 os.path.join(pool.tdirWithDomainTxns, pool.name))
     from sovrin_node.test.helper import TestNode
-    return newPlenumCLI(looper, tempDir, cliClass=cliClass,
-                        nodeClass=TestNode, clientClass=TestClient, config=conf,
-                        unique_name=unique_name, logFileName=logFileName,
-                        name=name, agentCreator=agentCreator)
+    new_cli = newPlenumCLI(looper, tempDir, cliClass=cliClass,
+                           nodeClass=TestNode, clientClass=TestClient, config=conf,
+                           unique_name=unique_name, logFileName=logFileName,
+                           name=name, agentCreator=True)
+    if isinstance(new_cli, SovrinCli) and agent is not None:
+        new_cli.agent = agent
+    return new_cli
 
 
 def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                   logFileName=None, multiPoolNodes=None, cliClass=TestCLI,
-                  name=None, agentCreator=None):
+                  name=None, agent=None):
     def _(space,
           looper=None,
           unique_name=None):
@@ -251,7 +254,7 @@ def getCliBuilder(tdir, tconf, tdirWithPoolTxns, tdirWithDomainTxns,
                        logFileName=logFileName,
                        cliClass=cliClass,
                        name=name,
-                       agentCreator=agentCreator)
+                       agent=agent)
             return c
         if looper:
             yield new()
@@ -313,6 +316,19 @@ def wallet_state(totalLinks=0,
     return locals()
 
 
+def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
+    be(userCli)
+    if not userCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectExpMsgs)
+
+    do('send NYM dest={{remote}} role={role}'.format(
+        role=Roles.TRUST_ANCHOR.name),
+       within=3,
+       expect=nymAddExpMsgs, mapper=mapper)
+    return userCli
+
+
 def getAgentCliHelpString():
     return """Sovrin-CLI, a simple command-line interface for a Sovrin Identity platform.
    Commands:
@@ -324,7 +340,7 @@ def getAgentCliHelpString():
        list ids - Lists all identifiers of active keyring
        show - Shows content of given file
        show link - Shows link info in case of one matching link, otherwise shows all the matching link names
-       ping - Pings given target's endpoint
+       ping - Pings given remote's endpoint
        list links - List available links in active wallet
        send proofreq - Send a proof request
        license - Shows the license

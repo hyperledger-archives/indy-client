@@ -7,7 +7,7 @@ from plenum.common.verifier import DidVerifier
 from sovrin_client.client.wallet.types import AvailableClaim
 
 from sovrin_common.exceptions import InvalidLinkException, \
-    RemoteEndpointNotFound
+    RemoteEndpointNotFound, NotFound
 
 
 class constant:
@@ -16,10 +16,10 @@ class constant:
     SIGNER_VER_KEY = "Verification Key"
     SIGNER_VER_KEY_EMPTY = '<empty>'
 
-    TARGET_IDENTIFIER = "Target"
-    TARGET_VER_KEY = "Target Verification Key"
-    TARGET_VER_KEY_SAME_AS_ID = '<same as target>'
-    TARGET_END_POINT = "Target endpoint"
+    REMOTE_IDENTIFIER = "Remote"
+    REMOTE_VER_KEY = "Remote Verification Key"
+    REMOTE_VER_KEY_SAME_AS_ID = '<same as Remote>'
+    REMOTE_END_POINT = "Remote endpoint"
     SIGNATURE = "Signature"
     CLAIM_REQUESTS = "Claim Requests"
     AVAILABLE_CLAIMS = "Available Claims"
@@ -49,17 +49,18 @@ class Link:
                  trustAnchor=None,
                  remoteIdentifier=None,
                  remoteEndPoint=None,
-                 remotePubKey=None,
+                 remotePubkey=None,
                  invitationNonce=None,
                  proofRequests=None,
-                 internalId=None):
+                 internalId=None,
+                 remote_verkey=None):
         self.name = name
         self.localIdentifier = localIdentifier
         self.localVerkey = localVerkey
         self.trustAnchor = trustAnchor
         self.remoteIdentifier = remoteIdentifier
         self.remoteEndPoint = remoteEndPoint
-        self.remotePubKey = remotePubKey
+        self.remotePubkey = remotePubkey
         self.invitationNonce = invitationNonce
 
         # for optionally storing a reference to an identifier in another system
@@ -71,7 +72,7 @@ class Link:
         self.verifiedClaimProofs = []
         self.availableClaims = []  # type: List[AvailableClaim]
 
-        self.targetVerkey = None
+        self.remoteVerkey = remote_verkey
         self.linkStatus = None
         self.linkLastSynced = None
         self.linkLastSyncNo = None
@@ -97,22 +98,30 @@ class Link:
             else constant.NOT_ASSIGNED
         trustAnchor = self.trustAnchor or ""
         trustAnchorStatus = '(not yet written to Sovrin)'
-        targetVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
-        targetEndPoint = self.remoteEndPoint or \
+        if self.remoteVerkey is not None:
+            if self.remoteIdentifier == self.remoteVerkey:
+                remoteVerKey = constant.REMOTE_VER_KEY_SAME_AS_ID
+            else:
+                remoteVerKey = self.remoteVerkey
+        else:
+            remoteVerKey = constant.UNKNOWN_WAITING_FOR_SYNC
+
+        remoteEndPoint = self.remoteEndPoint or \
                          constant.UNKNOWN_WAITING_FOR_SYNC
-        if isinstance(targetEndPoint, tuple):
-            targetEndPoint = "{}:{}".format(*targetEndPoint)
-        linkStatus = 'not verified, target verkey unknown'
+        if isinstance(remoteEndPoint, tuple):
+            remoteEndPoint = "{}:{}".format(*remoteEndPoint)
+        linkStatus = 'not verified, remote verkey unknown'
         linkLastSynced = prettyDateDifference(self.linkLastSynced) or \
                          constant.LINK_NOT_SYNCHRONIZED
 
         if linkLastSynced != constant.LINK_NOT_SYNCHRONIZED and \
-                        targetEndPoint == constant.UNKNOWN_WAITING_FOR_SYNC:
-            targetEndPoint = constant.NOT_AVAILABLE
+                        remoteEndPoint == constant.UNKNOWN_WAITING_FOR_SYNC:
+            remoteEndPoint = constant.NOT_AVAILABLE
 
         if self.isAccepted:
             trustAnchorStatus = '(confirmed)'
-            targetVerKey = constant.TARGET_VER_KEY_SAME_AS_ID
+            if self.remoteVerkey is None:
+                remoteVerKey = constant.REMOTE_VER_KEY_SAME_AS_ID
             linkStatus = self.linkStatus
 
         # TODO: The verkey would be same as the local identifier until we
@@ -133,15 +142,12 @@ class Link:
             'Trust anchor: ' + trustAnchor + ' ' + trustAnchorStatus + '\n' \
             'Verification key: ' + verKey + '\n' \
             'Signing key: <hidden>' '\n' \
-            'Target: ' + (self.remoteIdentifier or
+            'Remote: ' + (self.remoteIdentifier or
                           constant.UNKNOWN_WAITING_FOR_SYNC) + '\n' \
-            'Target Verification key: ' + targetVerKey + '\n' \
-            'Target endpoint: ' + targetEndPoint + '\n' \
+            'Remote Verification key: ' + remoteVerKey + '\n' \
+            'Remote endpoint: ' + remoteEndPoint + '\n' \
             'Invitation nonce: ' + self.invitationNonce + '\n' \
             'Invitation status: ' + linkStatus + '\n'
-        # except Exception as ex:
-        #     print(ex)
-        #     print(targetEndPoint, linkStatus, )
 
         optionalLinkItems = ""
         if len(self.proofRequests) > 0:
@@ -192,15 +198,56 @@ class Link:
         elif isinstance(self.remoteEndPoint, str):
             ip, port = self.remoteEndPoint.split(":")
             return ip, int(port)
+        elif self.remoteEndPoint is None:
+            return None
         else:
             raise ValueError('Cannot convert endpoint {} to HA'.
                              format(self.remoteEndPoint))
 
     @property
     def remoteVerkey(self):
+        if not hasattr(self, '_remoteVerkey'):
+            return None
+
+        if self._remoteVerkey is None:
+            return None
+
         # This property should be used to fetch verkey compared to
-        # targetVerkey, its a more consistent name and takes care of
+        # remoteVerkey, its a more consistent name and takes care of
         # abbreviated verkey
-        v = DidVerifier(verkey=self.targetVerkey,
+        v = DidVerifier(verkey=self._remoteVerkey,
                         identifier=self.remoteIdentifier)
         return v.verkey
+
+    @remoteVerkey.setter
+    def remoteVerkey(self, new_val):
+        self._remoteVerkey = new_val
+
+    def find_available_claims(self, name=None, version=None, origin=None):
+        return [ac for ac in self.availableClaims
+                if (not name or name == ac.name) and
+                (not version or version == ac.version) and
+                (not origin or origin == ac.origin)]
+
+    def find_available_claim(self, name=None, version=None, origin=None,
+                             max_one=True, required=True):
+        _ = self.find_available_claims(name, version, origin)
+        assert not max_one or len(_) <= 1, \
+            'more than one matching available claim found'
+        if required and len(_) == 0:
+            raise NotFound
+        return _[0] if _ else None
+
+    def find_proof_requests(self, name=None, version=None):
+        return [pr for pr in self.proofRequests
+                if (not name or name == pr.name) and
+                (not version or version == pr.version)]
+
+    def find_proof_request(self, name=None, version=None,
+                           max_one=True, required=True):
+        _ = self.find_proof_requests(name, version)
+        assert not max_one or len(_) <= 1, \
+            'more than one matching available claim found'
+        if required and len(_) == 0:
+            raise NotFound
+        return _[0] if _ else None

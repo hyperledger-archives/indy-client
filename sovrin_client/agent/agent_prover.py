@@ -23,15 +23,15 @@ class AgentProver:
     def __init__(self, prover: Prover):
         self.prover = prover
 
-    def sendReqAvailClaims(self, link: Link):
+    def sendRequestForAvailClaims(self, link: Link):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendAvailClaimsAsync(link))
+                                self.sendRequestForAvailClaimsAsync(link))
         else:
             self.loop.run_until_complete(
-                self.sendAvailClaimsAsync(link))
+                self.sendRequestForAvailClaimsAsync(link))
 
-    async def sendAvailClaimsAsync(self, link: Link):
+    async def sendRequestForAvailClaimsAsync(self, link: Link):
         op = {
             TYPE: REQ_AVAIL_CLAIMS,
             NONCE: link.invitationNonce
@@ -44,20 +44,26 @@ class AgentProver:
     def sendReqClaim(self, link: Link, schemaKey):
         if self.loop.is_running():
             self.loop.call_soon(asyncio.ensure_future,
-                                self.sendReqClaimAsync(link, schemaKey))
+                                self.send_claim(link, schemaKey))
         else:
             self.loop.run_until_complete(
-                self.sendReqClaimAsync(link, schemaKey))
+                self.send_claim(link, schemaKey))
 
-    async def sendReqClaimAsync(self, link: Link, schemaKey):
-        name, version, origin = schemaKey
-        schemaKey = SchemaKey(name, version, origin)
+
+    # async def send_claim(self, link, claim_to_request):
+    #     return await self.sendReqClaimAsync(link, claim_to_request)
+
+    async def send_claim(self, link: Link, schema_key):
+        name, version, origin = schema_key
+        schema_key = SchemaKey(name, version, origin)
 
         claimReq = await self.prover.createClaimRequest(
-            schemaId=ID(schemaKey),
+            schemaId=ID(schema_key),
             proverId=link.invitationNonce,
             reqNonRevoc=False)
 
+        # TODO link.invitationNonce should not be used here.
+        # It has served its purpose by this point. Claim Requests do not need a nonce.
         op = {
             NONCE: link.invitationNonce,
             TYPE: CLAIM_REQUEST,

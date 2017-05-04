@@ -65,15 +65,42 @@ If you get any error, check out the info about [prerequisites](https://docs.goog
 
 The install puts some python modules on your system. Most importantly, it gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
 
+## Setup Environment
+We will be doing this exercise in a Python Interactive Console. Sovrin must be run with Python 3. So depending on your 
+system setup, the next command could change.
+
+To launch Python Interactive Console, type this command:
+
+```
+$ python
+```
+or
+```
+$ python3
+```
+**Imports**
+Only one import is required. This import will import other modules and will provide helper functions for this exercise.  Any function with the prefix 'demo' are defined in this import and are just function to help with the exercise.
+
+```
+>>>from sovrin_client.test.training.getting_started import *
+```
+
 **Run the Sovrin CLI**
 
 Type this command:
 
 ```
-$ sovrin
+>>> start_getting_started()
 ```
 
-You should see an interactive prompt, like this:
+This command will start up a local pool of validator nodes. This can take a few mintues and will produce a lot of console
+output. This output contains the initial communication between 4 nodes. This output can be ignored for this exercise.
+ 
+After starting up the local sovrin pool, three agents will be launched. During this this exercise we will be interacting
+with three agents, Faber Collage, Acme Corp and Thrift Bank. Again, launching these agents can take some time and a lot of
+output.
+
+After these tasks are complete, you should see an interactive prompt, like this:
 
 ```
 Sovrin - CLI version 1.17(c) 2016 Evernym, Inc.
@@ -81,7 +108,9 @@ Type 'help' for more information.
 sovrin> 
 ```
 
-We’re going to be playing the role of multiple **_identity owners_** (a person like Alice, an organization like Faber College, or an IoT - style thing; these are often called "principals" in security circles) before the guide is done.To do this we’ll use multiple shells. To make it easy to keep track of which identity owner we’re representing in a given window, let’s change the prompt:
+The CLI could play the role of multiple **_identity owners_** (a person like Alice, an organization like Faber College, 
+or an IoT - style thing; these are often called "principals" in security circles). In this guide we will just be
+Alice but to keep things clear and explore functionality let's change the prompt:
 
 ```
 sovrin> prompt ALICE
@@ -153,7 +182,7 @@ Link (not yet accepted)
     Target Verification key: <unknown, waiting for sync>
     Target endpoint: <unknown, waiting for sync>
     Invitation nonce: b1134a647eb818069c089e7694f63e6d
-    Invitation status: not verified, target verkey unknown
+    Invitation status: not verified, remote verkey unknown
     Last synced: <this link has not yet been synchronized>
 
 Try Next:
@@ -472,7 +501,7 @@ Link (not yet accepted)
     Target Verification key: <unknown, waiting for sync>
     Target endpoint: 54.70.102.199:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
-    Invitation status: not verified, target verkey unknown
+    Invitation status: not verified, remote verkey unknown
     Proof Request(s): Job-Application
     Last synced: <this link has not yet been synchronized>
 

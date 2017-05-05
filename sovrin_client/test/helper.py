@@ -74,17 +74,6 @@ def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
     return wallet
 
 
-def suspendRole(looper, actingClient, actingWallet, did):
-    idy = Identity(identifier=did, role=NULL)
-    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
-
-
-def changeVerkey(looper, actingClient, actingWallet, idr, verkey):
-    idy = Identity(identifier=idr,
-                   verkey=verkey)
-    return makeIdentityRequest(looper, actingClient, actingWallet, idy)
-
-
 def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
                       schedule, timeout, sha256):
     upgrade = Upgrade(name, action, schedule, version, sha256, timeout,
@@ -133,24 +122,6 @@ def submitAndCheckNacks(looper, client, wallet, op, identifier,
                           client,
                           req.reqId,
                           contains, retryWait=1, timeout=timeout))
-
-
-def makeIdentityRequest(looper, actingClient, actingWallet, idy):
-    idr = idy.identifier
-    if actingWallet.getTrustAnchoredIdentity(idr):
-        actingWallet.updateTrustAnchoredIdentity(idy)
-    else:
-        actingWallet.addTrustAnchoredIdentity(idy)
-    reqs = actingWallet.preparePending()
-    actingClient.submitReqs(*reqs)
-
-    def chk():
-        assert actingWallet.getTrustAnchoredIdentity(idr).seqNo is not None
-    timeout = waits.expectedTransactionExecutionTime(
-        len(actingClient.nodeReg)
-    )
-    looper.run(eventually(chk, retryWait=1, timeout=timeout))
-    return reqs
 
 
 def genTestClient(nodes = None,

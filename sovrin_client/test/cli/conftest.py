@@ -2,12 +2,17 @@ import json
 import os
 import re
 import tempfile
+from copy import copy
 from typing import List
 
 import pytest
 
 import plenum
+from plenum.common import util
+from plenum.common.constants import ALIAS
+from plenum.common.constants import CLIENT_STACK_SUFFIX
 from plenum.common.exceptions import BlowUp
+from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.common.log import getlogger
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
@@ -27,7 +32,8 @@ from plenum.test.cli.helper import newKeyPair, waitAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, \
+    getNewNodeVals, doSendNodeCmd
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
@@ -1309,3 +1315,86 @@ def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
 def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                       nymAddedOut, thriftMap):
     return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope='module')
+def newNodeVals():
+    return getNewNodeVals()
+
+
+@pytest.yield_fixture(scope="module")
+def cliWithNewStewardName(CliBuilder):
+    yield from CliBuilder("newSteward")
+
+
+@pytest.fixture(scope='module')
+def newStewardCli(be, do, poolNodesStarted, trusteeCli,
+                  connectedToTest, nymAddedOut, cliWithNewStewardName,
+                  newNodeVals):
+    be(trusteeCli)
+    if not trusteeCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    v = copy(newNodeVals)
+    v['remote'] = v['newStewardIdr']
+    v['newStewardSeed'] = v['newStewardSeed'].decode()
+
+    do('send NYM dest={{newStewardIdr}} role={role}'
+       .format(role=Roles.STEWARD.name),
+       within=3,
+       expect=nymAddedOut, mapper=v)
+
+    be(cliWithNewStewardName)
+
+    do('new key with seed {newStewardSeed}', expect=[
+        'Identifier for key is {newStewardIdr}',
+        'Current identifier set to {newStewardIdr}'],
+       mapper=v)
+
+    if not cliWithNewStewardName._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    return cliWithNewStewardName
+
+
+@pytest.fixture(scope="module")
+def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli,
+                 connectedToTest, newNodeVals):
+    be(philCli)
+
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    be(newStewardCli)
+    doSendNodeCmd(do, newNodeVals)
+    newNodeData = newNodeVals["newNodeData"]
+
+    def checkClientConnected(client):
+        name = newNodeData[ALIAS] + CLIENT_STACK_SUFFIX
+        assert name in client.nodeReg
+
+    def checkNodeConnected(nodes):
+        for node in nodes:
+            name = newNodeData[ALIAS]
+            assert name in node.nodeReg
+
+    timeout = waits.expectedClientToPoolConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
+
+    newStewardCli.looper.run(eventually(checkClientConnected,
+                                        newStewardCli.activeClient,
+                                        timeout=timeout))
+
+    philCli.looper.run(eventually(checkClientConnected,
+                                  philCli.activeClient,
+                                  timeout=timeout))
+
+    poolNodesStarted.looper.run(eventually(checkNodeConnected,
+                                           list(
+                                               poolNodesStarted.nodes.values()),
+                                           timeout=timeout))
+    return newNodeVals

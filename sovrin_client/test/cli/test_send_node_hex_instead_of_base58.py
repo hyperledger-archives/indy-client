@@ -1,11 +1,9 @@
-import pytest
-
 from plenum.common.util import cryptonymToHex
+
 from sovrin_client.test.cli.helper import getNewNodeVals
 from sovrin_common.roles import Roles
 
 
-@pytest.mark.skip('SOV-988')
 def testNewNodeNotAddedIfHexKeyUsedInsteadOfBase58Key(
         be, do, poolNodesStarted, trusteeCli, newStewardCli, nymAddedOut,
         newNodeVals):
@@ -23,7 +21,7 @@ def testNewNodeNotAddedIfHexKeyUsedInsteadOfBase58Key(
     be(trusteeCli)
 
     anotherNewNodeVals = getNewNodeVals()
-    anotherNewNodeVals['target'] = anotherNewNodeVals['newStewardIdr']
+    anotherNewNodeVals['remote'] = anotherNewNodeVals['newStewardIdr']
     anotherNewNodeVals['newStewardSeed'] = anotherNewNodeVals[
         'newStewardSeed'].decode()
 

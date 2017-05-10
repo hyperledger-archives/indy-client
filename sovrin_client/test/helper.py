@@ -90,11 +90,12 @@ def submitPoolUpgrade(looper, senderClient, senderWallet, name, action, version,
     looper.run(eventually(check, timeout=timeout))
 
 
-def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name, role):
+def getClientAddedWithRole(nodeSet, tdir, looper, client, wallet, name,
+                           role=None, client_connects_to=None):
     newWallet = addRole(looper, client, wallet, name=name, role=role)
     c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     looper.add(c)
-    looper.run(c.ensureConnectedToNodes())
+    looper.run(c.ensureConnectedToNodes(count=client_connects_to))
     c.registerObserver(newWallet.handleIncomingReply)
     return c, newWallet
 

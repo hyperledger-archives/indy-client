@@ -1,9 +1,8 @@
 from plenum.common.constants import SERVICES, VALIDATOR, TARGET_NYM, DATA
-from plenum.common.signer_simple import SimpleSigner
-from sovrin_client.test.cli.test_node import newStewardCli, newStewardCLI, \
-    newNodeAdded, doNodeCmd, getNewNodeData
 from sovrin_common.roles import Roles
 from stp_core.network.port_dispenser import genHa
+
+from sovrin_client.test.cli.helper import doSendNodeCmd
 
 
 def testSuspendNode(be, do, trusteeCli, newNodeAdded):
@@ -11,22 +10,24 @@ def testSuspendNode(be, do, trusteeCli, newNodeAdded):
     Suspend a node and then cancel suspension. Suspend while suspended
     to test that there is no error
     """
-    nodeData = newNodeAdded
+    newNodeVals = newNodeAdded
+
     be(trusteeCli)
-    nodeData['newNodeData'][SERVICES] = []
-    doNodeCmd(do, nodeData=nodeData)
+
+    newNodeVals['newNodeData'][SERVICES] = []
+    doSendNodeCmd(do, newNodeVals)
     # Re-suspend node
-    nodeData['newNodeData'][SERVICES] = []
-    doNodeCmd(do, nodeData=nodeData,
+    newNodeVals['newNodeData'][SERVICES] = []
+    doSendNodeCmd(do, newNodeVals,
               expMsgs=['node already has the same data as requested'])
 
     # Cancel suspension
-    nodeData['newNodeData'][SERVICES] = [VALIDATOR]
-    doNodeCmd(do, nodeData=nodeData)
+    newNodeVals['newNodeData'][SERVICES] = [VALIDATOR]
+    doSendNodeCmd(do, newNodeVals)
 
     # Re-cancel suspension
-    nodeData['newNodeData'][SERVICES] = [VALIDATOR]
-    doNodeCmd(do, nodeData=nodeData,
+    newNodeVals['newNodeData'][SERVICES] = [VALIDATOR]
+    doSendNodeCmd(do, nodeVals=newNodeVals,
               expMsgs=['node already has the same data as requested'])
 
 
@@ -40,14 +41,14 @@ def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
     newStewardSeed = '0000000000000000000KellySteward2'
     newStewardIdr = 'DqCx7RFEpSUMZbV2mH89XPH6JT3jMvDNU55NTnBHsQCs'
     be(trusteeCli)
-    do('send NYM dest={{target}} role={role}'.format(
+    do('send NYM dest={{remote}} role={role}'.format(
         role=Roles.STEWARD.name),
        within=5,
-       expect=nymAddedOut, mapper={'target': newStewardIdr})
+       expect=nymAddedOut, mapper={'remote': newStewardIdr})
     do('new key with seed {}'.format(newStewardSeed))
     nport, cport = (_[1] for _ in genHa(2))
     nodeId = '6G9QhQa3HWjRKeRmEvEkLbWWf2t7cw6KLtafzi494G4G'
-    nodeData = {
+    newNodeVals = {
         'newNodeIdr': nodeId,
         'newNodeData': {'client_port': cport,
                         'client_ip': '127.0.0.1',
@@ -56,7 +57,7 @@ def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
                         'node_port': nport
                         }
     }
-    doNodeCmd(do, nodeData=nodeData)
+    doSendNodeCmd(do, newNodeVals)
 
     for node in poolNodesStarted.nodes.values():
         txn = list(node.poolLedger.getAllTxn().values())[-1]
@@ -64,8 +65,8 @@ def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
         assert SERVICES not in txn[DATA]
 
     do('new key with seed {}'.format(trusteeMap['trusteeSeed']))
-    nodeData['newNodeData'][SERVICES] = []
-    doNodeCmd(do, nodeData=nodeData)
+    newNodeVals['newNodeData'][SERVICES] = []
+    doSendNodeCmd(do, newNodeVals)
 
     for node in poolNodesStarted.nodes.values():
         txn = list(node.poolLedger.getAllTxn().values())[-1]

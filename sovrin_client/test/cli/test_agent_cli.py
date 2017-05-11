@@ -5,7 +5,8 @@ from functools import partial
 from plenum.test.cli.helper import TestCliCore
 from plenum.test.testable import spyable
 from sovrin_client.agent.agent_cli import AgentCli
-from sovrin_client.test.agent.acme import createAcme
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
+from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.cli.helper import getCliBuilder, getAgentCliHelpString
 from sovrin_client.test.cli.test_tutorial import acmeWithEndpointAdded,\
     connectIfNotAlreadyConnected
@@ -25,16 +26,16 @@ def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLo
 
 
 @pytest.fixture(scope='module')
-def acmeAgentCli(agentCliBuilder, acmeAgentPort):
-    yield from agentCliBuilder(
-        name='Acme-Agent',
-        agentCreator=lambda: createAcme(port=acmeAgentPort)
-    )('Acme-Agent')
+def acmeAgentCli(agentCliBuilder, acmeAgentPort, tdir):
+    agent = create_acme(port=acmeAgentPort, base_dir_path=tdir, wallet=buildAcmeWallet())
+    cliBuild = agentCliBuilder(name='Acme-Agent', agent=agent)
+    cli = cliBuild('Acme-Agent')
+    yield from cli
 
 
 @pytest.fixture(scope='module')
 def acmeAgentCliRunning(acmeWithEndpointAdded, acmeAgentCli, looper):
-    looper.run(acmeAgentCli.agent.bootstrap())
+    looper.run(bootstrap_acme(acmeAgentCli.agent))
     return acmeAgentCli
 
 
@@ -74,7 +75,7 @@ def checkProofRequestReceived(be, do, userCli, commandMap):
 
 
 def getProofRequestsCount(userCli, target):
-    li = userCli.activeWallet.getLinkInvitationByTarget(target)
+    li = userCli.activeWallet.getLinkBy(remote=target)
     return len(li.proofRequests)
 
 
@@ -104,13 +105,13 @@ def aliceAcceptedAcmeInvitationNoProofReq(
            mapper=acmeMap,
            expect=unsycedAcceptedInviteWithoutClaimOut)
 
-        proofRequestsBefore = getProofRequestsCount(aliceCLI, acmeMap['target'])
+        proofRequestsBefore = getProofRequestsCount(aliceCLI, acmeMap['remote'])
 
         sendProofRequest(be, do, acmeAgentCliRunning, acmeMap)
 
         checkProofRequestReceived(be, do, aliceCLI, acmeMap)
 
-        proofRequestsAfter = getProofRequestsCount(aliceCLI, acmeMap['target'])
+        proofRequestsAfter = getProofRequestsCount(aliceCLI, acmeMap['remote'])
 
         return proofRequestsBefore, proofRequestsAfter
     return _

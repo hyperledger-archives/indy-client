@@ -42,6 +42,9 @@ class SovrinIssuerWalletInMemory(IssuerWalletInMemory):
         # available claims only for certain invitation (by nonce)
         self.availableClaimsByNonce = {}
 
+        # available claims only for certain invitation (by nonce)
+        self.availableClaimsByInternalId = {}
+
         # mapping between specific identifier and available claims which would
         # have been available once they have provided requested information
         # like proof etc.

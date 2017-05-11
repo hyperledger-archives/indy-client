@@ -17,7 +17,7 @@
 * [Appendix](#appendix)
   * [Faber College Configures Transcripts](#faber-college-configures-transcripts)
   * [Acme Corp Defines a Job-Application](#acme-corp-defines-a-job-application)
-  
+
 ## What Sovrin is, and Why it Matters
 
 Sovrin is a software ecosystem for private, secure, and powerful identity. It puts people — not the organizations that traditionally centralize identity — in charge of decisions about their own privacy and disclosure. This enables all kinds of rich innovation: link contracts, revocation, novel payment workflows, asset and document management features, creative forms of escrow, curated reputation, integrations with other cool technologies, and so on.
@@ -45,63 +45,50 @@ Alice doesn’t realize it, yet, but in order to use this digital transcript she
 
 In normal contexts, managing a self - sovereign identity will require a tool such as a desktop or mobile application. It might be a standalone app, or it might leverage a third party service provider that Sovrin calls an **_agency_**. The Sovrin Foundation publishes reference versions of such tools. Faber College will have studied these requirements and will recommend a **_Sovrin app_** to Alice if she doesn’t already have one; this app will install as part of the workflow from the *Get Transcript* button.
 
-When Alice clicks *Get Transcript*, she will download a file that holds a Sovrin **_link invitation_**. This file, having a.sovrin extension and associated with her Sovrin app, will allow her to establish a secure channel of communication with another party in the Sovrin ecosystem--Faber College.
+When Alice clicks *Get Transcript*, she will download a file that holds a Sovrin **_link invitation_**. This file, having a .sovrin extension and associated with her Sovrin app, will allow her to establish a secure channel of communication with another party in the Sovrin ecosystem--Faber College.
 
 So when Alice clicks *Get Transcript*, she will normally end up installing an app (if needed), launching it, and then being asked by the app whether she wants to accept an invitation to connect with Faber.
 
 For this guide, however, we’ll be using a command - line interface instead of an app, so we can see what happens behind the scenes. We will pretend to be a particularly curious and technically adventurous Alice…
 
 ## Install Sovrin
-**Coming soon:** We are in the process of creating new vm images for Ubuntu and Windows for validator nodes and also client side docker image to make it easy for you to play with Sovrin. 
+You can install a Sovrin test network in one of several ways:
 
-**Manually setup validator nodes (optional):** If you prefer to install Sovrin-Node manually without using virtual machine images, please see the installation instructions for [Linux](https://docs.google.com/document/d/1PX-9VQCC8ULgpU2bofaNLJnMW45JXTFPNPnnBSikcRU/edit#) or [Windows](https://docs.google.com/document/d/1_ba3M4cqLAvha_BLgPp07L2EHLdxqptr_tRW2IUAS0g/edit#heading=h.oe37ssfqfijq).
+ - **Automated VM Creation** [Create virtual machines](https://github.com/evernym/sovrin-environments/blob/master/vagrant/training/vb-multi-vm/TestSovrinClusterSetup.md) in your Mac or PC using VirtualBox and Vagrant
+ - **Manually setup Validator nodes** - If you prefer to install Sovrin-Node manually without using virtual machine images, please see the installation instructions for [Linux](https://docs.google.com/document/d/1PX-9VQCC8ULgpU2bofaNLJnMW45JXTFPNPnnBSikcRU/edit#) or [Windows](https://docs.google.com/document/d/1_ba3M4cqLAvha_BLgPp07L2EHLdxqptr_tRW2IUAS0g/edit#heading=h.oe37ssfqfijq).  You will also need to set up a node or nodes to run processes to emulate the required Agents.  This is left as an exercise for you.
+ - **Simulation from Python console** [Simulate a Sovrin Validator cluster and agents](cluster-simulation.md) in an event loop.  Similar to what the devs do for testing.
+ - **Coming soon:** Use client side docker images to make it easy for you to play with Sovrin.
+ - **Also coming soon:** Create virtual machines in AWS using Vagrant
 
-```
-$ pip install -U --no-cache-dir sovrin-client
-```
+To proceed past this point, you should have a test Sovrin Validator cluster running, either in separate nodes (VMs), or in simulation. You should also have Agent nodes (or a simulation) running with the "Faber College", "Acme Corp", and "Thrift Bank" Agents.  You should also have a CLI client which gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
 
-If you get any error, check out the info about [prerequisites](https://docs.google.com/document/d/1CyggP4nNPyx4SELNZEc2FOeln6G0F22B37cAVtB_FBM/edit); there are a few dominoes you might have to line up.
-
-
-The install puts some python modules on your system. Most importantly, it gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
-
-**Run the Sovrin CLI**
-
-Type this command:
+##Using the Sovrin CLI
+After completing the preceeding, you should have a terminal with a Sovrin client CLI prompt:
 
 ```
-$ sovrin
+sovrin>
 ```
 
-You should see an interactive prompt, like this:
-
-```
-Sovrin - CLI version 1.17(c) 2016 Evernym, Inc.
-Type 'help' for more information.
-sovrin> 
-```
-
-We’re going to be playing the role of multiple **_identity owners_** (a person like Alice, an organization like Faber College, or an IoT - style thing; these are often called "principals" in security circles) before the guide is done.To do this we’ll use multiple shells. To make it easy to keep track of which identity owner we’re representing in a given window, let’s change the prompt:
+The CLI could play the role of multiple **_identity owners_** (a person like Alice, an organization like Faber College, or an IoT - style thing; these are often called "principals" in security circles). In this guide we will just be Alice but to keep things clear and explore functionality let's change the prompt:
 
 ```
 sovrin> prompt ALICE
-ALICE> 
+ALICE>
 ```
 The status command gives general information about the state of the CLI. Alice tries it:
 
 ```
 ALICE> status
 Not connected to Sovrin network. Please connect first.
- 
+
 Usage:
     connect(test | live)
 ```
+Alice might also try the 'help' command to explore what’s available.
 
-Alice might also try the help command to explore what’s available.
+## Evaluate an Invitation
 
-## Evaluate the Invitation
-
-To make this guide more convenient, the sovrin CLI package installs a sample Faber College invitation to CLI ROOT/scripts/sample/faber-invitation.sovrin. We’re going to use this file as if we had downloaded it from Faber. (Remember, in normal usage, Alice’s Sovrin app would be doing a lot of these steps automatically.)
+To make this guide more convenient, the sovrin CLI package installs a sample Faber College invitation in a file at /<CLI_ROOT>/sample/faber-invitation.sovrin. We’re going to use this file as if it had been downloaded from Faber. (In normal usage, Alice’s Sovrin app would be doing a lot of these steps automatically.)
 
 ```
 ALICE> show sample/faber-invitation.sovrin
@@ -113,7 +100,6 @@ ALICE> show sample/faber-invitation.sovrin
   },
   "sig": "4QKqkwv9gXmc3Sw7YFkGm2vdF6ViZz9FKZcNJGh6pjnjgBXRqZ17Sk8bUDSb6hsXHoPxrzq2F51eDn1DKAaCzhqP"
 }
-
 
 Try Next:
     load sample/faber-invitation.sovrin
@@ -133,7 +119,7 @@ Try Next:
     accept invitation from "Faber College"
 ```
 
-This causes Sovrin to parse and validate the file. Alice would now like to know what’s entailed in accepting the invitation.  She types:
+This causes the client to parse and validate the file. Alice would now like to know what’s entailed in accepting the invitation.  She types:
 
 ```
 ALICE> show link Faber
@@ -173,13 +159,13 @@ This is a friendly name for the link that Alice has been invited to accept. The 
 Identifier: not yet assigned
 ```
 
-Identifier is a unique value that, that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a pairwise relationship when accepted, and each pairwise relationship uses different identifiers. Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
+Identifier is a unique value that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a pairwise relationship when accepted, and each pairwise relationship uses different identifiers. Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
 
 ```
 Trust anchor: Faber College(not yet written to Sovrin)
 ```
 
-This gives Alice a friendly name for the entity that is bootstrapping the new pairwise relationship onto the Sovrin ecosystem. Trust anchors provide a way for identifiers to be added to Sovrin. They are generally organizations but can be persons as well. Faber College is a trust anchor, and if its invitation is accepted, will write Alice’s identifier to Sovrin.
+This gives Alice a friendly name for the entity that will bootstrap the new pairwise relationship onto the Sovrin ecosystem. Trust anchors provide a way for identifiers to be added to Sovrin. They are generally organizations but can be persons as well. Faber College is a trust anchor, and if its invitation is accepted, will write Alice’s identifier to Sovrin.
 
 It is important to understand that this identifier for Alice is not, in and of itself, the same thing as Alice’s self-sovereign identity. Rather, Alice’s identity will-- for her--be the sum total of all the pairwise relationships she has, and all the attributes knowable about those manifestations of her identity, across the full network. If Alice accepts this invitation, she will have a self-sovereign identity by virtue of the fact that she is accessible on the network through at least one relationship, and Faber College will be creating the first relationship participating in Alice’s identity--but Alice’s identity will not be captive to Faber College in any way.
 
@@ -200,7 +186,7 @@ In this case, the creator of the Sovrin identity record (called a trust anchor) 
 - Abbreviated. In this case, there is a verkey starting with a tilde '~' followed by 22 or 23 characters.
 The tilde indicates that the DID itself represents the first 16 bytes of the verkey, and the string following the tilde represents the second 16 bytes of the verkey, both using base58Check encoding.
 - Full. In this case, there is a full 44 character verkey, representing a base58Check encoding of all 32 bytes of a Ed25519 verification key
- 
+
 In the current guide Abbreviated key will be created and used by Alice (you will notice `~` prefix for verification key in the guide).
 
 The key that Alice uses to interact with Faber can change if she revokes or rotates it, so accepting this invitation and activating this link doesn’t lock Alice in to permanent use of this key. Key management events are discoverable in the Sovrin ledger by parties such as Faber College; we’ll touch on that later in the guide.
@@ -244,7 +230,7 @@ A link stores when it was last synchronized with the Sovrin network, so we can t
 
 ## Accept the Invitation
 
-Alice attempts to accept the invitation from Faber College.
+Alice **_attempts_** to accept the invitation from Faber College.
 
 ```
 ALICE> accept invitation from Faber
@@ -264,28 +250,33 @@ There are two Sovrin networks we might connect to. One is a test network, and th
 
 ```
 ALICE> connect test
+ ...
 Connected to test.
 ```
 
 Alice tries again to accept the invitation from Faber College. This time she succeeds.
 
 ```
-ALICE> accept invitation from Faber
+ALICE@test> accept invitation from Faber
 Expanding Faber to "Faber College"
 Invitation not yet verified.
 Link not yet synchronized.
 Attempting to sync...
+No key present in keyring for making request on Sovrin, so adding one
+Key created in keyring Default
+Identifier for key is E6HrMGPwGn4B3ASUu9xmWdAG1WqqpWPXtS9GU1BTXFmY
+Current identifier set to E6HrMGPwGn4B3ASUu9xmWdAG1WqqpWPXtS9GU1BTXFmY
 
 Synchronizing...
     Link Faber College synced
-
-Pinging target endpoint: ('54.70.102.199', 5555)
-    Ping sent.
-    Pong received.
+Accepting invitation with nonce b1134a647eb818069c089e7694f63e6d from id Qgjf1bJQumWtsPAswytB5V
+SGdY53 looking for Faber College at 10.20.30.101:5555
+SGdY53 pinged Faber College at HA(host='0.0.0.0', port=6001)
+SGdY53 got pong from Faber College
 
 Signature accepted.
 
-Response from Faber College (835.18 ms):
+Response from Faber College (24.59 ms):
     Trust established.
     Identifier created in Sovrin.
     Available Claim(s): Transcript
@@ -296,17 +287,15 @@ Synchronizing...
 Try Next:
     show claim "Transcript"
     request claim "Transcript"
-
-
 ```
 Accepting an invitation takes the nonce that Faber College provided, and signs it with the Alice’s signing key. It then securely transmits the signed data along with the identifier and verification key to Faber College’s endpoint, which is discovered when the link is synchronized. Faber College matches the provided nonce to the record of the nonce it sent to Alice, verifies the signature, then records Alice’s new pairwise identifier in the Sovrin ledger.
 
 Once the link is accepted and synchronized, Alice inspects it again.
 
 ```
-ALICE> show link Faber
+ALICE@test> show link Faber
 Expanding Faber to "Faber College"
-Link 
+Link
     Name: Faber College
     Identifier: LZ46KqKd1VrNFjXuVFUSY9
     Trust anchor: Faber College (confirmed)
@@ -314,7 +303,7 @@ Link
     Signing key: <hidden>
     Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
     Target Verification key: <same as target>
-    Target endpoint: 54.70.102.199:5555
+    Target endpoint: 10.20.30.101:5555
     Invitation nonce: b1134a647eb818069c089e7694f63e6d
     Invitation status: Accepted
     Available Claim(s): Transcript
@@ -334,10 +323,10 @@ Alice can see now that the target verification key and target endpoint, as well 
 At this point Alice is connected to Faber College, and can interact in a secure way. The Sovrin CLI supports a ping command to test secure pairwise interactions. (This command is partly implemented today, and partly still a stub.)
 
 ```
-ALICE> ping Faber
+ALICE@test> ping Faber
 Expanding Faber to "Faber College"
 
-Pinging target endpoint: ('54.70.102.199', 5555)
+Pinging target endpoint: ('10.20.30.101', 5555)
     Ping sent.
     Pong received.
 ```
@@ -356,9 +345,7 @@ Alice receives a successful response from Faber College. Here’s what happens b
 
 6. Alice uses the verification key in the Faber College Link to verify the Faber College digital signature.
 
-She can trust the response from Faber College
-
-because (1) she connects to the current endpoint, (2) no replay - attack is possible, due to her random challenge, (3) she knows the verification key used to verify Faber College’s digital signature is the correct one because she just confirmed it on Sovrin.
+She can trust the response from Faber College because (1) she connects to the current endpoint, (2) no replay - attack is possible, due to her random challenge, (3) she knows the verification key used to verify Faber College’s digital signature is the correct one because she just confirmed it on Sovrin.
 
 ## Inspect the Claim
 
@@ -367,7 +354,7 @@ Notice that when Alice last showed the Faber link, there was a new line: ```Avai
 Claims are offered by an **_issuer_**. An issuer may be any identity owner known to Sovrin, and any issuer may issue a claim about any identity owner it can identify. The usefulness and reliability of a claim are tied to the reputation of the issuer, with respect to the claim at hand. For Alice to self-issue a claim that she likes chocolate ice cream may be perfectly reasonable, but for her to self-issue a claim that she graduated from Faber College should not impress anyone. The value of this transcript is that it is provably issued by Faber College. Alice wants to use that claim. She asks for more information:
 
 ```
-ALICE> show claim Transcript
+ALICE@test> show claim Transcript
 Found claim Transcript in link Faber College
 Status: available (not yet issued)
 Name: Transcript
@@ -386,14 +373,13 @@ Try Next:
 Alice sees the attributes the transcript contains. These attributes are known because a schema for Transcript has been written to the ledger (see Appendix). However, the "not yet issued" note means that the transcript has not been delivered to Alice in a usable form. To get the transcript, Alice needs to request it.
 
 ```
-ALICE> request claim Transcript
+ALICE@test> request claim Transcript
 Found claim Transcript in link Faber College
-Getting Keys for the Schema from Sovrin
 Requesting claim Transcript from Faber College...
 
 Signature accepted.
 
-Response from Faber College (65.17 ms):
+Response from Faber College (34.61 ms):
     Received claim "Transcript".
 
 ```
@@ -401,31 +387,31 @@ Response from Faber College (65.17 ms):
 Now the transcript has been issued; Alice has it in her possession, in much the same way that she would hold a physical transcript that had been mailed to her. When she inspects it again, she sees more details:
 
 ```
-ALICE> show claim Transcript 
+ALICE@test> show claim Transcript
 Found claim Transcript in link Faber College
-Status: 2016-10-18 14:44:53.368163
+Status: 2017-05-01 12:32:17.497455
 Name: Transcript
 Version: 1.2
 Attributes:
-    ssn: 123-45-6789
     student_name: Alice Garcia
+    ssn: 123-45-6789
+    degree: Bachelor of Science, Marketing
     year: 2015
     status: graduated
-    degree: Bachelor of Science, Marketing
 ```
 
 # Apply for a Job
 
-Alice would like to work for Acme Corp. Normally she would browse to acmecorp.com, where she would click on a hyperlink to apply for a job. Her browser would download a link invitation which her Sovrin app would open; this would trigger a prompt to Alice, asking her to accept the link with Acme Corp. Because we’re using a CLI, the interface is different, but the steps are the same. We do approximately the same things that we did when Alice was accepting Faber College’s link invitation:
+At some time in the future, Alice would like to work for Acme Corp. Normally she would browse to acmecorp.com, where she would click on a hyperlink to apply for a job. Her browser would download a link invitation which her Sovrin app would open; this would trigger a prompt to Alice, asking her to accept the link with Acme Corp. Because we’re using a CLI, the interface is different, but the steps are the same. We do approximately the same things that we did when Alice was accepting Faber College’s link invitation:
 
 ```
-ALICE> show sample/acme-job-application.sovrin
+ALICE@test> show sample/acme-job-application.sovrin
 {
   "link-invitation": {
     "name": "Acme Corp",
     "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
-    "endpoint": "54.70.102.199:6666"
+    "endpoint": "127.0.0.1:1213"
   },
   "proof-requests": [{
     "name": "Job-Application",
@@ -451,26 +437,26 @@ Notice that this link invitation contains a **_proof request_**. ACME Corp is re
 
 Notice that the invitation also identifies an endpoint. This is different from our previous case, where an identity owner’s endpoint was discovered through lookup on the Sovrin ledger. Here, Acme Corp.has decided to short - circuit Sovrin and just directly publish its job application acceptor endpoint with each request. Sovrin supports this.  Alice quickly works through the sequence of commands that establishes a new pairwise connection with Acme:
 ```
-ALICE> load sample/acme-job-application.sovrin
+ALICE@test> load sample/acme-job-application.sovrin
 1 link invitation found for Acme Corp.
 Creating Link for Acme Corp.
 
 Try Next:
     show link "Acme Corp"
     accept invitation from "Acme Corp"
-     
-     
-ALICE> show link Acme
+
+
+ALICE@test> show link Acme
 Expanding Acme to "Acme Corp"
 Link (not yet accepted)
     Name: Acme Corp
     Identifier: not yet assigned
     Trust anchor: Acme Corp (not yet written to Sovrin)
-    Verification key: <same as local identifier>
+    Verification key: <empty>
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <unknown, waiting for sync>
-    Target endpoint: 54.70.102.199:6666
+    Target endpoint: 127.0.0.1:1213
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: not verified, target verkey unknown
     Proof Request(s): Job-Application
@@ -479,9 +465,9 @@ Link (not yet accepted)
 Try Next:
     sync "Acme Corp"
     accept invitation from "Acme Corp"
- 
-ALICE> accept invitation from Acme
 
+
+ALICE@test> accept invitation from Acme
 Expanding Acme to "Acme Corp"
 Invitation not yet verified.
 Link not yet synchronized.
@@ -489,14 +475,14 @@ Attempting to sync...
 
 Synchronizing...
     Link Acme Corp synced
-
-Pinging target endpoint: ('54.70.102.199', 6666)
-    Ping sent.
-    Pong received.
+Accepting invitation with nonce 57fbf9dc8c8e6acde33de98c6d747b28c from id 4rAx2tWErJXEfu7usUNQes
+SGdY53 looking for Acme Corp at 10.20.30.102:5555
+SGdY53 pinged Acme Corp at HA(host='0.0.0.0', port=6001)
+SGdY53 got pong from Acme Corp
 
 Signature accepted.
 
-Response from Acme Corp (841.46 ms):
+Response from Acme Corp (14.81 ms):
     Trust established.
     Identifier created in Sovrin.
 
@@ -511,7 +497,7 @@ Try Next:
 Notice what the proof request looks like now. Although the application is not submitted, it has various claims filled in:
 
 ```
-ALICE> show proof request Job-Application
+ALICE@test> show proof request Job-Application
 Found proof request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -520,46 +506,42 @@ Attributes:
     first_name: string
     last_name: string
     phone_number: string
-    degree: Bachelor of Science, Marketing
-    status: graduated
-    ssn: 123-45-6789
-Verifiable Attributes:
-    degree
-    status
-    ssn
+    degree (V): Bachelor of Science, Marketing
+    status (V): graduated
+    ssn (V): 123-45-6789
 
 
 The Proof is constructed from the following claims:
 
     Claim (Transcript v1.2 from Faber College)
-        ssn: 123-45-6789 (verifiable)
-        status: graduated (verifiable)
-        year: 2015 (verifiable)
-        student_name: Alice Garcia (verifiable)
-        degree: Bachelor of Science, Marketing (verifiable)
+          student_name: Alice Garcia
+        * ssn: 123-45-6789
+        * degree: Bachelor of Science, Marketing
+          year: 2015
+        * status: graduated
+
 
 Try Next:
     set <attr-name> to <attr-value>
     send proof "Job-Application" to "Acme Corp"
-
 ```
 
 Alice only has one claim that meets proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
 
 The pre - population doesn’t create data leakage, though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
 
-Notice that some attributes are verifiable, and some are not. The proof request schema says that ssn and degree( and others) in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
+Notice that some attributes are verifiable, and some are not. The proof request schema says that ssn, degree, and graduation status in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are currently empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
 
 ```
-ALICE> set first_name to Alice
-ALICE> set last_name to Garcia
-ALICE> set phone_number to 123-45-6789
+ALICE@test> set first_name to Alice
+ALICE@test> set last_name to Garcia
+ALICE@test> set phone_number to 123-456-7890
 ```
 
 Alice checks to see what the proof request looks like now.
 
 ```
-ALICE> show proof request Job-Application
+ALICE@test> show proof request Job-Application
 Found proof request "Job-Application" in link "Acme Corp"
 Status: Requested
 Name: Job-Application
@@ -567,24 +549,21 @@ Version: 0.2
 Attributes:
     first_name: Alice
     last_name: Garcia
-    phone_number: 123-45-6789
-    degree: Bachelor of Science, Marketing
-    status: graduated
-    ssn: 123-45-6789
-Verifiable Attributes:
-    degree
-    status
-    ssn
+    phone_number: 123-456-7890
+    degree (V): Bachelor of Science, Marketing
+    status (V): graduated
+    ssn (V): 123-45-6789
 
 
 The Proof is constructed from the following claims:
 
     Claim (Transcript v1.2 from Faber College)
-        ssn: 123-45-6789 (verifiable)
-        status: graduated (verifiable)
-        year: 2015 (verifiable)
-        student_name: Alice Garcia (verifiable)
-        degree: Bachelor of Science, Marketing (verifiable)
+          student_name: Alice Garcia
+        * ssn: 123-45-6789
+        * degree: Bachelor of Science, Marketing
+          year: 2015
+        * status: graduated
+
 
 Try Next:
     set <attr-name> to <attr-value>
@@ -594,15 +573,15 @@ Try Next:
 She decides to submit.
 
 ```
-ALICE> send proof Job-Application to Acme
+ALICE@test> send proof Job-Application to Acme
+
 Signature accepted.
 
-Response from Acme Corp (451.9 ms):
-    Your claim Job-Application 0.2 has been received and is verified
+Response from Acme Corp (15.98 ms):
+    Your Proof Job-Application 0.2 was received and verified
 
-Response from Acme Corp (311.2 ms):
+Response from Acme Corp (23.95 ms):
     Available Claim(s): Job-Certificate
-
 ```
 
 It will be interesting to see whether Acme accepts this application with the informal first_name not matching the one on her transcript. If Acme is concerned about this discrepancy, it could reach out to Alice and ask about it, using the secure channel that’s now established. Alice could send a photo showing her college ID that lists her name as "Alice (Sally) Gonzales".
@@ -610,22 +589,22 @@ It will be interesting to see whether Acme accepts this application with the inf
 Here, we’ll assume the application is accepted, and Alice ends up getting the job. When Alice inspects her link with Acme a week later, she sees that a new claim is available:
 
 ```
-ALICE> show link Acme
+ALICE@test> show link Acme
 Expanding Acme to "Acme Corp"
-Link 
+Link
     Name: Acme Corp
-    Identifier: cid-2:EigjZrDwLREcX2T7P5zNZwZ6R7wv3GcdaKxAeN7cbqYX
+    Identifier: QANW5P3tjRX8Q8w8iyN9A5
     Trust anchor: Acme Corp (confirmed)
-    Verification key: <same as local identifier>
+    Verification key: ~KdJUJwAq6Wj8To8pJgGHqE
     Signing key: <hidden>
     Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
     Target Verification key: <same as target>
-    Target endpoint: 54.70.102.199:6666
+    Target endpoint: 10.20.30.102:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
     Invitation status: Accepted
     Proof Request(s): Job-Application
     Available Claim(s): Job-Certificate
-    Last synced: a minute ago
+    Last synced: 11 minutes ago
 
 Try Next:
     show claim "Job-Certificate"
@@ -639,7 +618,7 @@ Try Next:
 Now that Alice has a job, she’d like to apply for a loan. That will require proof of employment. She can get this from the Job-Certificate claim offered by Acme. Alice goes through a familiar sequence of interactions. First she inspects the claim:
 
 ```
-ALICE> show claim Job-Certificate
+ALICE@test> show claim Job-Certificate
 Found claim Job-Certificate in link Acme Corp.
 Status: available(not yet issued)
 Name: Job-Certificate
@@ -658,41 +637,35 @@ Try Next:
 Next, she requests it:
 
 ```
-ALICE> request claim Job-Certificate
+ALICE@test> request claim Job-Certificate
 Found claim Job-Certificate in link Acme Corp
-Getting Keys for the Schema from Sovrin
 Requesting claim Job-Certificate from Acme Corp...
 
 Signature accepted.
 
-Response from Acme Corp (55.17 ms):
+Response from Acme Corp (11.48 ms):
     Received claim "Job-Certificate".
 ```
 
 The Job-Certificate has been issued, and she now has it in her possession.
 
 ```
-ALICE> show claim Job-Certificate
-Found claim Job-Certificate in link Acme Corp.
-Status: issued 2016-08-15
+ALICE@test> show claim Job-Certificate
+Found claim Job-Certificate in link Acme Corp
+Status: 2017-05-01 16:53:53.742695
 Name: Job-Certificate
-Version: 0.1
+Version: 0.2
 Attributes:
     first_name: Alice
     last_name: Garcia
-    employement_status: Permanent
+    employee_status: Permanent
     experience: 3 years
     salary_bracket: between $50,000 to $100,000
 ```
 
 She can use it when she applies for her loan, in much the same way that she used her transcript when applying for a job.
 
-There is a disadvantage in this approach to data sharing, though--it may disclose more data than what is strictly necessary. If all Alice needs to do is provide proof of employment, this can be done with an anonymous credential instead. Anonymous credentials may prove certain predicates without disclosing actual values (e.g., Alice is employed full-time, with a salary greater than X--but how much her salary is, and what her hire date is, remain hidden).
-
-Support
-for anonymous credentials is at a late alpha stage on Sovrin right now. We’ll
-circle back and update this guide when we reach beta.
-
+There is a disadvantage in this approach to data sharing, though--it may disclose more data than what is strictly necessary. If all Alice needs to do is provide proof of employment, this can be done with an anonymous credential instead. Anonymous credentials may prove certain predicates without disclosing actual values (e.g., Alice is employed full-time, with a salary greater than X--but how much her salary is, and what her hire date is, remain hidden).  A compound proof can be created, drawing from claims from both Faber College and Acme Corp, that discloses only what is necessary.
 
 Alice now loads Thrift Bank's loan application link:
 ```
@@ -708,7 +681,7 @@ Try Next:
 Alice accepts the loan application link:
 
 ```
-ALICE@test> accept invitation from thrift
+ALICE@test> accept invitation from Thrift
 Expanding thrift to "Thrift Bank"
 Invitation not yet verified.
 Link not yet synchronized.
@@ -716,14 +689,14 @@ Attempting to sync...
 
 Synchronizing...
     Link Thrift Bank synced
-
-Pinging target endpoint: ('54.70.102.199', 7777)
-    Ping sent.
-    Pong received.
+Accepting invitation with nonce 77fbf9dc8c8e6acde33de98c6d747b28c from id NyvGP1B1RQ14wyUHAbVdNh
+nLkB5S looking for Thrift Bank at 10.20.30.103:7777
+nLkB5S pinged Thrift Bank at HA(host='0.0.0.0', port=6002)
+nLkB5S got pong from Thrift Bank
 
 Signature accepted.
 
-Response from Thrift Bank (842.49 ms):
+Response from Thrift Bank (1.59 ms):
     Trust established.
     Identifier created in Sovrin.
 
@@ -735,6 +708,8 @@ Try Next:
     send proof "Loan-Application-Basic" to "Thrift Bank"
     show proof request "Loan-Application-KYC"
     send proof "Loan-Application-KYC" to "Thrift Bank"
+    show proof request "Name-Proof"
+    send proof "Name-Proof" to "Thrift Bank"
 ```
 
 Alice checks to see what the proof request "Loan-Application-Basic" looks like:
@@ -745,30 +720,24 @@ Status: Requested
 Name: Loan-Application-Basic
 Version: 0.1
 Attributes:
-    salary_bracket: between $50,000 to $100,000
-    employee_status: Permanent
-Verifiable Attributes:
-    salary_bracket
-    employee_status
-
+    salary_bracket (V): between $50,000 to $100,000
+    employee_status (V): Permanent
 
 The Proof is constructed from the following claims:
 
     Claim (Job-Certificate v0.2 from Acme Corp)
-        last_name: Garcia (verifiable)
-        salary_bracket: between $50,000 to $100,000 (verifiable)
-        employee_status: Permanent (verifiable)
-        experience: 3 years (verifiable)
-        first_name: Alice (verifiable)
+          first_name: Alice
+          last_name: Garcia
+        * employee_status: Permanent
+          experience: 3 years
+        * salary_bracket: between $50,000 to $100,000
 
 Try Next:
     set <attr-name> to <attr-value>
-    send proof Loan-Application-Basic to Thrift Bank
+    send proof "Loan-Application-Basic" to "Thrift Bank"
 ```
 
-Alice sends just the "Loan-Application-Basic"
-proof to the bank. This allows her to minimize the PII that she has to share
-when all she's trying to do right now is prove basic eligibility.
+Alice sends just the "Loan-Application-Basic" proof to the bank. This allows her to minimize the PII that she has to share when all she's trying to do right now is prove basic eligibility.
 
 ```
 ALICE@test> send proof Loan-Application-Basic to Thrift Bank
@@ -781,7 +750,7 @@ Response from Thrift Bank (479.17 ms):
     Loan eligibility criteria satisfied, please send another proof 'Loan-Application-KYC'
 ```
 
-Alice now checks the second proof request where she needs to share her 
+Alice now checks the second proof request where she needs to share her
 personal information with bank.
 
 ```
@@ -791,37 +760,32 @@ Status: Requested
 Name: Loan-Application-KYC
 Version: 0.1
 Attributes:
-    first_name: Alice
-    last_name: Garcia
-    ssn: 123-45-6789
-Verifiable Attributes:
-    first_name
-    last_name
-    ssn
-
+    [2] first_name (V): Alice
+    [2] last_name (V): Garcia
+    [1] ssn (V): 123-45-6789
 
 The Proof is constructed from the following claims:
 
-    Claim (Transcript v1.2 from Faber College)
-        degree: Bachelor of Science, Marketing (verifiable)
-        student_name: Alice Garcia (verifiable)
-        year: 2015 (verifiable)
-        ssn: 123-45-6789 (verifiable)
-        status: graduated (verifiable)
+    Claim [1] (Transcript v1.2 from Faber College)
+          student_name: Alice Garcia
+        * ssn: 123-45-6789
+          degree: Bachelor of Science, Marketing
+          year: 2015
+          status: graduated
 
-    Claim (Job-Certificate v0.2 from Acme Corp)
-        last_name: Garcia (verifiable)
-        salary_bracket: between $50,000 to $100,000 (verifiable)
-        employee_status: Permanent (verifiable)
-        experience: 3 years (verifiable)
-        first_name: Alice (verifiable)
+    Claim [2] (Job-Certificate v0.2 from Acme Corp)
+        * first_name: Alice
+        * last_name: Garcia
+          employee_status: Permanent
+          experience: 3 years
+          salary_bracket: between $50,000 to $100,000
 
 Try Next:
     set <attr-name> to <attr-value>
-    send proof Loan-Application-KYC to Thrift Bank
+    send proof "Loan-Application-KYC" to "Thrift Bank"
 ```
 
-Alice now sends "Loan-Application-KYC" proof to the bank: 
+Alice now sends "Loan-Application-KYC" proof to the bank:
 ```
 ALICE@test> send proof Loan-Application-KYC to Thrift Bank
 
@@ -840,7 +804,7 @@ Response from Thrift Bank (69.9 ms):
 The following operations show how Transcripts are defined on the ledger, such that they can later be issued with reference to a known schema.
 ```
 faber> use Schema-Keyring
- 
+
 faber> new schema
 name = "Transcript"
 version = "1.2"
@@ -853,10 +817,10 @@ attributes = {
 }
 
 Schema Transcript v1 .2 added to Schema-Keyring
- 
+
 faber> add keys of type CL for schema Transcript version 1.2
 Keys added
- 
+
 faber> show pending 2 pending
 ...
 ...
@@ -895,7 +859,7 @@ attributes = {
 }
 
 Schema Job-Application v0 .1 added
- 
+
 acme> show pending 1 pending
 ...
 acme> submit pending Submitting 2 transactions...

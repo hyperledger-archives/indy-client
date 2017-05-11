@@ -1,6 +1,7 @@
 # Sovrin Client    
 
-[![Build Status](https://jenkins.evernym.com/buildStatus/icon?job=Sovrin Client/master)](https://jenkins.evernym.com/job/Sovrin%20Client/job/master/)    
+[![Build Status](https://jenkins.evernym.com/buildStatus/icon?job=Sovrin%20Client/master)](https://jenkins.evernym.com/job/Sovrin%20Client/job/master/)    
+
 
 Sovrin Client to interact with Sovrin Network (public/permissioned distributed ledger)
 

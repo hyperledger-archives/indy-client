@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 
 import pytest
 
@@ -44,6 +44,18 @@ def poolUpgradeCancelled(poolUpgradeScheduled, be, do, trusteeCli,
        'action={action} justification={justification}',
        within=10,
        expect=['Pool upgrade successful'], mapper=validUpgrade)
+
+
+def testOnlyTrusteeCanSendPoolUpgrade(looper, steward, validUpgrade):
+    # A steward sending POOL_UPGRADE but txn fails
+    stClient, stWallet = steward
+    validUpgrade = deepcopy(validUpgrade)
+    validUpgrade[NAME] = 'upgrade-20'
+    validUpgrade[VERSION] = bumpedVersion()
+    _, req = sendUpgrade(stClient, stWallet, validUpgrade)
+    timeout = plenumWaits.expectedReqNAckQuorumTime()
+    looper.run(eventually(checkNacks, stClient, req.reqId,
+                          'cannot do', retryWait=1, timeout=timeout))
 
 
 def testPoolUpgradeSent(poolUpgradeScheduled):

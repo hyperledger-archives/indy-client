@@ -12,7 +12,8 @@ from plenum.common.util import randomString
 from stp_core.network.util import checkPortAvailable
 from sovrin_client.test.agent.conftest import startAgent
 
-from sovrin_client.test.agent.acme import createAcme as createAgent
+from sovrin_client.test.agent.acme import create_acme as createAgent
+from sovrin_client.test.agent.acme import bootstrap_acme as bootstrap_agent
 from sovrin_client.test.agent.helper import buildAcmeWallet as agentWallet
 
 
@@ -20,7 +21,7 @@ agentPort = genHa()[1]
 
 
 def getNewAgent(name, basedir, port, wallet):
-    return createAgent(name, wallet, basedirpath=basedir, port=port)
+    return createAgent(name, wallet, base_dir_path=basedir, port=port)
 
 
 def runAgent(looper, basedir, port, name=None, agent=None):
@@ -28,7 +29,7 @@ def runAgent(looper, basedir, port, name=None, agent=None):
     name = name or "Agent" + randomString(5)
     agent = agent or getNewAgent(name, basedir, port, wallet)
     agent._name = name
-    return startAgent(looper, agent, wallet)
+    return startAgent(looper, agent, wallet, bootstrap_agent(agent))
 
 
 def stopAgent(looper, name):

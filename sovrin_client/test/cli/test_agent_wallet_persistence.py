@@ -7,19 +7,19 @@ from plenum.test.conftest import tdirWithPoolTxns
 from sovrin_client.agent.agent import createAgent
 from sovrin_client.test.agent.conftest import emptyLooper, startAgent
 
-from sovrin_client.test.agent.acme import createAcme as createAcmeAgent, AcmeAgent
+from sovrin_client.test.agent.acme import create_acme as createAcmeAgent, AcmeAgent
 from sovrin_client.test.agent.helper import buildAcmeWallet as agentWallet
 from sovrin_client.test.cli.conftest \
     import acmeAddedByPhil as agentAddedBySponsor
 from sovrin_client.test.cli.helper import  compareAgentIssuerWallet
-from sovrin_client.test.helper import TestClient
+from sovrin_client.test.client.TestClient import TestClient
 from stp_core.network.port_dispenser import genHa
 
 agentPort = genHa()[1]
 
 
 def getNewAgent(name, basedir, port, wallet):
-    return createAcmeAgent(name, wallet, basedirpath=basedir, port=port)
+    return createAcmeAgent(name, wallet, base_dir_path=basedir, port=port)
 
 
 def runAgent(looper, basedir, port, name=None, agent=None):
@@ -39,7 +39,7 @@ def agentStarted(emptyLooper, tdirWithPoolTxns):
     return _startAgent(emptyLooper, tdirWithPoolTxns, agentPort, "Agent0")
 
 
-def changeAndPersistWallet(agent):
+def changeAndPersistWallet(agent, emptyLooper):
     walletName = normalizedWalletFileName(agent._wallet.name)
     expectedFilePath = os.path.join(agent.getContextDir(), walletName)
     assert "agents" in expectedFilePath
@@ -47,13 +47,14 @@ def changeAndPersistWallet(agent):
     walletToBePersisted = agent._wallet
     walletToBePersisted.idsToSigners = {}
     agent.stop()
+    emptyLooper.runFor(.5)
     assert os.path.isfile(expectedFilePath)
     return walletToBePersisted
 
 
-def changePersistAndRestoreWallet(agent):
+def changePersistAndRestoreWallet(agent, emptyLooper):
     assert agent
-    changeAndPersistWallet(agent)
+    changeAndPersistWallet(agent, emptyLooper)
     agent.start(emptyLooper)
     assert agent._wallet.idsToSigners == {}
 
@@ -61,14 +62,14 @@ def changePersistAndRestoreWallet(agent):
 def testAgentPersistsWalletWhenStopped(poolNodesStarted, emptyLooper,
                                        agentAddedBySponsor, agentStarted):
     agent, _ = agentStarted
-    changePersistAndRestoreWallet(agent)
+    changePersistAndRestoreWallet(agent, emptyLooper)
 
 
 def testAgentUsesRestoredWalletIfItHas(
         poolNodesStarted, emptyLooper, tdirWithPoolTxns,
         agentAddedBySponsor, agentStarted):
     agent, wallet = agentStarted
-    changeAndPersistWallet(agent)
+    changeAndPersistWallet(agent, emptyLooper)
 
     newAgent = getNewAgent(agent.name, tdirWithPoolTxns, agentPort,
                         agentWallet())

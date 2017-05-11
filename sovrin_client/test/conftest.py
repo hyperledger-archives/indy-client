@@ -5,40 +5,28 @@ from plenum.test import waits as plenumWaits
 from stp_core.common.log import Logger
 
 from stp_core.loop.eventually import eventually
+from sovrin_client.test.constants import primes
 import warnings
+from copy import deepcopy
 
-from plenum.common.util import randomString
-from plenum.test.helper import waitForSufficientRepliesForRequests
-from plenum.test.node_catchup.helper import \
-    ensureClientConnectedToNodesAndPoolLedgerSame
-from plenum.test.test_node import checkNodesConnected
-from sovrin_client.client.wallet.node import Node
 from sovrin_common import strict_types
-from stp_core.network.port_dispenser import genHa
 
 # typecheck during tests
 strict_types.defaultShouldCheck = True
 
 import pytest
-from copy import deepcopy
 
-from stp_core.loop.looper import Looper
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import VERKEY, NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
-    ALIAS, SERVICES, VALIDATOR, TYPE, STEWARD, TRUSTEE, TXN_ID
-from plenum.test.plugin.helper import getPluginPath
+from plenum.common.constants import VERKEY, ALIAS, STEWARD, TXN_ID, TRUSTEE, TYPE
 
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.constants import NYM, TRUST_ANCHOR
 from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
-from sovrin_common.txn_util import getTxnOrderedFields
-from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
-from sovrin_node.test.helper import TestNode, \
-    makePendingTxnsRequest, buildStewardClient
-from sovrin_client.test.helper import addRole, getClientAddedWithRole, primes, \
+from sovrin_node.test.helper import makePendingTxnsRequest, buildStewardClient, \
+    TestNode
+from sovrin_client.test.helper import addRole, \
     genTestClient, TestClient, createNym
-
 
 # noinspection PyUnresolvedReferences
 from plenum.test.conftest import tdir, nodeReg, up, ready, \
@@ -46,8 +34,12 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
     startedNodes, tdirWithDomainTxns, txnPoolNodeSet, poolTxnData, dirName, \
     poolTxnNodeNames, allPluginsPath, tdirWithNodeKeepInited, tdirWithPoolTxns, \
     poolTxnStewardData, poolTxnStewardNames, getValueFromModule, \
-    txnPoolNodesLooper, nodeAndClientInfoFilePath, conf, patchPluginManager, \
+    txnPoolNodesLooper, nodeAndClientInfoFilePath, patchPluginManager, \
     warncheck, warnfilters as plenum_warnfilters, setResourceLimits
+
+# noinspection PyUnresolvedReferences
+from sovrin_common.test.conftest import conf, tconf, poolTxnTrusteeNames, \
+    domainTxnOrderedFields, looper
 
 Logger.setLogLevel(logging.DEBUG)
 
@@ -72,13 +64,6 @@ def primes2():
 
 
 @pytest.fixture(scope="module")
-def tconf(conf, tdir):
-    conf.baseDir = tdir
-    conf.MinSepBetweenNodeUpgrades = 5
-    return conf
-
-
-@pytest.fixture(scope="module")
 def updatedPoolTxnData(poolTxnData):
     data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
@@ -93,11 +78,6 @@ def updatedPoolTxnData(poolTxnData):
     data["seeds"]["Trustee1"] = trusteeSeed
     data["txns"].insert(0, t)
     return data
-
-
-@pytest.fixture(scope="module")
-def poolTxnTrusteeNames():
-    return "Trustee1",
 
 
 @pytest.fixture(scope="module")
@@ -122,13 +102,9 @@ def trusteeWallet(trusteeData):
 # TODO: This fixture is present in sovrin_node too, it should be
 # sovrin_common's conftest.
 @pytest.fixture(scope="module")
-def trustee(nodeSet, looper, tdir, trusteeWallet):
+#TODO devin
+def trustee(nodeSet, looper, tdir, up, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
-
-
-@pytest.fixture(scope="module")
-def allPluginsPath():
-    return [getPluginPath('stats_consumer')]
 
 
 @pytest.fixture(scope="module")
@@ -140,14 +116,6 @@ def stewardWallet(poolTxnStewardData):
     return wallet
 
 
-@pytest.fixture(scope="module")
-def looper():
-    with Looper() as l:
-        yield l
-
-
-# TODO: This fixture is present in sovrin_node too, it should be
-# sovrin_common's conftest.
 @pytest.fixture(scope="module")
 def steward(nodeSet, looper, tdir, stewardWallet):
     return buildStewardClient(looper, tdir, stewardWallet)
@@ -168,16 +136,6 @@ def genesisTxns(stewardWallet: Wallet, trusteeWallet: Wallet):
 
 
 @pytest.fixture(scope="module")
-def domainTxnOrderedFields():
-    return getTxnOrderedFields()
-
-
-@pytest.fixture(scope="module")
-def conf(tdir):
-    return getConfig(tdir)
-
-
-@pytest.fixture(scope="module")
 def testNodeClass():
     return TestNode
 
@@ -188,8 +146,10 @@ def testClientClass():
 
 
 @pytest.fixture(scope="module")
-def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames, trusteeData, tconf):
-    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData, tdirWithDomainTxns, tconf.domainTransactionsFile)
+def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames,
+                              trusteeData, tconf):
+    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData,
+                            tdirWithDomainTxns, tconf.domainTransactionsFile)
     return tdirWithDomainTxns
 
 
@@ -200,7 +160,7 @@ def updatedDomainTxnFile(tdir, tdirWithDomainTxnsUpdated, genesisTxns,
 
 
 @pytest.fixture(scope="module")
-def nodeSet(tconf, updatedDomainTxnFile, txnPoolNodeSet):
+def nodeSet(tconf, updatedPoolTxnData, updatedDomainTxnFile, txnPoolNodeSet):
     return txnPoolNodeSet
 
 

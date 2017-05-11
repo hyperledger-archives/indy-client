@@ -100,13 +100,13 @@ class SovrinPublicRepo(PublicRepo):
         return pkR
 
     async def getPublicKeyAccumulator(self, id: ID) -> AccumulatorPublicKey:
-        pass
+        raise NotImplementedError
 
     async def getAccumulator(self, id: ID) -> Accumulator:
-        pass
+        raise NotImplementedError
 
     async def getTails(self, id: ID) -> TailsType:
-        pass
+        raise NotImplementedError
 
     # SUBMIT
 
@@ -159,11 +159,11 @@ class SovrinPublicRepo(PublicRepo):
 
     async def submitAccumulator(self, id: ID, accumPK: AccumulatorPublicKey,
                                 accum: Accumulator, tails: TailsType):
-        pass
+        raise NotImplementedError
 
     async def submitAccumUpdate(self, id: ID, accum: Accumulator,
                                 timestampMs: TimestampType):
-        pass
+        raise NotImplementedError
 
     async def _sendSubmitReq(self, op):
         return await self._sendReq(op, _submitData)

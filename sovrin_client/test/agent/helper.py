@@ -1,13 +1,10 @@
 import argparse
-import os
 import sys
 
+from sovrin_client.agent.helper import buildAgentWallet
 from sovrin_client.test import waits
 from stp_core.loop.eventually import eventually
-from stp_core.loop.looper import Looper
-from plenum.common.signer_simple import SimpleSigner
-from sovrin_client.agent.agent_cli import AgentCli
-from sovrin_client.client.wallet.wallet import Wallet
+from sovrin_client.agent.run_agent import runAgent
 from sovrin_common.config_util import getConfig
 
 config = getConfig()
@@ -47,12 +44,6 @@ def getAgentCmdLineParams():
     else:
         return None, False
 
-    
-def buildAgentWallet(name, seed):
-    wallet = Wallet(name)
-    wallet.addIdentifier(signer=SimpleSigner(seed=seed))
-    return wallet
-
 
 def buildFaberWallet():
     return buildAgentWallet("FaberCollege", b'Faber000000000000000000000000000')
@@ -66,28 +57,11 @@ def buildThriftWallet():
     return buildAgentWallet("ThriftBank", b'Thrift00000000000000000000000000')
 
 
-def bootstrapAgentCli(name, agentCreator, looper, bootstrap):
-    curDir = os.getcwd()
-    logFilePath = os.path.join(curDir, config.logFilePath)
-    cli = AgentCli(name='{}-Agent'.format(name).lower().replace(" ", "-"),
-                   agentCreator=agentCreator,
-                   looper=looper,
-                   basedirpath=config.baseDir,
-                   logFileName=logFilePath)
-    if bootstrap:
-        looper.run(cli.agent.bootstrap())
+def startAgent(looper, agent, wallet, bootstrap=None):
+    agent = agent
+    wallet.pendSyncRequests()
+    prepared = wallet.preparePending()
+    agent.client.submitReqs(*prepared)
 
-    return cli
-
-
-def runAgentCli(name, agentCreator, looper=None, bootstrap=True):
-    def run(looper):
-        agentCli = bootstrapAgentCli(name, agentCreator, looper, bootstrap)
-        commands = sys.argv[1:]
-        looper.run(agentCli.shell(*commands))
-
-    if looper:
-        run(looper)
-    else:
-        with Looper(debug=False) as looper:
-            run(looper)
+    runAgent(agent, looper, bootstrap=bootstrap)
+    return agent, wallet

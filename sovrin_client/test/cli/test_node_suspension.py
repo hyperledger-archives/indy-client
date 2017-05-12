@@ -19,7 +19,7 @@ def testSuspendNode(be, do, trusteeCli, newNodeAdded):
     # Re-suspend node
     newNodeVals['newNodeData'][SERVICES] = []
     doSendNodeCmd(do, newNodeVals,
-              expMsgs=['node already has the same data as requested'])
+                  expMsgs=['node already has the same data as requested'])
 
     # Cancel suspension
     newNodeVals['newNodeData'][SERVICES] = [VALIDATOR]

@@ -479,24 +479,6 @@ class SovrinCli(PlenumCli):
                 return False
         return role
 
-    def _getTxnType(self, txnType):
-        try:
-            type =  SovrinTransactions(txnType)
-            return type.value
-        except ValueError:
-            pass
-
-        try:
-            type = SovrinTransactions[txnType]
-            return type.value
-        except KeyError:
-            pass
-
-        self.print("Invalid transaction type. Valid types are: {}".
-                   format(", ".join(map(lambda r: r.name, SovrinTransactions))),
-                   Token.Error)
-        return None
-
     def _getNym(self, nym):
         identity = Identity(identifier=nym)
         req = self.activeWallet.requestIdentity(
@@ -615,7 +597,10 @@ class SovrinCli(PlenumCli):
                    format(name, version))
 
         def out(reply, error, *args, **kwargs):
-            self.print("Pool upgrade successful", Token.BoldBlue)
+            if error:
+                self.print("Pool upgrade failed", Token.BoldOrange)
+            else:
+                self.print("Pool upgrade successful", Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
                                     req.key, self.activeClient, out)

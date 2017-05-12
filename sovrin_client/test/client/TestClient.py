@@ -1,4 +1,3 @@
-import pyorient
 from plenum.test.test_stack import StackedTester, TestStack
 from plenum.test.testable import spyable
 from sovrin_client.client.client import Client

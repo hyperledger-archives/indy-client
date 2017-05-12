@@ -58,7 +58,7 @@ class EnhancedInstallDev(develop):
 
 
 setup(
-    name='sovrin-client-3pc-batch',
+    name='sovrin-client-dev',
     version=__version__,
     description='Sovrin client',
     url='https://github.com/sovrin-foundation/sovrin-client.git',
@@ -72,9 +72,9 @@ setup(
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
     include_package_data=True,
-    install_requires=['sovrin-common-3pc-batch==0.2.25', 'anoncreds-dev==0.3.7'],
+    install_requires=['sovrin-common-dev==0.2.55', 'anoncreds-dev==0.3.7'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'sovrin-node-3pc-batch==0.3.78'],
+    tests_require=['pytest', 'sovrin-node-dev==0.3.95'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',
              'scripts/add_new_node', 'scripts/reset_client'],
     cmdclass={

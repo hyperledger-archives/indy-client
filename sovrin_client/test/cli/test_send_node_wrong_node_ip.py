@@ -5,7 +5,6 @@ from sovrin_common.roles import Roles
 from sovrin_client.test.cli.helper import getNewNodeVals
 
 
-@pytest.mark.skip(reason="SOV-1046")
 def test_new_node_not_added_if_node_ip_incorrect(
         be, do, poolNodesStarted, trusteeCli, newStewardCli, nymAddedOut,
         newNodeVals):

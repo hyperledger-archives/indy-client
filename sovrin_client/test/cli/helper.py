@@ -4,10 +4,7 @@ import re
 from _sha256 import sha256
 from typing import Dict
 
-from stp_core.crypto.util import randomSeed
-
 from plenum.common import util
-from plenum.common.util import randomString
 
 from plenum.test import waits
 from stp_core.loop.eventually import eventually
@@ -382,30 +379,6 @@ def getWalletState(userCli):
     totalClaimsRcvd = getTotalClaimsRcvd(userCli)
     return wallet_state(totalLinks, totalAvailClaims, totalSchemas,
                         totalClaimsRcvd)
-
-
-def getNewNodeVals():
-    newStewardSeed = randomSeed()
-    newNodeSeed = randomSeed()
-    nodeIp, nodePort = genHa()
-    clientIp, clientPort = genHa()
-
-    newNodeData = {
-        NODE_IP: nodeIp,
-        NODE_PORT: nodePort,
-        CLIENT_IP: clientIp,
-        CLIENT_PORT: clientPort,
-        ALIAS: randomString(6),
-        SERVICES: [VALIDATOR]
-    }
-
-    return {
-        'newStewardSeed': newStewardSeed,
-        'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
-        'newNodeSeed': newNodeSeed,
-        'newNodeIdr': SimpleSigner(seed=newNodeSeed).identifier,
-        'newNodeData': newNodeData
-    }
 
 
 def doSendNodeCmd(do, nodeVals, expMsgs=None):

@@ -6,12 +6,17 @@ from copy import copy
 from typing import List
 
 import pytest
+from stp_core.crypto.util import randomSeed
+from stp_core.network.port_dispenser import genHa
 
 import plenum
 from plenum.common import util
-from plenum.common.constants import ALIAS
+from plenum.common.constants import ALIAS, NODE_IP, NODE_PORT, CLIENT_IP, \
+    CLIENT_PORT, SERVICES, VALIDATOR
 from plenum.common.constants import CLIENT_STACK_SUFFIX
 from plenum.common.exceptions import BlowUp
+from plenum.common.signer_simple import SimpleSigner
+from plenum.common.util import randomString
 from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.common.log import getlogger
@@ -32,8 +37,7 @@ from plenum.test.cli.helper import newKeyPair, waitAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, \
-    getNewNodeVals, doSendNodeCmd
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, doSendNodeCmd
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
@@ -1318,8 +1322,35 @@ def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
 
 
 @pytest.fixture(scope='module')
+def newStewardVals():
+    newStewardSeed = randomSeed()
+
+    return {
+        'newStewardSeed': newStewardSeed.decode(),
+        'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
+    }
+
+
+@pytest.fixture(scope='module')
 def newNodeVals():
-    return getNewNodeVals()
+    newNodeSeed = randomSeed()
+    nodeIp, nodePort = genHa()
+    clientIp, clientPort = genHa()
+
+    newNodeData = {
+        NODE_IP: nodeIp,
+        NODE_PORT: nodePort,
+        CLIENT_IP: clientIp,
+        CLIENT_PORT: clientPort,
+        ALIAS: randomString(6),
+        SERVICES: [VALIDATOR]
+    }
+
+    return {
+        'newNodeSeed': newNodeSeed.decode(),
+        'newNodeIdr': SimpleSigner(seed=newNodeSeed).identifier,
+        'newNodeData': newNodeData
+    }
 
 
 @pytest.yield_fixture(scope="module")
@@ -1330,15 +1361,14 @@ def cliWithNewStewardName(CliBuilder):
 @pytest.fixture(scope='module')
 def newStewardCli(be, do, poolNodesStarted, trusteeCli,
                   connectedToTest, nymAddedOut, cliWithNewStewardName,
-                  newNodeVals):
+                  newStewardVals):
     be(trusteeCli)
     if not trusteeCli._isConnectedToAnyEnv():
         do('connect test', within=3,
            expect=connectedToTest)
 
-    v = copy(newNodeVals)
+    v = copy(newStewardVals)
     v['remote'] = v['newStewardIdr']
-    v['newStewardSeed'] = v['newStewardSeed'].decode()
 
     do('send NYM dest={{newStewardIdr}} role={role}'
        .format(role=Roles.STEWARD.name),

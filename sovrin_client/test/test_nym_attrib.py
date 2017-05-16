@@ -5,26 +5,27 @@ import base58
 import libnacl.public
 import pytest
 
-from plenum.test import waits
-from stp_core.loop.eventually import eventually
-from stp_core.common.log import getlogger
-from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import ENC, DATA, REPLY, TXN_TIME, TXN_ID, \
+from plenum.common.constants import ENC, REPLY, TXN_TIME, TXN_ID, \
     OP_FIELD_NAME, NYM, TARGET_NYM, \
     TXN_TYPE, ROLE, NONCE
-from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
-from sovrin_common.constants import SKEY
+from plenum.common.signer_simple import SimpleSigner
 from plenum.common.types import f
 from plenum.common.util import adict
+from plenum.test import waits
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_common.identity import Identity
-from sovrin_common.util import getSymmetricallyEncryptedVal
-from sovrin_node.test.helper import submitAndCheck, \
-    makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode
 from sovrin_client.test.helper import checkNacks, submitAndCheckRejects, \
     genTestClient, createNym, checkRejects
+from sovrin_common.constants import SKEY
+from sovrin_common.identity import Identity
+from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
+from sovrin_common.util import getSymmetricallyEncryptedVal
+from sovrin_node.test.helper import submitAndCheck, \
+    makeAttribRequest, makeGetNymRequest, addAttributeAndCheck, TestNode, \
+    getAttribute
+from stp_core.common.log import getlogger
+from stp_core.loop.eventually import eventually
 
 logger = getlogger()
 
@@ -263,29 +264,6 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
 
     timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
     looper.run(eventually(chk, retryWait=1, timeout=timeout))
-
-
-def checkGetAttr(reqKey, trustAnchor, attrName, attrValue):
-    reply, status = trustAnchor.getReply(*reqKey)
-    assert reply
-    data = json.loads(reply.get(DATA))
-    assert status == "CONFIRMED" and \
-           (data is not None and data.get(attrName) == attrValue)
-
-
-def getAttribute(looper, trustAnchor, trustAnchorWallet, userIdA, attributeName,
-                 attributeValue):
-    attrib = Attribute(name=attributeName,
-                       value=None,
-                       dest=userIdA,
-                       ledgerStore=LedgerStore.RAW)
-    req = trustAnchorWallet.requestAttribute(attrib,
-                                         sender=trustAnchorWallet.defaultId)
-    trustAnchor.submitReqs(req)
-    timeout = waits.expectedTransactionExecutionTime(len(trustAnchor.nodeReg))
-    looper.run(eventually(checkGetAttr, req.key, trustAnchor,
-                          attributeName, attributeValue, retryWait=1,
-                          timeout=timeout))
 
 
 @pytest.fixture(scope="module")

@@ -598,7 +598,9 @@ class SovrinCli(PlenumCli):
 
         def out(reply, error, *args, **kwargs):
             if error:
-                self.print("Pool upgrade failed", Token.BoldOrange)
+                self.print(
+                    "Pool upgrade failed: {}".format(error),
+                    Token.BoldOrange)
             else:
                 self.print("Pool upgrade successful", Token.BoldBlue)
 

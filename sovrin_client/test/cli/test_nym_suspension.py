@@ -105,7 +105,7 @@ def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded,
        expect=nymAddedOut, mapper=trustAnchorAdded)
     s = SimpleSigner().identifier
     be(trustAnchorCli)
-    errorMsg = 'UnauthorizedClientRequest'
+    errorMsg = "UnauthorizedClientRequest('None role cannot add None role'"
     do('send NYM dest={remote}',
        within=5,
        expect=[errorMsg], mapper={'remote': s})

@@ -295,7 +295,8 @@ def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA
         looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
-                              'UnauthorizedClientRequest', retryWait=1, timeout=timeout))
+                              "UnauthorizedClientRequest('Only identity owner/guardian can add attribute for that identity'",
+                              retryWait=1, timeout=timeout))
 
 
 def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
@@ -313,7 +314,7 @@ def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
         looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
-                              'UnauthorizedClientRequest',
+                              "UnauthorizedClientRequest('Only identity owner/guardian can add attribute for that identity'",
                               retryWait=1, timeout=timeout))
 
 
@@ -330,7 +331,7 @@ def testStewardCannotAddUsersAttribute(nodeSet, looper, steward,
         looper.run(eventually(checkRejects,
                               steward,
                               reqs[0].reqId,
-                              'UnauthorizedClientRequest',
+                              "UnauthorizedClientRequest('Only identity owner/guardian can add attribute for that identity'",
                               retryWait=1, timeout=timeout))
 
 

@@ -1367,20 +1367,18 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli,
         do('connect test', within=3,
            expect=connectedToTest)
 
-    v = copy(newStewardVals)
-    v['remote'] = v['newStewardIdr']
-
     do('send NYM dest={{newStewardIdr}} role={role}'
        .format(role=Roles.STEWARD.name),
        within=3,
-       expect=nymAddedOut, mapper=v)
+       expect='Nym {newStewardIdr} added',
+       mapper=newStewardVals)
 
     be(cliWithNewStewardName)
 
     do('new key with seed {newStewardSeed}', expect=[
         'Identifier for key is {newStewardIdr}',
         'Current identifier set to {newStewardIdr}'],
-       mapper=v)
+       mapper=newStewardVals)
 
     if not cliWithNewStewardName._isConnectedToAnyEnv():
         do('connect test', within=3,

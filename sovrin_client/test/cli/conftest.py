@@ -1147,15 +1147,6 @@ def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
     return thrift, thriftWallet
 
 
-@pytest.fixture(scope="module")
-def schemaAdded():
-    return ["credential definition is published"]
-
-
-@pytest.fixture(scope="module")
-def claimDefAdded():
-    return ["claim definition is published"]
-
 
 @pytest.fixture(scope='module')
 def savedKeyringRestored():

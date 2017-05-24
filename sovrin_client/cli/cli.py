@@ -702,43 +702,55 @@ class SovrinCli(PlenumCli):
 
     def _sendSchemaAction(self, matchedVars):
         if matchedVars.get('send_schema') == sendSchemaCmd.id:
-            if not self.canMakeSovrinRequest:
-                return True
-
-            schema = self.agent.issuer.genSchema(
-                name=matchedVars.get(NAME),
-                version=matchedVars.get(VERSION),
-                ttrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")],
-                typ=matchedVars.get(TYPE))
-
-            self.print("The following credential definition is published"
-                       "to the Sovrin distributed ledger\n", Token.BoldBlue,
-                       newline=False)
-            self.print("{}".format(str(schema)))
-            self.print("Sequence number is {}".format(schema.id),
-                       Token.BoldBlue)
-
+            self.agent.loop.call_soon(asyncio.ensure_future,
+                                      self._sendSchemaActionAsync(matchedVars))
             return True
+
+    async def _sendSchemaActionAsync(self, matchedVars):
+        if not self.canMakeSovrinRequest:
+            return True
+
+        schema = await self.agent.issuer.genSchema(
+            name=matchedVars.get(NAME),
+            version=matchedVars.get(VERSION),
+            attrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")])
+
+        self.print("The following schema is published "
+                   "to the Sovrin distributed ledger\n", Token.BoldBlue,
+                   newline=False)
+        self.print("{}".format(str(schema)))
+        self.print("Sequence number is {}".format(schema.seqId),
+                   Token.BoldBlue)
+
+        return True
 
     def _sendClaimDefAction(self, matchedVars):
         if matchedVars.get('send_claim_def') == sendClaimDefCmd.id:
-            if not self.canMakeSovrinRequest:
-                return True
-            reference = int(matchedVars.get(REF))
-            id = ID(schemaId=reference)
-            try:
-                self.agent.issuer.genKeys(id)
-            except SchemaNotFound:
-                self.print("Reference {} not found".format(reference),
-                           Token.BoldOrange)
-
-            ipk = self.agent.wallet.getPublicKey(id)
-            self.print("The following issuer key is published to the"
-                       " Sovrin distributed ledger\n", Token.BoldBlue,
-                       newline=False)
-            self.print("{}".format(str(ipk)))
-
+            self.agent.loop.call_soon(asyncio.ensure_future,
+                                      self._sendClaimDefActionAsync(matchedVars))
             return True
+
+
+    async def _sendClaimDefActionAsync(self, matchedVars):
+        if not self.canMakeSovrinRequest:
+            return True
+        reference = int(matchedVars.get(REF))
+        id = ID(schemaId=reference)
+        try:
+            pk, pkR = await self.agent.issuer.genKeys(id)
+        except SchemaNotFound:
+            self.print("Schema with seqNo {} not found".format(reference),
+                       Token.BoldOrange)
+            return False
+
+        self.print("The following claim definition is published to the"
+                   " Sovrin distributed ledger\n", Token.BoldBlue,
+                   newline=False)
+        self.print("{}".format(str(pk)))
+        self.print("Sequence number is {}".format(pk.seqId),
+                   Token.BoldBlue)
+
+        return True
 
     def printUsageMsgs(self, msgs):
         for m in msgs:

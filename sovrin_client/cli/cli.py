@@ -558,7 +558,7 @@ class SovrinCli(PlenumCli):
 
         def out(reply, error, *args, **kwargs):
             if error:
-                self.print("{}".format(error), Token.BoldOrange)
+                self.print("Error: {}".format(error), Token.BoldOrange)
             else:
                 self.print("Attribute added for nym {}".
                            format(reply[TARGET_NYM]), Token.BoldBlue)

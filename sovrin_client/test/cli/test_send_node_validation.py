@@ -469,7 +469,6 @@ def testSendNodeFailsIfClientPortIsMissed(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1093')
 def testSendNodeFailsIfAliasIsEmpty(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
@@ -494,7 +493,6 @@ def testSendNodeFailsIfAliasIsMissed(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1094')
 def testSendNodeFailsIfServicesContainsUnknownValue(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
@@ -507,7 +505,6 @@ def testSendNodeFailsIfServicesContainsUnknownValue(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1094')
 def testSendNodeFailsIfServicesIsValidatorValue(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
@@ -520,7 +517,6 @@ def testSendNodeFailsIfServicesIsValidatorValue(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1094')
 def testSendNodeFailsIfServicesIsEmptyString(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
@@ -546,7 +542,6 @@ def testSendNodeFailsIfServicesIsMissed(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1095')
 def testSendNodeFailsIfDataContainsUnknownField(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 

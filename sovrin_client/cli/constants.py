@@ -49,7 +49,7 @@ ADD_ATTRIB_REG_EX = \
 SEND_SCHEMA_REG_EX = "(\s*(?P<send_schema>send\s+{schema})" \
                      "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
                      "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)" \
-                     "\s+(?P<keys_key>keys=)\s*(?P<keys>[a-zA-Z-_,\s]+)\s*)".format(
+                     "\s+(?P<keys_key>keys=)\s*(?P<keys>[0-9a-zA-Z-_,\s]+)\s*)".format(
     schema=SovrinTransactions.SCHEMA.name)
 
 SEND_CLAIM_DEF_REG_EX = "(\s*(?P<send_claim_def>send\s+{issKey})" \

@@ -7,13 +7,11 @@ from plenum.common.signer_simple import SimpleSigner
 from plenum.common.util import cryptonymToHex, randomString
 from sovrin_client.test.cli.conftest import newStewardCli as getNewStewardCli, \
     newStewardVals as getNewStewardVals, newNodeVals as getNewNodeVals
+from sovrin_client.test.cli.constants import CONNECTED_TO_TEST, \
+    NODE_REQUEST_COMPLETED, NODE_REQUEST_FAILED, INVALID_SYNTAX
 from sovrin_client.test.cli.helper import addAgent
 
-CONNECTED_TO_TEST = "Connected to test"
-NYM_ADDED_OUT = "Nym {remote} added"
-NODE_REQUEST_COMPLETED = "Node request completed"
-NODE_REQUEST_FAILED = "Node request failed"
-INVALID_SYNTAX = "Invalid syntax"
+NYM_ADDED = "Nym {remote} added"
 
 
 @pytest.yield_fixture(scope="function")
@@ -35,15 +33,15 @@ def newNodeVals():
 def newStewardCli(be, do, poolNodesStarted, trusteeCli,
                   cliWithRandomName, newStewardVals):
     return getNewStewardCli(be, do, poolNodesStarted, trusteeCli,
-                            CONNECTED_TO_TEST, NYM_ADDED_OUT,
-                            cliWithRandomName, newStewardVals)
+                            CONNECTED_TO_TEST, cliWithRandomName,
+                            newStewardVals)
 
 
 def ensurePoolIsOperable(be, do, cli):
     randomNymMapper = {
         'remote': SimpleSigner(seed=randomSeed()).identifier
     }
-    addAgent(be, do, cli, randomNymMapper, CONNECTED_TO_TEST, NYM_ADDED_OUT)
+    addAgent(be, do, cli, randomNymMapper, CONNECTED_TO_TEST, NYM_ADDED)
 
 
 def testSendNodeSucceedsIfServicesIsArrayWithValidatorValueOnly(
@@ -169,10 +167,10 @@ def testSendNodeFailsIfNodeIpHasWrongFormat(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-def testSendNodeFailsIfNodeIpComponentsAreOutOfBounds(
+def testSendNodeFailsIfSomeNodeIpComponentsAreNegative(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
-    newNodeVals['newNodeData'][NODE_IP] = '88.155.256.248'
+    newNodeVals['newNodeData'][NODE_IP] = '122.-1.52.13'
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -181,10 +179,10 @@ def testSendNodeFailsIfNodeIpComponentsAreOutOfBounds(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-def testSendNodeFailsIfNodeIpComponentsAreZeroes(
+def testSendNodeFailsIfSomeNodeIpComponentsAreHigherThanUpperBound(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
-    newNodeVals['newNodeData'][NODE_IP] = '0.0.0.0'
+    newNodeVals['newNodeData'][NODE_IP] = '122.62.256.13'
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -221,18 +219,6 @@ def testSendNodeFailsIfNodePortIsNegative(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
     newNodeVals['newNodeData'][NODE_PORT] = -1
-
-    be(newStewardCli)
-    do('send NODE dest={newNodeIdr} data={newNodeData}',
-       mapper=newNodeVals, expect=NODE_REQUEST_FAILED, within=8)
-
-    ensurePoolIsOperable(be, do, newStewardCli)
-
-
-def testSendNodeFailsIfNodePortIsZero(
-        be, do, poolNodesStarted, newStewardCli, newNodeVals):
-
-    newNodeVals['newNodeData'][NODE_PORT] = 0
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -337,10 +323,10 @@ def testSendNodeFailsIfClientIpHasWrongFormat(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-def testSendNodeFailsIfClientIpComponentsAreOutOfBounds(
+def testSendNodeFailsIfSomeClientIpComponentsAreNegative(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
-    newNodeVals['newNodeData'][CLIENT_IP] = '88.155.256.248'
+    newNodeVals['newNodeData'][CLIENT_IP] = '122.-1.52.13'
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -349,10 +335,10 @@ def testSendNodeFailsIfClientIpComponentsAreOutOfBounds(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-def testSendNodeFailsIfClientIpComponentsAreZeroes(
+def testSendNodeFailsIfSomeClientIpComponentsAreHigherThanUpperBound(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
-    newNodeVals['newNodeData'][CLIENT_IP] = '0.0.0.0'
+    newNodeVals['newNodeData'][CLIENT_IP] = '122.62.256.13'
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -389,18 +375,6 @@ def testSendNodeFailsIfClientPortIsNegative(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
     newNodeVals['newNodeData'][CLIENT_PORT] = -1
-
-    be(newStewardCli)
-    do('send NODE dest={newNodeIdr} data={newNodeData}',
-       mapper=newNodeVals, expect=NODE_REQUEST_FAILED, within=8)
-
-    ensurePoolIsOperable(be, do, newStewardCli)
-
-
-def testSendNodeFailsIfClientPortIsZero(
-        be, do, poolNodesStarted, newStewardCli, newNodeVals):
-
-    newNodeVals['newNodeData'][CLIENT_PORT] = 0
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
@@ -566,28 +540,28 @@ def testSendNodeFailsIfDataIsEmptyJson(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1096')
-def testSendNodeHasInvalidSyntaxIfDataIsBrokenJson(
+@pytest.mark.skip(reason='INDY-68')
+def testSendNodeFailsIfDataIsBrokenJson(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
     newNodeVals['newNodeData'] = "{'node_ip': '10.0.0.105', 'node_port': 9701"
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
-       mapper=newNodeVals, expect=INVALID_SYNTAX, within=8)
+       mapper=newNodeVals, expect=NODE_REQUEST_FAILED, within=8)
 
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1096')
-def testSendNodeHasInvalidSyntaxIfDataIsNotJson(
+@pytest.mark.skip(reason='INDY-68')
+def testSendNodeFailsIfDataIsNotJson(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
     newNodeVals['newNodeData'] = 'not_json'
 
     be(newStewardCli)
     do('send NODE dest={newNodeIdr} data={newNodeData}',
-       mapper=newNodeVals, expect=INVALID_SYNTAX, within=8)
+       mapper=newNodeVals, expect=NODE_REQUEST_FAILED, within=8)
 
     ensurePoolIsOperable(be, do, newStewardCli)
 

@@ -4,7 +4,11 @@ import re
 from _sha256 import sha256
 from typing import Dict
 
+from libnacl import randombytes
+
 from plenum.common import util
+from plenum.common.signer_did import DidSigner
+from plenum.common.util import rawToFriendly
 
 from plenum.test import waits
 from stp_core.loop.eventually import eventually
@@ -329,6 +333,26 @@ def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
     return userCli
 
 
+def addNym(be, do, userCli, idr, verkey=None, role=None):
+    be(userCli)
+    cmd = 'send NYM dest={}'.format(idr)
+    if role is not None:
+        cmd += ' role={}'.format(role)
+    if verkey is not None:
+        cmd += ' verkey={}'.format(verkey)
+
+    do(cmd, expect='Nym {} added'.format(idr), within=2)
+
+
+def newKey(be, do, userCli, seed=None):
+    be(userCli)
+    cmd = 'new key'
+    if seed is not None:
+        cmd += ' with seed {}'.format(seed)
+
+    do(cmd, expect='Current identifier set to')
+
+
 def getAgentCliHelpString():
     return """Sovrin-CLI, a simple command-line interface for a Sovrin Identity platform.
    Commands:
@@ -385,6 +409,24 @@ def doSendNodeCmd(do, nodeVals, expMsgs=None):
     expect = expMsgs or ['Node request completed']
     do('send NODE dest={newNodeIdr} data={newNodeData}',
        within=8, expect=expect, mapper=nodeVals)
+
+
+def createUuidIdentifier():
+    return rawToFriendly(randombytes(16))
+
+
+def createUuidIdentifierAndFullVerkey(seed=None):
+    didSigner = DidSigner(identifier=createUuidIdentifier(), seed=seed)
+    return didSigner.identifier, didSigner.verkey
+
+
+def createHalfKeyIdentifierAndAbbrevVerkey(seed=None):
+    didSigner = DidSigner(seed=seed)
+    return didSigner.identifier, didSigner.verkey
+
+
+def createCryptonym(seed=None):
+    return SimpleSigner(seed=seed).identifier
 
 
 def compareAgentIssuerWallet(unpersistedWallet, restoredWallet):

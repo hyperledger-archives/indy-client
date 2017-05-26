@@ -1350,9 +1350,8 @@ def cliWithNewStewardName(CliBuilder):
 
 
 @pytest.fixture(scope='module')
-def newStewardCli(be, do, poolNodesStarted, trusteeCli,
-                  connectedToTest, nymAddedOut, cliWithNewStewardName,
-                  newStewardVals):
+def newStewardCli(be, do, poolNodesStarted, trusteeCli, connectedToTest,
+                  cliWithNewStewardName, newStewardVals):
     be(trusteeCli)
     if not trusteeCli._isConnectedToAnyEnv():
         do('connect test', within=3,

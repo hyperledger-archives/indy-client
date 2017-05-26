@@ -1,33 +1,15 @@
 import pytest
 from libnacl import randombytes
 
-from plenum.common.signer_did import DidSigner
-from plenum.common.signer_simple import SimpleSigner
 from plenum.common.util import rawToFriendly, friendlyToHexStr, friendlyToHex, \
     hexToFriendly
+from sovrin_client.test.cli.constants import ERROR, INVALID_SYNTAX
+from sovrin_client.test.cli.helper import createUuidIdentifier, \
+    createHalfKeyIdentifierAndAbbrevVerkey, createUuidIdentifierAndFullVerkey, \
+    createCryptonym
 from sovrin_common.roles import Roles
 
-NYM_ADDED_OUT = 'Nym {dest} added'
-ERROR = 'Error:'
-INVALID_SYNTAX = "Invalid syntax"
-
-
-def createUuidIdentifier():
-    return rawToFriendly(randombytes(16))
-
-
-def createUuidIdentifierAndFullVerkey():
-    didSigner = DidSigner(identifier=createUuidIdentifier())
-    return didSigner.identifier, didSigner.verkey
-
-
-def createHalfKeyIdentifierAndAbbrevVerkey():
-    didSigner = DidSigner()
-    return didSigner.identifier, didSigner.verkey
-
-
-def createCryptonym():
-    return SimpleSigner().identifier
+NYM_ADDED = 'Nym {dest} added'
 
 
 def testSendNymSucceedsForUuidIdentifierAndOmittedVerkey(
@@ -40,7 +22,7 @@ def testSendNymSucceedsForUuidIdentifierAndOmittedVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForUuidIdentifierAndEmptyVerkey(
@@ -54,7 +36,7 @@ def testSendNymSucceedsForUuidIdentifierAndEmptyVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForUuidIdentifierAndFullVerkey(
@@ -70,7 +52,7 @@ def testSendNymSucceedsForUuidIdentifierAndFullVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForHalfKeyIdentifierAndAbbrevVerkey(
@@ -86,7 +68,7 @@ def testSendNymSucceedsForHalfKeyIdentifierAndAbbrevVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForCryptonymIdentifierAndOmittedVerkey(
@@ -99,7 +81,7 @@ def testSendNymSucceedsForCryptonymIdentifierAndOmittedVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForCryptonymIdentifierAndEmptyVerkey(
@@ -113,7 +95,7 @@ def testSendNymSucceedsForCryptonymIdentifierAndEmptyVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForCryptonymIdentifierAndSameFullVerkey(
@@ -129,7 +111,7 @@ def testSendNymSucceedsForCryptonymIdentifierAndSameFullVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForCryptonymIdentifierAndDifferentFullVerkey(
@@ -146,7 +128,7 @@ def testSendNymSucceedsForCryptonymIdentifierAndDifferentFullVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForTrusteeRole(
@@ -162,7 +144,7 @@ def testSendNymSucceedsForTrusteeRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForStewardRole(
@@ -178,7 +160,7 @@ def testSendNymSucceedsForStewardRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForTgbRole(
@@ -194,7 +176,7 @@ def testSendNymSucceedsForTgbRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForTrustAnchorRole(
@@ -210,7 +192,7 @@ def testSendNymSucceedsForTrustAnchorRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForOmittedRole(
@@ -225,7 +207,7 @@ def testSendNymSucceedsForOmittedRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 def testSendNymSucceedsForEmptyRole(
@@ -241,7 +223,7 @@ def testSendNymSucceedsForEmptyRole(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED_OUT, within=2)
+       mapper=parameters, expect=NYM_ADDED, within=2)
 
 
 @pytest.mark.skip(reason='SOV-1117')

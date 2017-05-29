@@ -503,19 +503,6 @@ def testSendNodeFailsIfServicesIsEmptyString(
     ensurePoolIsOperable(be, do, newStewardCli)
 
 
-@pytest.mark.skip(reason='SOV-1091')
-def testSendNodeFailsIfServicesIsMissed(
-        be, do, poolNodesStarted, newStewardCli, newNodeVals):
-
-    del newNodeVals['newNodeData'][SERVICES]
-
-    be(newStewardCli)
-    do('send NODE dest={newNodeIdr} data={newNodeData}',
-       mapper=newNodeVals, expect=NODE_REQUEST_FAILED, within=8)
-
-    ensurePoolIsOperable(be, do, newStewardCli)
-
-
 def testSendNodeFailsIfDataContainsUnknownField(
         be, do, poolNodesStarted, newStewardCli, newNodeVals):
 
@@ -606,5 +593,18 @@ def testSendNodeHasInvalidSyntaxIfAllParametersAreMissed(
 
     be(newStewardCli)
     do('send NODE', expect=INVALID_SYNTAX, within=8)
+
+    ensurePoolIsOperable(be, do, newStewardCli)
+
+
+@pytest.mark.skip('INDY-88')
+def testSendNodeSucceedsIfServicesIsMissed(
+        be, do, poolNodesStarted, newStewardCli, newNodeVals):
+
+    del newNodeVals['newNodeData'][SERVICES]
+
+    be(newStewardCli)
+    do('send NODE dest={newNodeIdr} data={newNodeData}',
+       mapper=newNodeVals, expect=NODE_REQUEST_COMPLETED, within=8)
 
     ensurePoolIsOperable(be, do, newStewardCli)

@@ -72,7 +72,7 @@ setup(
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
     include_package_data=True,
-    install_requires=['sovrin-common-new-elec==0.2.5', 'anoncreds-dev==0.3.8'],
+    install_requires=['sovrin-common-new-elec==0.2.8', 'anoncreds-dev==0.3.8'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest', 'sovrin-node-dev==0.3.118'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',

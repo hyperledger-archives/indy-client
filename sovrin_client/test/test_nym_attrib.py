@@ -404,7 +404,7 @@ def testGetTxnsNoSeqNo():
     """
     Test GET_TXNS from client and do not provide any seqNo to fetch from
     """
-    pass
+    raise NotImplementedError
 
 
 @pytest.mark.skip(reason="SOV-560. Come back to it later since "

@@ -989,36 +989,37 @@ def assertReqAvailClaims(be, do, userCli, agentMap,
 # with internal id, which would be same for whosoever uses the same invitation
 # file (which has the nonce, and hence their internal id would be same),
 # so either this test's expectation is wrong OR we'll have to fix the issue.
-# def testBobReqAvailClaimsFromAgents(
-#         be, do, bobCli, loadInviteOut, faberMap, acmeMap, thriftMap,
-#         connectedToTest, syncedInviteAcceptedWithClaimsOut,
-#         unsycedAcceptedInviteWithoutClaimOut):
-#     userCli = bobCli
-#
-#     # When new user/cli requests available claims from Faber,
-#     # Transcript claim should be send as available claims
-#     bob_faber_map = dict(faberMap)
-#     bob_faber_map.update({'invite':'sample/faber-bob-link-invite.sovrin',
-#                          'nonce': '710b78be79f29fc81335abaa4ee1c5e8'})
-#     assertReqAvailClaims(be, do, userCli, bob_faber_map, connectedToTest,
-#                          loadInviteOut, syncedInviteAcceptedWithClaimsOut)
-#
-#     # When new user/cli requests available claims from Acme,
-#     # No claims should be sent as available claims. 'Job-Certificate' claim
-#     # should be only available when agent has received 'Job-Application'
-#     # proof request and it is verified.
-#     bob_acme_map = dict(acmeMap)
-#     bob_acme_map.update({"claims": "No available claims found",
-#                          'invite':'sample/acme-bob-link-invite.sovrin',
-#                          'nonce': '810b78be79f29fc81335abaa4ee1c5e8'})
-#     assertReqAvailClaims(be, do, userCli, bob_acme_map, connectedToTest,
-#                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
-#
-#     # When new user/cli requests available claims from Thrift,
-#     # No claims should be sent as available claims.
-#     bob_thrift_map = dict(thriftMap)
-#     bob_thrift_map.update({"claims": "No available claims found",
-#                          'invite':'sample/thrift-bob-link-invite.sovrin',
-#                          'nonce': 'ousezru20ic4yz3j074trcgthwlsnfsef'})
-#     assertReqAvailClaims(be, do, userCli, bob_thrift_map, connectedToTest,
-#                           loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
+@pytest.mark.skip(reason='INDY-107')
+def testBobReqAvailClaimsFromAgents(
+        be, do, bobCli, loadInviteOut, faberMap, acmeMap, thriftMap,
+        connectedToTest, syncedInviteAcceptedWithClaimsOut,
+        unsycedAcceptedInviteWithoutClaimOut):
+    userCli = bobCli
+
+    # When new user/cli requests available claims from Faber,
+    # Transcript claim should be send as available claims
+    bob_faber_map = dict(faberMap)
+    bob_faber_map.update({'invite':'sample/faber-bob-link-invite.sovrin',
+                         'nonce': '710b78be79f29fc81335abaa4ee1c5e8'})
+    assertReqAvailClaims(be, do, userCli, bob_faber_map, connectedToTest,
+                         loadInviteOut, syncedInviteAcceptedWithClaimsOut)
+
+    # When new user/cli requests available claims from Acme,
+    # No claims should be sent as available claims. 'Job-Certificate' claim
+    # should be only available when agent has received 'Job-Application'
+    # proof request and it is verified.
+    bob_acme_map = dict(acmeMap)
+    bob_acme_map.update({"claims": "No available claims found",
+                         'invite':'sample/acme-bob-link-invite.sovrin',
+                         'nonce': '810b78be79f29fc81335abaa4ee1c5e8'})
+    assertReqAvailClaims(be, do, userCli, bob_acme_map, connectedToTest,
+                         loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)
+
+    # When new user/cli requests available claims from Thrift,
+    # No claims should be sent as available claims.
+    bob_thrift_map = dict(thriftMap)
+    bob_thrift_map.update({"claims": "No available claims found",
+                         'invite':'sample/thrift-bob-link-invite.sovrin',
+                         'nonce': 'ousezru20ic4yz3j074trcgthwlsnfsef'})
+    assertReqAvailClaims(be, do, userCli, bob_thrift_map, connectedToTest,
+                          loadInviteOut, unsycedAcceptedInviteWithoutClaimOut)

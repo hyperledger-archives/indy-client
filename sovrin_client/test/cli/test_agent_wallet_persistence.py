@@ -59,13 +59,11 @@ def changePersistAndRestoreWallet(agent, emptyLooper):
     assert agent._wallet.idsToSigners == {}
 
 
-# @pytest.mark.skip(reason="SOV-1077")
 def testAgentPersistsWalletWhenStopped(poolNodesStarted, emptyLooper,
                                        agentAddedBySponsor, agentStarted):
     agent, _ = agentStarted
     changePersistAndRestoreWallet(agent, emptyLooper)
 
-# @pytest.mark.skip(reason="SOV-1077")
 def testAgentUsesRestoredWalletIfItHas(
         poolNodesStarted, emptyLooper, tdirWithPoolTxns,
         agentAddedBySponsor, agentStarted):
@@ -84,7 +82,6 @@ def testAgentCreatesWalletIfItDoesntHaveOne(tdirWithPoolTxns):
     assert agent._wallet is not None
 
 
-# @pytest.mark.skip(reason="SOV-1077")
 def testAgentWalletRestoration(poolNodesStarted, tdirWithPoolTxns, emptyLooper,
                   agentAddedBySponsor, agentStarted):
     agent, wallet = agentStarted

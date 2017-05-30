@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
@@ -51,7 +49,6 @@ class RefAgent(WalletedAgent):
         return json.dumps(msg)
 
 
-# @pytest.mark.skip()
 def test_end_to_end(tconf):
     base_dir = tconf.baseDir
 

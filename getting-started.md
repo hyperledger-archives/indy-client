@@ -24,14 +24,14 @@ Sovrin is a software ecosystem for private, secure, and powerful identity. It pu
 
 Sovrin uses open-source, distributed ledger technology. These ledgers are a form of database that is provided cooperatively by a pool of participants, instead of by a giant database with a central admin. Data lives redundantly in many places, and it accrues in transactions orchestrated by many machines. Strong, industry-standard cryptography protects it. Best practices in key management and cybersecurity pervade its design. The result is a reliable, public source of truth under no single entity’s control, robust to system failure, resilient to hacking, and highly immune to subversion by hostile entities.
 
-If the cryptography and blockchain details feel mysterious, fear not: getting traction to develop on Sovrin is easy and fast. You’re starting in the right place.
+If the cryptography and blockchain details feel mysterious, fear not: this guide will help introduce you to key concepts within Sovrin. You’re starting in the right place.
 
 ## What We’ll Cover
 
 Our goal is to introduce you to many of the concepts of Sovrin, and give you some idea of what happens behind the scenes to make it all work.
 
-We are going to frame the exploration with a story. Alice, a graduate of the fictional Faber College, wants to apply for a job at Acme Corp. As soon as she has the job, she wants to apply for a loan so she can buy a car. She would like to use her college transcript as proof of her education on the job application; once hired, Alice would like to use the fact of employment as evidence of her creditworthiness for the loan.
-The sorts of identity and trust interactions required to pull this off are messy in the world today; they are slow, they violate privacy, and they are susceptible to fraud. We’ll show you how Sovrin is a quantum leap forward.
+We are going to frame the exploration with a story. Alice, a graduate of the fictional Faber College, wants to apply for a job at the fictional company Acme Corp. As soon as she has the job, she wants to apply for a loan so she can buy a car. She would like to use her college transcript as proof of her education on the job application; once hired, Alice would like to use the fact of employment as evidence of her creditworthiness for the loan.
+The sorts of identity and trust interactions required to pull this off are messy in the world today; they are slow, violate privacy, and are susceptible to fraud. We’ll show you how Sovrin is a quantum leap forward.
 
 Ready?
 
@@ -54,15 +54,13 @@ For this guide, however, we’ll be using a command - line interface instead of 
 ## Install Sovrin
 You can install a Sovrin test network in one of several ways:
 
- - **Automated VM Creation** [Create virtual machines](https://github.com/evernym/sovrin-environments/blob/master/vagrant/training/vb-multi-vm/TestSovrinClusterSetup.md) in your Mac or PC using VirtualBox and Vagrant
- - **Manually setup Validator nodes** - If you prefer to install Sovrin-Node manually without using virtual machine images, please see the installation instructions for [Linux](https://docs.google.com/document/d/1PX-9VQCC8ULgpU2bofaNLJnMW45JXTFPNPnnBSikcRU/edit#) or [Windows](https://docs.google.com/document/d/1_ba3M4cqLAvha_BLgPp07L2EHLdxqptr_tRW2IUAS0g/edit#heading=h.oe37ssfqfijq).  You will also need to set up a node or nodes to run processes to emulate the required Agents.  This is left as an exercise for you.
- - **Simulation from Python console** [Simulate a Sovrin Validator cluster and agents](cluster-simulation.md) in an event loop.  Similar to what the devs do for testing.
+ - **Automated VM Creation** [Create virtual machines](https://github.com/evernym/sovrin-environments/blob/master/vagrant/training/vb-multi-vm/TestSovrinClusterSetup.md) using VirtualBox and Vagrant.
  - **Coming soon:** Use client side docker images to make it easy for you to play with Sovrin.
- - **Also coming soon:** Create virtual machines in AWS using Vagrant
+ - **Also coming soon:** Create virtual machines in AWS.
 
 To proceed past this point, you should have a test Sovrin Validator cluster running, either in separate nodes (VMs), or in simulation. You should also have Agent nodes (or a simulation) running with the "Faber College", "Acme Corp", and "Thrift Bank" Agents.  You should also have a CLI client which gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
 
-##Using the Sovrin CLI
+## Using the Sovrin CLI
 After completing the preceeding, you should have a terminal with a Sovrin client CLI prompt:
 
 ```

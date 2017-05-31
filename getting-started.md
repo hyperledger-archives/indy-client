@@ -14,6 +14,7 @@
   * [Test Secure Interaction](#test-secure-interaction)
   * [Apply for a Job](#apply-for-a-job)
   * [Apply for a Loan](#apply-for-a-loan)
+  * [Explore the Code](#explore-the-code)
 * [Appendix](#appendix)
   * [Faber College Configures Transcripts](#faber-college-configures-transcripts)
   * [Acme Corp Defines a Job-Application](#acme-corp-defines-a-job-application)
@@ -792,8 +793,10 @@ Signature accepted.
 Response from Thrift Bank (69.9 ms):
     Your Proof Loan-Application-KYC 0.1 has been received and verified
 ```
+## Explore the Code
 
-
+Now that you've had a chance to see how Sovrin works from the outside, perhaps you'd like to see how it works underneath, from code? If so, please navigate to [Simulating Getting Started in an Event Loop](https://github.com/sovrin-foundation/sovrin-client/blob/master/sovrin_client/test/training/test_getting_started_guide.py).
+You may need to be signed into Github to view this link.
 
 # Appendix
 

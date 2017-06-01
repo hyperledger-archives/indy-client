@@ -58,9 +58,11 @@ def test_pool_upgrade_rejected(be, do, newStewardCli, validUpgrade):
     Pool upgrade done by a non trustee is rejected
     """
     be(newStewardCli)
+    err_msg = "Pool upgrade failed: client request invalid: " \
+              "UnauthorizedClientRequest('STEWARD cannot do POOL_UPGRADE'"
     send_upgrade_cmd(do,
                      ['Sending pool upgrade',
-                      "Pool upgrade failed: client request invalid: UnauthorizedClientRequest('STEWARD cannot do POOL_UPGRADE'"],
+                      err_msg],
                      validUpgrade)
 
 

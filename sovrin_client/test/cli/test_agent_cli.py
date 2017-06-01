@@ -18,7 +18,8 @@ class TestAgentCLI(AgentCli, TestCliCore):
 
 
 @pytest.fixture(scope='module')
-def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLogger):
+def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf,
+                    cliTempLogger):
     return partial(getCliBuilder, tdir=tdir, tconf=tconf,
                    tdirWithPoolTxns=tdirWithPoolTxns,
                    tdirWithDomainTxns=tdirWithDomainTxns,
@@ -27,7 +28,8 @@ def agentCliBuilder(tdir, tdirWithPoolTxns, tdirWithDomainTxns, tconf, cliTempLo
 
 @pytest.fixture(scope='module')
 def acmeAgentCli(agentCliBuilder, acmeAgentPort, tdir):
-    agent = create_acme(port=acmeAgentPort, base_dir_path=tdir, wallet=buildAcmeWallet())
+    agent = create_acme(port=acmeAgentPort, base_dir_path=tdir,
+                        wallet=buildAcmeWallet())
     cliBuild = agentCliBuilder(name='Acme-Agent', agent=agent)
     cli = cliBuild('Acme-Agent')
     yield from cli

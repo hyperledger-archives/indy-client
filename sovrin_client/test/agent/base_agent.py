@@ -6,7 +6,7 @@ from ioflo.base.consoling import Console
 from plenum.cli.cli import Exit
 
 from stp_core.common.log import Logger, getlogger
-from sovrin_client.agent.agent import runBootstrap
+from sovrin_client.agent.run_agent import runBootstrap
 
 from sovrin_client.test.agent.test_walleted_agent import TestWalletedAgent
 
@@ -16,7 +16,7 @@ from anoncreds.protocol.types import ID
 from sovrin_client.agent.exception import NonceNotFound
 from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.helper import primes
+from sovrin_client.test.constants import primes
 from sovrin_common.config import agentLoggingLevel
 from sovrin_common.config_util import getConfig
 
@@ -163,7 +163,7 @@ class BaseAgent(TestWalletedAgent):
     async def addSchemasToWallet(self):
         for schemaKey in self.getSchemaKeysToBeGenerated():
             matchedAttrDefs = list(filter(lambda ad: ad.name == schemaKey.name,
-                             self.getAttrDefs()))
+                                          self.getAttrDefs()))
             assert len(matchedAttrDefs) == 1, \
                 "check if agent has attrib def and it's name is equivalent " \
                 "to it's corresponding schema key name"
@@ -175,7 +175,8 @@ class BaseAgent(TestWalletedAgent):
                                                  schemaKey.version,
                                                  attrDef.attribNames())
                 if schema:
-                    schemaId = ID(schemaKey=schema.getKey(), schemaId=schema.seqId)
+                    schemaId = ID(schemaKey=schema.getKey(),
+                                  schemaId=schema.seqId, seqId=schema.seqId)
                     p_prime, q_prime = primes["prime2"]
                     await self.issuer.genKeys(schemaId, p_prime=p_prime, q_prime=q_prime)
                     await self.issuer.issueAccumulator(schemaId=schemaId, iA='110', L=5)

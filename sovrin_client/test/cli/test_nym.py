@@ -1,7 +1,7 @@
 import pytest
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.cli.helper import prompt_is
+from sovrin_client.test.cli.helper import prompt_is, addNym
 from sovrin_common.roles import Roles
 from sovrin_node.test.did.conftest import wallet, abbrevVerkey, abbrevIdr
 
@@ -65,7 +65,7 @@ def getNym(be, do, userCli, idr, expectedMsgs):
     be(userCli)
     do('send GET_NYM dest={}'.format(idr),
        within=3,
-       expect=["Transaction id for NYM {} is".format(idr)] + expectedMsgs
+       expect=expectedMsgs
        )
 
 
@@ -81,17 +81,6 @@ def testGetDIDWithoutAddingIt(be, do, philCli, abbrevIdr):
 def testGetCIDWithoutAddingIt(be, do, philCli, trustAnchorSigner):
     getNym(be, do, philCli, trustAnchorSigner.identifier,
            getNymNotFoundExpectedMsgs(trustAnchorSigner.identifier))
-
-
-def addNym(be, do, userCli, idr, verkey=None, role=None):
-    be(userCli)
-    cmd = 'send NYM dest={}'.format(idr)
-    if role is not None:
-        cmd += ' role={}'.format(role)
-    if verkey is not None:
-        cmd = '{} verkey={}'.format(cmd, verkey)
-
-    do(cmd, within=5, expect=["Nym {} added".format(idr)])
 
 
 def addAndActivateCLIWallet(cli, wallet):

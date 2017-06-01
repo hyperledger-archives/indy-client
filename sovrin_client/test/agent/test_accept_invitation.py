@@ -72,6 +72,7 @@ def testMultipleAcceptance(aliceAcceptedFaber,
     checkAcceptInvitation(emptyLooper,
                           nonce=faberNonceForAlice,
                           inviteeAgent=otherAgent,
-                          inviterAgentAndWallet=faberIsRunning, linkName=link.name)
+                          inviterAgentAndWallet=faberIsRunning,
+                          linkName=link.name)
 
     assert len(faberAgent.wallet._links) == 2

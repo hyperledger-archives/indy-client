@@ -2,12 +2,22 @@ import json
 import os
 import re
 import tempfile
+from copy import copy
 from typing import List
 
 import pytest
+from stp_core.crypto.util import randomSeed
+from stp_core.network.port_dispenser import genHa
 
 import plenum
+from plenum.common import util
+from plenum.common.constants import ALIAS, NODE_IP, NODE_PORT, CLIENT_IP, \
+    CLIENT_PORT, SERVICES, VALIDATOR
+from plenum.common.constants import CLIENT_STACK_SUFFIX
 from plenum.common.exceptions import BlowUp
+from plenum.common.signer_simple import SimpleSigner
+from plenum.common.util import randomString
+from plenum.test import waits
 from stp_core.loop.eventually import eventually
 from stp_core.common.log import getlogger
 from plenum.test.conftest import tdirWithPoolTxns, tdirWithDomainTxns
@@ -27,12 +37,12 @@ from plenum.test.cli.helper import newKeyPair, waitAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, doSendNodeCmd
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
     faberAgentPort, acmeAgentPort, thriftAgentPort, faberAgent, acmeAgent, \
-    thriftAgent
+    thriftAgent, faberBootstrap, acmeBootstrap
 
 
 config = getConfig()
@@ -110,7 +120,7 @@ def faberMap(agentIpAddress, faberAgentPort):
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "target": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
+            "remote": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: ha,
             "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11'}}),
@@ -132,7 +142,7 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
             'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
             'inviter-not-exists': 'non-existing-inviter',
-            'target': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'remote': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
             'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
             'proof-requests': 'Job-Application',
             'proof-request-to-show': 'Job-Application',
@@ -155,7 +165,7 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "target": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
+            "remote": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
@@ -442,17 +452,17 @@ def acmeInviteLoaded(aliceCLI, be, do, acmeMap, loadInviteOut):
 
 @pytest.fixture(scope="module")
 def attrAddedOut():
-    return ["Attribute added for nym {target}"]
+    return ["Attribute added for nym {remote}"]
 
 
 @pytest.fixture(scope="module")
 def nymAddedOut():
-    return ["Nym {target} added"]
+    return ["Nym {remote} added"]
 
 
 @pytest.fixture(scope="module")
 def unSyncedEndpointOut():
-    return ["Target endpoint: <unknown, waiting for sync>"]
+    return ["Remote endpoint: <unknown, waiting for sync>"]
 
 
 @pytest.fixture(scope="module")
@@ -786,8 +796,8 @@ def showAcceptedLinkOut():
             "Name: {inviter}",
             "Identifier: {identifier}",
             "Verification key: {verkey}",
-            "Target: {target}",
-            "Target Verification key: <same as target>",
+            "Remote: {remote}",
+            "Remote Verification key: <same as Remote>",
             "Trust anchor: {inviter} (confirmed)",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted"]
@@ -801,11 +811,10 @@ def showLinkOut(nextCommandsToTryUsageLine, linkNotYetSynced):
             "    Trust anchor: {inviter} (not yet written to Sovrin)",
             "    Verification key: <empty>",
             "    Signing key: <hidden>",
-            "    Target: {target}",
-            "    Target Verification key: <unknown, waiting for sync>",
-            "    Target endpoint: {endpoint}",
+            "    Remote: {remote}",
+            "    Remote endpoint: {endpoint}",
             "    Invitation nonce: {nonce}",
-            "    Invitation status: not verified, target verkey unknown",
+            "    Invitation status: not verified, remote verkey unknown",
             "    Last synced: {last_synced}"] + \
            [""] + \
            nextCommandsToTryUsageLine + \
@@ -823,8 +832,8 @@ def showAcceptedSyncedLinkOut(nextCommandsToTryUsageLine):
             "Trust anchor: {inviter} (confirmed)",
             "Verification key: ~",
             "Signing key: <hidden>",
-            "Target: {target}",
-            "Target Verification key: <same as target>",
+            "Remote: {remote}",
+            "Remote Verification key: <same as Remote>",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted",
             "Proof Request(s): {proof-requests}",
@@ -1113,17 +1122,17 @@ def faberIsRunningWithoutNymAdded(emptyLooper, tdirWithPoolTxns, faberWallet,
 
 @pytest.fixture(scope="module")
 def faberIsRunning(emptyLooper, tdirWithPoolTxns, faberWallet,
-                   faberAddedByPhil, faberAgent):
+                   faberAddedByPhil, faberAgent, faberBootstrap):
     faber, faberWallet = runningFaber(emptyLooper, tdirWithPoolTxns,
-                                      faberWallet, faberAgent, faberAddedByPhil)
+                                      faberWallet, faberAgent, faberAddedByPhil, faberBootstrap)
     return faber, faberWallet
 
 
 @pytest.fixture(scope="module")
 def acmeIsRunning(emptyLooper, tdirWithPoolTxns, acmeWallet,
-                   acmeAddedByPhil, acmeAgent):
+                   acmeAddedByPhil, acmeAgent, acmeBootstrap):
     acme, acmeWallet = runningAcme(emptyLooper, tdirWithPoolTxns,
-                                   acmeWallet, acmeAgent, acmeAddedByPhil)
+                                   acmeWallet, acmeAgent, acmeAddedByPhil, acmeBootstrap)
 
     return acme, acmeWallet
 
@@ -1137,15 +1146,6 @@ def thriftIsRunning(emptyLooper, tdirWithPoolTxns, thriftWallet,
 
     return thrift, thriftWallet
 
-
-@pytest.fixture(scope="module")
-def schemaAdded():
-    return ["credential definition is published"]
-
-
-@pytest.fixture(scope="module")
-def claimDefAdded():
-    return ["claim definition is published"]
 
 
 @pytest.fixture(scope='module')
@@ -1259,19 +1259,19 @@ def poolNodesStarted(be, do, poolCLI):
         'Delta now connected to Beta',
         'Delta now connected to Gamma']
 
-    primarySelectedExpect = [
-        'Alpha:0 selected primary',
-        'Alpha:1 selected primary',
-        'Beta:0 selected primary',
-        'Beta:1 selected primary',
-        'Gamma:0 selected primary',
-        'Gamma:1 selected primary',
-        'Delta:0 selected primary',
-        'Delta:1 selected primary',
-        ]
+    # primarySelectedExpect = [
+    #     'Alpha:0 selected primary',
+    #     'Alpha:1 selected primary',
+    #     'Beta:0 selected primary',
+    #     'Beta:1 selected primary',
+    #     'Gamma:0 selected primary',
+    #     'Gamma:1 selected primary',
+    #     'Delta:0 selected primary',
+    #     'Delta:1 selected primary',
+    #     ]
 
-    do('new node all', within=6, expect = connectedExpect)
-    # do(None, within=4, expect=primarySelectedExpect)
+    do('new node all', within=6, expect=connectedExpect)
+
     return poolCLI
 
 
@@ -1294,19 +1294,6 @@ def philCli(be, do, philCLI):
     return philCLI
 
 
-def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
-    be(userCli)
-    if not userCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectExpMsgs)
-
-    do('send NYM dest={{target}} role={role}'.format(
-        role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddExpMsgs, mapper=mapper)
-    return philCli
-
-
 @pytest.fixture(scope="module")
 def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                      nymAddedOut, faberMap):
@@ -1323,3 +1310,109 @@ def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
 def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                       nymAddedOut, thriftMap):
     return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)
+
+
+@pytest.fixture(scope='module')
+def newStewardVals():
+    newStewardSeed = randomSeed()
+
+    return {
+        'newStewardSeed': newStewardSeed.decode(),
+        'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
+    }
+
+
+@pytest.fixture(scope='module')
+def newNodeVals():
+    newNodeSeed = randomSeed()
+    nodeIp, nodePort = genHa()
+    clientIp, clientPort = genHa()
+
+    newNodeData = {
+        NODE_IP: nodeIp,
+        NODE_PORT: nodePort,
+        CLIENT_IP: clientIp,
+        CLIENT_PORT: clientPort,
+        ALIAS: randomString(6),
+        SERVICES: [VALIDATOR]
+    }
+
+    return {
+        'newNodeSeed': newNodeSeed.decode(),
+        'newNodeIdr': SimpleSigner(seed=newNodeSeed).identifier,
+        'newNodeData': newNodeData
+    }
+
+
+@pytest.yield_fixture(scope="module")
+def cliWithNewStewardName(CliBuilder):
+    yield from CliBuilder("newSteward")
+
+
+@pytest.fixture(scope='module')
+def newStewardCli(be, do, poolNodesStarted, trusteeCli, connectedToTest,
+                  cliWithNewStewardName, newStewardVals):
+    be(trusteeCli)
+    if not trusteeCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    do('send NYM dest={{newStewardIdr}} role={role}'
+       .format(role=Roles.STEWARD.name),
+       within=3,
+       expect='Nym {newStewardIdr} added',
+       mapper=newStewardVals)
+
+    be(cliWithNewStewardName)
+
+    do('new key with seed {newStewardSeed}', expect=[
+        'Identifier for key is {newStewardIdr}',
+        'Current identifier set to {newStewardIdr}'],
+       mapper=newStewardVals)
+
+    if not cliWithNewStewardName._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    return cliWithNewStewardName
+
+
+@pytest.fixture(scope="module")
+def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli,
+                 connectedToTest, newNodeVals):
+    be(philCli)
+
+    if not philCli._isConnectedToAnyEnv():
+        do('connect test', within=3,
+           expect=connectedToTest)
+
+    be(newStewardCli)
+    doSendNodeCmd(do, newNodeVals)
+    newNodeData = newNodeVals["newNodeData"]
+
+    def checkClientConnected(client):
+        name = newNodeData[ALIAS] + CLIENT_STACK_SUFFIX
+        assert name in client.nodeReg
+
+    def checkNodeConnected(nodes):
+        for node in nodes:
+            name = newNodeData[ALIAS]
+            assert name in node.nodeReg
+
+    timeout = waits.expectedClientToPoolConnectionTimeout(
+        util.getMaxFailures(len(philCli.nodeReg))
+    )
+
+    newStewardCli.looper.run(eventually(checkClientConnected,
+                                        newStewardCli.activeClient,
+                                        timeout=timeout))
+
+    philCli.looper.run(eventually(checkClientConnected,
+                                  philCli.activeClient,
+                                  timeout=timeout))
+
+    poolNodesStarted.looper.run(eventually(checkNodeConnected,
+                                           list(
+                                               poolNodesStarted.nodes.values()),
+                                           timeout=timeout))
+    return newNodeVals

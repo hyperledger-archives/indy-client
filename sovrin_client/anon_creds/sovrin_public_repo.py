@@ -1,5 +1,7 @@
 import json
+from typing import Optional
 
+from ledger.serializers.json_serializer import JsonSerializer
 from ledger.util import F
 from stp_core.loop.eventually import eventually
 from plenum.common.exceptions import NoConsensusYet, OperationError
@@ -31,8 +33,8 @@ def _ensureReqCompleted(reqKey, client, clbk):
 
 
 def _getData(result, error):
-    data = json.loads(result.get(DATA).replace("\'", '"'))
-    seqNo = None if not data else data.get(F.seqNo.name)
+    data = json.loads(result.get(DATA).replace("\'", '"')) if result.get(DATA) else {}
+    seqNo = result.get(F.seqNo.name)
     return data, seqNo
 
 
@@ -51,7 +53,7 @@ class SovrinPublicRepo(PublicRepo):
         self.wallet = wallet
         self.displayer = print
 
-    async def getSchema(self, id: ID) -> Schema:
+    async def getSchema(self, id: ID) -> Optional[Schema]:
         op = {
             TARGET_NYM: id.schemaKey.issuerId,
             TXN_TYPE: GET_SCHEMA,
@@ -65,25 +67,10 @@ class SovrinPublicRepo(PublicRepo):
                       version=data[VERSION],
                       attrNames=data[ATTR_NAMES].split(","),
                       issuerId=data[ORIGIN],
-                      seqId=seqNo)
+                      seqId=seqNo) if data else None
 
-    async def getPublicKey(self,
-                           id: ID,
-                           signatureType = 'CL') -> PublicKey:
-        op = {
-            TXN_TYPE: GET_CLAIM_DEF,
-            REF: id.schemaId,
-            ORIGIN: id.schemaKey.issuerId,
-            SIGNATURE_TYPE: signatureType
-        }
-        data, seqNo = await self._sendGetReq(op)
-        data = data[DATA][PRIMARY]
-        pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
-        return pk
-
-    async def getPublicKeyRevocation(self,
-                                     id: ID,
-                                     signatureType = 'CL') -> RevocationPublicKey:
+    async def getPublicKey(self, id: ID,
+                           signatureType = 'CL') -> Optional[PublicKey]:
         op = {
             TXN_TYPE: GET_CLAIM_DEF,
             REF: id.schemaId,
@@ -93,37 +80,52 @@ class SovrinPublicRepo(PublicRepo):
         data, seqNo = await self._sendGetReq(op)
         if not data:
             return None
-        data = data[DATA][REVOCATION]
+        data = data[PRIMARY]
+        pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
+        return pk
+
+    async def getPublicKeyRevocation(self, id: ID,
+                                     signatureType = 'CL') -> Optional[RevocationPublicKey]:
+        op = {
+            TXN_TYPE: GET_CLAIM_DEF,
+            REF: id.schemaId,
+            ORIGIN: id.schemaKey.issuerId,
+            SIGNATURE_TYPE: signatureType
+        }
+        data, seqNo = await self._sendGetReq(op)
+        if not data:
+            return None
+        data = data[REVOCATION]
         pkR = RevocationPublicKey.fromStrDict(data)._replace(seqId=seqNo)
         return pkR
 
     async def getPublicKeyAccumulator(self, id: ID) -> AccumulatorPublicKey:
-        pass
+        raise NotImplementedError
 
     async def getAccumulator(self, id: ID) -> Accumulator:
-        pass
+        raise NotImplementedError
 
     async def getTails(self, id: ID) -> TailsType:
-        pass
+        raise NotImplementedError
 
     # SUBMIT
 
     async def submitSchema(self,
                            schema: Schema) -> Schema:
+        data = {
+            NAME: schema.name,
+            VERSION: schema.version,
+            ATTR_NAMES: ",".join(schema.attrNames)
+        }
         op = {
             TXN_TYPE: SCHEMA,
-            DATA: {
-                NAME: schema.name,
-                VERSION: schema.version,
-                ATTR_NAMES: ",".join(schema.attrNames)
-            }
+            DATA: JsonSerializer.dumps(data, toBytes=False)
         }
-        data, seqNo = await self._sendSubmitReq(op)
-        if not seqNo:
-            return None
-        schema = schema._replace(issuerId=self.wallet.defaultId,
-                                 seqId=seqNo)
-        return schema
+        _, seqNo = await self._sendSubmitReq(op)
+        if seqNo:
+            schema = schema._replace(issuerId=self.wallet.defaultId,
+                                     seqId=seqNo)
+            return schema
 
     async def submitPublicKeys(self,
                                id: ID,
@@ -141,28 +143,27 @@ class SovrinPublicRepo(PublicRepo):
         op = {
             TXN_TYPE: CLAIM_DEF,
             REF: id.schemaId,
-            DATA: data,
+            DATA: JsonSerializer.dumps(data, toBytes=False),
             SIGNATURE_TYPE: signatureType
         }
 
-        data, seqNo = await self._sendSubmitReq(op)
+        _, seqNo = await self._sendSubmitReq(op)
 
-        if not seqNo:
-            return None
-        pk = pk._replace(seqId=seqNo)
+        if seqNo:
+            pk = pk._replace(seqId=seqNo)
 
-        if pkR is not None:
-            pkR = pkR._replace(seqId=seqNo)
+            if pkR is not None:
+                pkR = pkR._replace(seqId=seqNo)
 
-        return pk, pkR
+            return pk, pkR
 
     async def submitAccumulator(self, id: ID, accumPK: AccumulatorPublicKey,
                                 accum: Accumulator, tails: TailsType):
-        pass
+        raise NotImplementedError
 
     async def submitAccumUpdate(self, id: ID, accum: Accumulator,
                                 timestampMs: TimestampType):
-        pass
+        raise NotImplementedError
 
     async def _sendSubmitReq(self, op):
         return await self._sendReq(op, _submitData)

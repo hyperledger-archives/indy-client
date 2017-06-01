@@ -1,3 +1,11 @@
+import logging
+
+from plenum.common.keygen_utils import initLocalKeys
+from plenum.test import waits as plenumWaits
+from stp_core.common.log import Logger
+
+from stp_core.loop.eventually import eventually
+from sovrin_client.test.constants import primes
 import warnings
 from copy import deepcopy
 
@@ -17,7 +25,7 @@ from sovrin_common.constants import TXN_TYPE, TARGET_NYM, ROLE
 from sovrin_client.test.cli.helper import newCLI, addTrusteeTxnsToGenesis, addTxnToFile
 from sovrin_node.test.helper import makePendingTxnsRequest, buildStewardClient, \
     TestNode
-from sovrin_client.test.helper import addRole, primes, \
+from sovrin_client.test.helper import addRole, \
     genTestClient, TestClient, createNym
 
 # noinspection PyUnresolvedReferences
@@ -33,6 +41,7 @@ from plenum.test.conftest import tdir, nodeReg, up, ready, \
 from sovrin_common.test.conftest import conf, tconf, poolTxnTrusteeNames, \
     domainTxnOrderedFields, looper
 
+Logger.setLogLevel(logging.DEBUG)
 
 @pytest.fixture(scope="session")
 def warnfilters(plenum_warnfilters):
@@ -93,6 +102,7 @@ def trusteeWallet(trusteeData):
 # TODO: This fixture is present in sovrin_node too, it should be
 # sovrin_common's conftest.
 @pytest.fixture(scope="module")
+#TODO devin
 def trustee(nodeSet, looper, tdir, up, trusteeWallet):
     return buildStewardClient(looper, tdir, trusteeWallet)
 
@@ -136,8 +146,10 @@ def testClientClass():
 
 
 @pytest.fixture(scope="module")
-def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames, trusteeData, tconf):
-    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData, tdirWithDomainTxns, tconf.domainTransactionsFile)
+def tdirWithDomainTxnsUpdated(tdirWithDomainTxns, poolTxnTrusteeNames,
+                              trusteeData, tconf):
+    addTrusteeTxnsToGenesis(poolTxnTrusteeNames, trusteeData,
+                            tdirWithDomainTxns, tconf.domainTransactionsFile)
     return tdirWithDomainTxns
 
 
@@ -256,3 +268,65 @@ def userClientB(nodeSet, userWalletB, looper, tdir):
     looper.run(u.ensureConnectedToNodes())
     makePendingTxnsRequest(u, userWalletB)
     return u
+
+
+def pytest_assertrepr_compare(op, left, right):
+    if isinstance(left, str) and isinstance(right, str):
+        if op in ('in', 'not in'):
+            mod = 'not ' if 'not' in op else ''
+            lines = ['    ' + s for s in right.split('\n')]
+            return ['"{}" should {}be in...'.format(left, mod)] + lines
+
+
+@pytest.fixture("module")
+def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
+                   stewardWallet, allPluginsPath, testNodeClass,
+                   testClientClass, tdir):
+    newStewardName = "testClientSteward" + randomString(3)
+    newNodeName = "Theta"
+    newSteward, newStewardWallet = getClientAddedWithRole(nodeSet, tdir,
+                                                          looper, steward,
+                                                          stewardWallet,
+                                                          newStewardName, STEWARD)
+
+    sigseed = randomString(32).encode()
+    nodeSigner = SimpleSigner(seed=sigseed)
+
+    (nodeIp, nodePort), (clientIp, clientPort) = genHa(2)
+
+    data = {
+        NODE_IP: nodeIp,
+        NODE_PORT: nodePort,
+        CLIENT_IP: clientIp,
+        CLIENT_PORT: clientPort,
+        ALIAS: newNodeName,
+        SERVICES: [VALIDATOR, ]
+    }
+
+    node = Node(nodeSigner.identifier, data, newStewardWallet.defaultId)
+    newStewardWallet.addNode(node)
+    reqs = newStewardWallet.preparePending()
+    req, = newSteward.submitReqs(*reqs)
+
+    waitForSufficientRepliesForRequests(looper, newSteward, requests=[req])
+
+    def chk():
+        assert newStewardWallet.getNode(node.id).seqNo is not None
+
+    timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
+    looper.run(eventually(chk, retryWait=1, timeout=timeout))
+
+    initLocalKeys(newNodeName, tdirWithPoolTxns, sigseed, override=True)
+
+    newNode = testNodeClass(newNodeName, basedirpath=tdir, config=tconf,
+                            ha=(nodeIp, nodePort), cliha=(clientIp, clientPort),
+                            pluginPaths=allPluginsPath)
+
+    nodeSet.append(newNode)
+    looper.add(newNode)
+    looper.run(checkNodesConnected(nodeSet))
+    ensureClientConnectedToNodesAndPoolLedgerSame(looper, steward,
+                                                  *nodeSet)
+    ensureClientConnectedToNodesAndPoolLedgerSame(looper, newSteward,
+                                                  *nodeSet)
+    return newSteward, newStewardWallet, newNode

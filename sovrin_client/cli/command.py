@@ -64,14 +64,14 @@ sendSchemaCmd = Command(
 
 sendClaimDefCmd = Command(
     id="send {claimDef}".format(claimDef=claimDefName),
-    title="Adds issuer keys for given schema",
+    title="Adds claim definition for given schema",
     usage="send {claimDef} ref=<ref-no-of-SCHEMA-txn> signature_type=<type>".format(claimDef=claimDefName),
     examples="send {claimDef} ref=10 signature_type=CL".format(claimDef=claimDefName))
 
 sendProofRequestCmd = Command(
     id="send proofreq",
     title="Send a proof request",
-    usage="send proofreq <proof-name> to <target>",
+    usage="send proofreq <proof-name> to <remote>",
     examples="send proofreq Over-21 to JaneDo")
 
 showFileCmd = Command(
@@ -111,8 +111,8 @@ syncLinkCmd = Command(
 
 pingTargetCmd = Command(
     id="ping",
-    title="Pings given target's endpoint",
-    usage="ping <target>",
+    title="Pings given remote's endpoint",
+    usage="ping <remote>",
     examples="ping faber")
 
 showClaimCmd = Command(
@@ -148,8 +148,8 @@ showProofRequestCmd = Command(
 
 acceptLinkCmd = Command(
     id="accept invitation from",
-    title="Accept invitation from given target",
-    usage="accept invitation from <target>",
+    title="Accept invitation from given remote",
+    usage="accept invitation from <remote>",
     examples="accept invitation from Faber")
 
 setAttrCmd = Command(
@@ -160,8 +160,8 @@ setAttrCmd = Command(
 
 sendProofCmd = Command(
     id="send proof",
-    title="Sends given proof to given target",
-    usage="send proof <claim-name> to <target>",
+    title="Sends given proof to given remote",
+    usage="send proof <claim-name> to <remote>",
     examples="send proof Job-Application to Acme Corp")
 
 addGenesisTxnCmd = Command(

@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 
 import pytest
 
@@ -11,17 +11,23 @@ from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \
 from sovrin_node.test.upgrade.conftest import validUpgrade
 
 
+def send_upgrade_cmd(do, expect, upgrade_data):
+    do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
+       'action={action} schedule={schedule} timeout={timeout}',
+       within=10,
+       expect=expect, mapper=upgrade_data)
+
+
 @pytest.fixture(scope='module')
 def nodeIds(poolNodesStarted):
     return next(iter(poolNodesStarted.nodes.values())).poolManager.nodeIds
 
 
 @pytest.fixture(scope="module")
-def poolUpgradeSubmitted(be, do, trusteeCli, validUpgrade, trusteeMap):
-    do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
-       'action={action} schedule={schedule} timeout={timeout}',
-       within=10,
-       expect=['Pool upgrade successful'], mapper=validUpgrade)
+def poolUpgradeSubmitted(be, do, trusteeCli, validUpgrade):
+    be(trusteeCli)
+    send_upgrade_cmd(do, ['Sending pool upgrade', 'Pool upgrade successful'],
+                     validUpgrade)
 
 
 @pytest.fixture(scope="module")
@@ -35,15 +41,29 @@ def poolUpgradeScheduled(poolUpgradeSubmitted, poolNodesStarted, validUpgrade):
 
 @pytest.fixture(scope="module")
 def poolUpgradeCancelled(poolUpgradeScheduled, be, do, trusteeCli,
-                         validUpgrade, trusteeMap):
+                         validUpgrade):
     validUpgrade = copy(validUpgrade)
     validUpgrade[ACTION] = CANCEL
     validUpgrade[JUSTIFICATION] = '"not gonna give you one"'
-
+    be(trusteeCli)
     do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
        'action={action} justification={justification}',
        within=10,
-       expect=['Pool upgrade successful'], mapper=validUpgrade)
+       expect=['Sending pool upgrade', 'Pool upgrade successful'],
+       mapper=validUpgrade)
+
+
+def test_pool_upgrade_rejected(be, do, newStewardCli, validUpgrade):
+    """
+    Pool upgrade done by a non trustee is rejected
+    """
+    be(newStewardCli)
+    err_msg = "Pool upgrade failed: client request invalid: " \
+              "UnauthorizedClientRequest('STEWARD cannot do POOL_UPGRADE'"
+    send_upgrade_cmd(do,
+                     ['Sending pool upgrade',
+                      err_msg],
+                     validUpgrade)
 
 
 def testPoolUpgradeSent(poolUpgradeScheduled):

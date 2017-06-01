@@ -31,10 +31,11 @@ class ClientReqRepStoreFile(PClientReqRepStoreFile):
 
     def getLastTxnForIdentifier(self, identifier):
         try:
+            data = {}
             with open(os.path.join(self.dataLocation, self.lastTxnsFileName),
                       "r") as f:
                 data = f.read().strip()
                 data = json.loads(data) if data else {}
-                return data.get(identifier)
+            return data.get(identifier)
         except FileNotFoundError:
             return None

@@ -3,6 +3,7 @@ from sovrin_common.generates_request import GeneratesRequest
 from sovrin_common.types import Request
 from stp_core.types import Identifier
 
+
 class Node(GeneratesRequest):
     def __init__(self, id: Identifier, data: dict, steward: Identifier):
         self.id = id

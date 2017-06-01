@@ -28,8 +28,10 @@ from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
 from plenum.common.txn_util import createGenesisTxnFile
+from plenum.common.types import f
 from plenum.common.util import randomString, getWalletFilePath
-from sovrin_client.agent.agent import WalletedAgent
+
+from sovrin_client.agent.walleted_agent import WalletedAgent
 from sovrin_client.agent.constants import EVENT_NOTIFY_MSG, EVENT_POST_ACCEPT_INVITE, \
     EVENT_NOT_CONNECTED_TO_ANY_ENV
 from sovrin_client.agent.msg_constants import ERR_NO_PROOF_REQUEST_SCHEMA_FOUND
@@ -242,8 +244,8 @@ class SovrinCli(PlenumCli):
         return ['{} <attr-name> to <attr-value>'.format(setAttrCmd.id)]
 
     @staticmethod
-    def _getSendProofUsage(proofRequest: ProofRequest = None,
-                           inviter: Link = None):
+    def _getSendProofUsage(proofRequest: ProofRequest=None,
+                           inviter: Link=None):
         return ['{} "{}" to "{}"'.format(
             sendProofCmd.id,
             proofRequest.name or "<proof-request-name>",
@@ -260,7 +262,7 @@ class SovrinCli(PlenumCli):
             filePath or "<file-path>")]
 
     @staticmethod
-    def _getShowProofRequestUsage(proofRequest: ProofRequest = None):
+    def _getShowProofRequestUsage(proofRequest: ProofRequest=None):
         return ['{} "{}"'.format(
             showProofRequestCmd.id,
             (proofRequest and proofRequest.name) or '<proof-request-name>')]
@@ -395,19 +397,39 @@ class SovrinCli(PlenumCli):
         agent.registerEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
                                     self._handleNotConnectedToAnyEnv)
 
+    def deregisterAgentListeners(self, agent):
+        agent.deregisterEventListener(EVENT_NOTIFY_MSG, self._printMsg)
+        agent.deregisterEventListener(EVENT_POST_ACCEPT_INVITE,
+                                    self._printSuggestionPostAcceptLink)
+        agent.deregisterEventListener(EVENT_NOT_CONNECTED_TO_ANY_ENV,
+                                    self._handleNotConnectedToAnyEnv)
+
     @property
     def agent(self) -> WalletedAgent:
         if self._agent is None:
             _, port = genHa()
-            self._agent = WalletedAgent(name=randomString(6),
+            agent = WalletedAgent(name=randomString(6),
                                         basedirpath=self.basedirpath,
                                         client=self.activeClient if self.activeEnv else None,
                                         wallet=self.activeWallet,
                                         loop=self.looper.loop,
                                         port=port)
+            self.agent = agent
+        return self._agent
+
+    @agent.setter
+    def agent(self, agent):
+        if self._agent is not None:
+            self.deregisterAgentListeners(self._agent)
+            self.looper.removeProdable(self._agent)
+
+        self._agent = agent
+
+        if agent is not None:
             self.registerAgentListeners(self._agent)
             self.looper.add(self._agent)
-        return self._agent
+            self._activeWallet = self._agent.wallet
+            self.wallets[self._agent.wallet.name] = self._agent.wallet
 
     def _handleNotConnectedToAnyEnv(self, notifier, msg):
         self.print("\n{}\n".format(msg))
@@ -465,11 +487,9 @@ class SovrinCli(PlenumCli):
         self.print("Getting nym {}".format(nym))
 
         def getNymReply(reply, err, *args):
-            self.print("Transaction id for NYM {} is {}".
-                       format(nym, reply[TXN_ID]), Token.BoldBlue)
             try:
                 if reply[DATA]:
-                    data = json.loads(reply[DATA])
+                    data=json.loads(reply[DATA])
                     if data:
                         idr = base58.b58decode(nym)
                         if data.get(VERKEY) is None:
@@ -480,7 +500,7 @@ class SovrinCli(PlenumCli):
                             else:
                                 self.print(
                                     "No verkey ever assigned to the identifier {}".
-                                        format(nym), Token.BoldBlue)
+                                    format(nym), Token.BoldBlue)
                             return
                         if data.get(VERKEY) == '':
                             self.print("No active verkey found for the identifier {}".
@@ -526,22 +546,7 @@ class SovrinCli(PlenumCli):
         return True
 
     def _addAttribToNym(self, nym, raw, enc, hsh):
-        assert int(bool(raw)) + int(bool(enc)) + int(bool(hsh)) == 1
-        if raw:
-            l = LedgerStore.RAW
-            data = raw
-        elif enc:
-            l = LedgerStore.ENC
-            data = enc
-        elif hsh:
-            l = LedgerStore.HASH
-            data = hsh
-        else:
-            raise RuntimeError('One of raw, enc, or hash are required.')
-
-        attrib = Attribute(randomString(5), data, self.activeWallet.defaultId,
-                           dest=nym, ledgerStore=LedgerStore.RAW)
-
+        attrib = self.activeWallet.build_attrib(nym, raw, enc, hsh)
         # TODO: What is the purpose of this?
         # if nym != self.activeWallet.defaultId:
         #     attrib.dest = nym
@@ -549,11 +554,11 @@ class SovrinCli(PlenumCli):
         self.activeWallet.addAttribute(attrib)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
-        self.print("Adding attributes {} for {}".format(data, nym))
+        self.print("Adding attributes {} for {}".format(attrib.value, nym))
 
         def out(reply, error, *args, **kwargs):
             if error:
-                self.print("{}".format(error), Token.BoldOrange)
+                self.print("Error: {}".format(error), Token.BoldOrange)
             else:
                 self.print("Attribute added for nym {}".
                            format(reply[TARGET_NYM]), Token.BoldBlue)
@@ -592,7 +597,12 @@ class SovrinCli(PlenumCli):
                    format(name, version))
 
         def out(reply, error, *args, **kwargs):
-            self.print("Pool upgrade successful", Token.BoldBlue)
+            if error:
+                self.print(
+                    "Pool upgrade failed: {}".format(error),
+                    Token.BoldOrange)
+            else:
+                self.print("Pool upgrade successful", Token.BoldBlue)
 
         self.looper.loop.call_later(.2, self._ensureReqCompleted,
                                     req.key, self.activeClient, out)
@@ -692,43 +702,55 @@ class SovrinCli(PlenumCli):
 
     def _sendSchemaAction(self, matchedVars):
         if matchedVars.get('send_schema') == sendSchemaCmd.id:
-            if not self.canMakeSovrinRequest:
-                return True
-
-            schema = self.agent.issuer.genSchema(
-                name=matchedVars.get(NAME),
-                version=matchedVars.get(VERSION),
-                ttrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")],
-                typ=matchedVars.get(TYPE))
-
-            self.print("The following credential definition is published"
-                       "to the Sovrin distributed ledger\n", Token.BoldBlue,
-                       newline=False)
-            self.print("{}".format(str(schema)))
-            self.print("Sequence number is {}".format(schema.id),
-                       Token.BoldBlue)
-
+            self.agent.loop.call_soon(asyncio.ensure_future,
+                                      self._sendSchemaActionAsync(matchedVars))
             return True
+
+    async def _sendSchemaActionAsync(self, matchedVars):
+        if not self.canMakeSovrinRequest:
+            return True
+
+        schema = await self.agent.issuer.genSchema(
+            name=matchedVars.get(NAME),
+            version=matchedVars.get(VERSION),
+            attrNames=[s.strip() for s in matchedVars.get(KEYS).split(",")])
+
+        self.print("The following schema is published "
+                   "to the Sovrin distributed ledger\n", Token.BoldBlue,
+                   newline=False)
+        self.print("{}".format(str(schema)))
+        self.print("Sequence number is {}".format(schema.seqId),
+                   Token.BoldBlue)
+
+        return True
 
     def _sendClaimDefAction(self, matchedVars):
         if matchedVars.get('send_claim_def') == sendClaimDefCmd.id:
-            if not self.canMakeSovrinRequest:
-                return True
-            reference = int(matchedVars.get(REF))
-            id = ID(schemaId=reference)
-            try:
-                self.agent.issuer.genKeys(id)
-            except SchemaNotFound:
-                self.print("Reference {} not found".format(reference),
-                           Token.BoldOrange)
-
-            ipk = self.agent.wallet.getPublicKey(id)
-            self.print("The following issuer key is published to the"
-                       " Sovrin distributed ledger\n", Token.BoldBlue,
-                       newline=False)
-            self.print("{}".format(str(ipk)))
-
+            self.agent.loop.call_soon(asyncio.ensure_future,
+                                      self._sendClaimDefActionAsync(matchedVars))
             return True
+
+
+    async def _sendClaimDefActionAsync(self, matchedVars):
+        if not self.canMakeSovrinRequest:
+            return True
+        reference = int(matchedVars.get(REF))
+        id = ID(schemaId=reference)
+        try:
+            pk, pkR = await self.agent.issuer.genKeys(id)
+        except SchemaNotFound:
+            self.print("Schema with seqNo {} not found".format(reference),
+                       Token.BoldOrange)
+            return False
+
+        self.print("The following claim definition is published to the"
+                   " Sovrin distributed ledger\n", Token.BoldBlue,
+                   newline=False)
+        self.print("{}".format(str(pk)))
+        self.print("Sequence number is {}".format(pk.seqId),
+                   Token.BoldBlue)
+
+        return True
 
     def printUsageMsgs(self, msgs):
         for m in msgs:
@@ -870,14 +892,15 @@ class SovrinCli(PlenumCli):
         return li
 
     def _sendAcceptInviteToTargetEndpoint(self, link: Link):
-        self.agent.acceptInvitation(link)
+        self.agent.accept_invitation(link)
 
     def _acceptLinkPostSync(self, link: Link):
         if link.isRemoteEndpointAvailable:
             self._sendAcceptInviteToTargetEndpoint(link)
         else:
-            self.print("Remote endpoint not found, "
-                       "can not connect to {}\n".format(link.name))
+            self.print("Remote endpoint ({}) not found, "
+                       "can not connect to {}\n".format(
+                link.remoteEndPoint, link.name))
             self.logger.debug("{} has remote endpoint {}".
                               format(link, link.remoteEndPoint))
 
@@ -1065,7 +1088,7 @@ class SovrinCli(PlenumCli):
         for li, cl in linkAndClaimNames:
             self.print("{} in {}".format(li, cl))
 
-    def _findProofRequest(self, claimReqName: str, linkName: str = None) -> \
+    def _findProofRequest(self, claimReqName: str, linkName: str=None) -> \
             (Link, ProofRequest):
         matchingLinksWithClaimReq = self.activeWallet. \
             findAllProofRequests(claimReqName, linkName)  # TODO rename claimReqName -> proofRequestName
@@ -1184,7 +1207,7 @@ class SovrinCli(PlenumCli):
             linkName = SovrinCli.removeSpecialChars(matchedVars.get('link_name'))
             li = self._getOneLinkForFurtherProcessing(linkName)
             if li:
-                self.agent.sendReqAvailClaims(li)
+                self.agent.sendRequestForAvailClaims(li)
             return True
 
     def _newIdentifier(self, matchedVars):

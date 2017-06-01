@@ -2,6 +2,8 @@ from plenum.common.constants import SERVICES, VALIDATOR, TARGET_NYM, DATA
 from sovrin_common.roles import Roles
 from stp_core.network.port_dispenser import genHa
 
+import pytest
+
 from sovrin_client.test.cli.helper import doSendNodeCmd
 
 
@@ -31,6 +33,7 @@ def testSuspendNode(be, do, trusteeCli, newNodeAdded):
               expMsgs=['node already has the same data as requested'])
 
 
+@pytest.mark.skip(reason='INDY-133. Broken compatibility')
 def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
                                        poolNodesStarted, trusteeMap):
     """

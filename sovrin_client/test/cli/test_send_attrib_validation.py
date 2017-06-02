@@ -6,19 +6,14 @@ from hashlib import sha256
 import pytest
 from libnacl import randombytes
 from libnacl.secret import SecretBox
-from stp_core.crypto.util import randomSeed
-
 from plenum.common.util import rawToFriendly, friendlyToRaw
+from stp_core.crypto.util import randomSeed
 
 from sovrin_client.test.cli.conftest import trusteeCli
 from sovrin_client.test.cli.constants import ERROR, INVALID_SYNTAX
 from sovrin_client.test.cli.helper import addNym, newKey, \
     createUuidIdentifier, createCryptonym
 
-NYM_ADDED = 'Nym {dest} added'
-KEY_FOR_IDENTIFIER = 'Key for identifier is {verkey}'
-IDENTIFIER_FOR_KEY = 'Identifier for key is {identifier}'
-CURRENT_IDENTIFIER_SET = 'Current identifier set to {identifier}'
 ATTRIBUTE_ADDED = 'Attribute added for nym {dest}'
 
 
@@ -112,7 +107,7 @@ def testSendAttribFailsForNotExistingCryptonymDest(
        mapper=sendAttribParameters, expect=ERROR, within=2)
 
 
-def testSendAttribFailsIfDestIsPassedInInvalidFormat(
+def testSendAttribFailsIfDestIsPassedInHexFormat(
         be, do, poolNodesStarted, trusteeCli):
 
     uuidIdentifier = createUuidIdentifier()
@@ -130,6 +125,24 @@ def testSendAttribFailsIfDestIsPassedInInvalidFormat(
     be(trusteeCli)
     do('send ATTRIB dest={dest} raw={raw}',
        mapper=parameters, expect=ERROR, within=2)
+
+
+def testSendAttribFailsIfDestIsInvalid(
+        be, do, poolNodesStarted, trusteeCli):
+
+    cryptonym = createCryptonym()
+    invalidIdentifier = cryptonym[:-4]
+
+    sendAttribParameters = {
+        'dest': invalidIdentifier,
+        'raw': json.dumps({
+            'name': 'Alice'
+        })
+    }
+
+    be(trusteeCli)
+    do('send ATTRIB dest={dest} raw={raw}',
+       mapper=sendAttribParameters, expect=ERROR, within=2)
 
 
 @pytest.mark.skip(reason='INDY-71')

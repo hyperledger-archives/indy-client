@@ -488,7 +488,7 @@ class SovrinCli(PlenumCli):
 
         def getNymReply(reply, err, *args):
             try:
-                if reply[DATA]:
+                if reply and reply[DATA]:
                     data=json.loads(reply[DATA])
                     if data:
                         idr = base58.b58decode(nym)

@@ -96,9 +96,9 @@ def checkIfInvalidEndpointIsRejected(do, map):
         invalidEndpoints.append(("127.0.0.1:{}".format(invalidPort), 'port'))
 
     for invalidEndpoint, invalid_part in invalidEndpoints:
-        errorMsg = 'client request invalid: InvalidClientRequest(' \
-                   '"invalid endpoint {}: \'{}\'",)'.format(invalid_part,
-                                                            invalidEndpoint)
+        errorMsg = "client request invalid: InvalidClientRequest(" \
+                   "'validation error: invalid endpoint {} (ha={})',)" \
+                   "".format(invalid_part, invalidEndpoint)
         endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
         do("send ATTRIB dest={remote} raw={invalidEndpointAttr}",

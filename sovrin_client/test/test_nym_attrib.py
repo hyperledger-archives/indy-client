@@ -16,7 +16,7 @@ from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.helper import checkNacks, submitAndCheckRejects, \
-    genTestClient, createNym, checkRejects
+    genTestClient, createNym, checkRejects, addRole
 from sovrin_common.constants import SKEY
 from sovrin_common.identity import Identity
 from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
@@ -148,7 +148,8 @@ def testStewardCreatesATrustAnchor(steward, addedTrustAnchor):
 @pytest.mark.skip(reason="SOV-560. Cannot create another sponsor with same nym")
 def testStewardCreatesAnotherTrustAnchor(nodeSet, steward, stewardWallet, looper,
                                      trustAnchorWallet):
-    createNym(looper, trustAnchorWallet.defaultId, steward, stewardWallet, TRUST_ANCHOR)
+    createNym(looper, trustAnchorWallet.defaultId, steward, stewardWallet,
+              TRUST_ANCHOR)
     return trustAnchorWallet
 
 
@@ -172,6 +173,23 @@ def testNonTrustAnchorCannotCreateAUser(nodeSet, looper, nonTrustAnchor):
 
 def testTrustAnchorCreatesAUser(steward, userWalletA):
     pass
+
+
+def test_nym_addition_fails_with_empty_verkey(looper, addedTrustAnchor,
+                                              trustAnchor, trustAnchorWallet):
+    new_wallet = addRole(looper, trustAnchor, trustAnchorWallet, 'userC',
+                         useDid=False, addVerkey=False)
+    idy = Identity(identifier=new_wallet.defaultId, verkey='')
+    trustAnchorWallet.updateTrustAnchoredIdentity(idy)
+    reqs = trustAnchorWallet.preparePending()
+    reqs = trustAnchor.submitReqs(*reqs)
+
+    timeout = waits.expectedReqNAckQuorumTime()
+    looper.run(eventually(checkNacks,
+                          trustAnchor,
+                          reqs[0].reqId,
+                          'validation error: empty string',
+                          retryWait=1, timeout=timeout))
 
 
 @pytest.fixture(scope="module")
@@ -260,7 +278,8 @@ def testClientGetsResponseWithoutConsensusForUsedReqId(nodeSet, looper, steward,
             replies[node.clientstack.name][f.RESULT.nm].pop(TXN_TIME, None)
             result.result.pop(TXN_TIME, None)
 
-            assert replies[node.clientstack.name][f.RESULT.nm] == {k:v for k, v in result.result.items() if v is not None}
+            assert replies[node.clientstack.name][f.RESULT.nm] == \
+                   {k:v for k, v in result.result.items() if v is not None}
 
     timeout = waits.expectedTransactionExecutionTime(len(nodeSet))
     looper.run(eventually(chk, retryWait=1, timeout=timeout))
@@ -295,7 +314,8 @@ def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA
         looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
-                              "UnauthorizedClientRequest('Only identity owner/guardian can add attribute for that identity'",
+                              "UnauthorizedClientRequest('Only identity "
+                              "owner/guardian can add attribute for that identity'",
                               retryWait=1, timeout=timeout))
 
 
@@ -314,7 +334,8 @@ def testOnlyUsersTrustAnchorCanAddAttribute(nodeSet, looper,
         looper.run(eventually(checkRejects,
                               client,
                               reqs[0].reqId,
-                              "UnauthorizedClientRequest('Only identity owner/guardian can add attribute for that identity'",
+                              "UnauthorizedClientRequest('Only identity "
+                              "owner/guardian can add attribute for that identity'",
                               retryWait=1, timeout=timeout))
 
 
@@ -460,3 +481,5 @@ def testAttrWithNoDestAdded(nodeSet, looper, userClientA, userWalletA,
                        dest=None,
                        ledgerStore=LedgerStore.RAW)
     addAttributeAndCheck(looper, userClientA, userWalletA, attrib)
+
+

@@ -194,6 +194,7 @@ def verkeyRemovedFromExistingDID(be, do, verkeyAddedToDID, abbrevIdr, aliceCli):
     getNym(be, do, aliceCli, abbrevIdr, getNoActiveVerkeyFoundMsgs(abbrevIdr))
 
 
+@pytest.mark.skip(reason="verkey removal is not supported")
 def testRemoveVerkeyFromDID(verkeyRemovedFromExistingDID):
     pass
 
@@ -207,6 +208,7 @@ def verkeyRemovedFromExistingCID(be, do, verkeyAddedToCID,
            getNoActiveVerkeyFoundMsgs(trustAnchorSigner.identifier))
 
 
+@pytest.mark.skip(reason="verkey removal is not supported")
 def testRemoveVerkeyFromCID(verkeyRemovedFromExistingCID):
     pass
 

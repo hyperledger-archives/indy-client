@@ -36,7 +36,7 @@ def testSendNymSucceedsForUuidIdentifierAndEmptyVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED, within=2)
+       mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
 def testSendNymSucceedsForUuidIdentifierAndFullVerkey(
@@ -95,7 +95,7 @@ def testSendNymSucceedsForCryptonymIdentifierAndEmptyVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=NYM_ADDED, within=2)
+       mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
 def testSendNymSucceedsForCryptonymIdentifierAndSameFullVerkey(
@@ -542,8 +542,7 @@ def testSendNymFailsIfAbbrevVerkeyDoesNotContainTilde(
 
 
 @pytest.mark.skip(reason='SOV-1110')
-def testSendNymFailsIfRoleIsUnknown(
-        be, do, poolNodesStarted, trusteeCli):
+def testSendNymFailsIfRoleIsUnknown(be, do, poolNodesStarted, trusteeCli):
 
     halfKeyIdentifier, abbrevVerkey = createHalfKeyIdentifierAndAbbrevVerkey()
 

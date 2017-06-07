@@ -32,17 +32,32 @@ def testSendNymWithoutRole(grammar):
         "send_nym": "send NYM", "dest_id": dest})
 
 
-def testSendNymWithVerkey(grammar):
+def testSendNymVerkey(grammar):
     dest = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
     role = Roles.TRUST_ANCHOR.name
     verkey = "LNAyBZUjvLF7duhrNtOWgdAKs18nHdbJUxJLT39iEGU="
+
+    # Test with verkey
     matchedVars = getMatchedVariables(
-        grammar, "send NYM dest={} role={} verkey={}".
-            format(dest, role, verkey))
+        grammar, "send NYM dest={} role={} verkey={}".format(dest, role, verkey))
     assertCliTokens(matchedVars, {
         "send_nym": "send NYM", "dest_id": dest,
         "role": role, "new_ver_key": verkey
     })
+
+    # Test without verkey
+    matchedVars = getMatchedVariables(
+        grammar,
+        "send NYM dest={} role={}".format(dest, role))
+    assertCliTokens(matchedVars, {
+        "send_nym": "send NYM", "dest_id": dest, "role": role
+    })
+
+    # Verkey being empty string is not supported
+    with pytest.raises(AssertionError):
+        matchedVars = getMatchedVariables(
+            grammar,
+            "send NYM dest={} role={} verkey={}".format(dest, role, ''))
 
 
 def testGetNym(grammar):

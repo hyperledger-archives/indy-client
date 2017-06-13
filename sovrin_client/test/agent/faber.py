@@ -9,7 +9,7 @@ from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_client.agent.agent import create_client
 from sovrin_client.test.agent.mock_backend_system import MockBackendSystem
 
-from anoncreds.protocol.types import AttribType, AttribDef
+from anoncreds.protocol.types import AttribType, AttribDef, ID, SchemaKey
 from sovrin_client.agent.walleted_agent import WalletedAgent
 
 logger = getlogger()
@@ -88,12 +88,17 @@ def create_faber(name=None, wallet=None, base_dir_path=None, port=5555, client=N
     return agent
 
 async def bootstrap_faber(agent):
-    schema_id = await bootstrap_schema(agent,
-                                 'Transcript',
-                                 'Transcript',
-                                 '1.2',
-                                 primes["prime1"][0],
-                                 primes["prime1"][1])
+    schema_id = ID(SchemaKey("Transcript", "1.2","FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB"))
+
+    try:
+        schema = await agent.issuer.wallet.getSchema(schema_id)
+    except ValueError:
+        schema_id = await bootstrap_schema(agent,
+                                     'Transcript',
+                                     'Transcript',
+                                     '1.2',
+                                     primes["prime1"][0],
+                                     primes["prime1"][1])
 
     await agent._set_available_claim_by_internal_id(1, schema_id)
     await agent._set_available_claim_by_internal_id(2, schema_id)

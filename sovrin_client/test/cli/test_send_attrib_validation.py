@@ -145,7 +145,6 @@ def testSendAttribFailsIfDestIsInvalid(
        mapper=sendAttribParameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfDestIsEmpty(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -161,7 +160,6 @@ def testSendAttribHasInvalidSyntaxIfDestIsEmpty(
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfDestIsOmitted(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -335,7 +333,6 @@ def testSendAttribSucceedsForRawWithEndpointWithoutProperties(
        mapper=parameters, expect=ATTRIBUTE_ADDED, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribSucceedsForRawWithEndpointBeingNull(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -654,7 +651,6 @@ def testSendAttribFailsForRawWithEndpointWithHaBeingDecimalNumber(
        mapper=parameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribFailsForRawWithEndpointWithEmptyHa(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -693,7 +689,6 @@ def testSendAttribFailsForRawWithEndpointBeingEmptyString(
        mapper=parameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribFailsIfRawContainsMulipleAttrs(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -713,7 +708,6 @@ def testSendAttribFailsIfRawContainsMulipleAttrs(
        mapper=parameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribFailsIfRawContainsNoAttrs(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -804,7 +798,6 @@ def testSendAttribFailsIfRawIsDecimalNumber(
        mapper=parameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfRawIsEmptyString(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -822,7 +815,7 @@ def testSendAttribHasInvalidSyntaxIfRawIsEmptyString(
 
 
 @pytest.mark.skip(reason='INDY-71')
-def testSendAttribSucceedsForHexHash(
+def testSendAttribSucceedsForHexSha256Hash(
         be, do, poolNodesStarted, trusteeCli):
 
     uuidIdentifier = createUuidIdentifier()
@@ -840,6 +833,57 @@ def testSendAttribSucceedsForHexHash(
     be(trusteeCli)
     do('send ATTRIB dest={dest} hash={hash}',
        mapper=parameters, expect=ATTRIBUTE_ADDED, within=2)
+
+
+@pytest.mark.skip(reason='INDY-71')
+def testSendAttribSucceedsForHexHashWithLettersInBothCases(
+        be, do, poolNodesStarted, trusteeCli):
+
+    uuidIdentifier = createUuidIdentifier()
+    addNym(be, do, trusteeCli, idr=uuidIdentifier)
+
+    parameters = {
+        'dest': uuidIdentifier,
+        'hash': '6d4a333838d0ef96756cccC680AF2531075C512502Fb68c5503c63d93de859b3'
+    }
+
+    be(trusteeCli)
+    do('send ATTRIB dest={dest} hash={hash}',
+       mapper=parameters, expect=ATTRIBUTE_ADDED, within=2)
+
+
+@pytest.mark.skip(reason='INDY-71')
+def testSendAttribFailsForHashShorterThanSha256(
+        be, do, poolNodesStarted, trusteeCli):
+
+    uuidIdentifier = createUuidIdentifier()
+    addNym(be, do, trusteeCli, idr=uuidIdentifier)
+
+    parameters = {
+        'dest': uuidIdentifier,
+        'hash': hexlify(randombytes(31)).decode()
+    }
+
+    be(trusteeCli)
+    do('send ATTRIB dest={dest} hash={hash}',
+       mapper=parameters, expect=ERROR, within=2)
+
+
+@pytest.mark.skip(reason='INDY-71')
+def testSendAttribFailsForHashLongerThanSha256(
+        be, do, poolNodesStarted, trusteeCli):
+
+    uuidIdentifier = createUuidIdentifier()
+    addNym(be, do, trusteeCli, idr=uuidIdentifier)
+
+    parameters = {
+        'dest': uuidIdentifier,
+        'hash': hexlify(randombytes(33)).decode()
+    }
+
+    be(trusteeCli)
+    do('send ATTRIB dest={dest} hash={hash}',
+       mapper=parameters, expect=ERROR, within=2)
 
 
 @pytest.mark.skip(reason='INDY-71')
@@ -888,7 +932,6 @@ def testSendAttribFailsForBase64Hash(
        mapper=parameters, expect=ERROR, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfHashIsEmpty(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -906,7 +949,7 @@ def testSendAttribHasInvalidSyntaxIfHashIsEmpty(
 
 
 @pytest.mark.skip(reason='INDY-71')
-def testSendAttribSucceedsForHexEnc(
+def testSendAttribSucceedsForNonEmptyEnc(
         be, do, poolNodesStarted, trusteeCli):
 
     uuidIdentifier = createUuidIdentifier()
@@ -924,59 +967,10 @@ def testSendAttribSucceedsForHexEnc(
     }
 
     be(trusteeCli)
-    do('send ATTRIB dest={dest} enc: {enc}',
+    do('send ATTRIB dest={dest} enc={enc}',
        mapper=parameters, expect=ATTRIBUTE_ADDED, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
-def testSendAttribFailsForBase58Enc(
-        be, do, poolNodesStarted, trusteeCli):
-
-    uuidIdentifier = createUuidIdentifier()
-    addNym(be, do, trusteeCli, idr=uuidIdentifier)
-
-    raw = json.dumps({
-        'name': 'Alice'
-    })
-
-    secretBox = SecretBox()
-    enc = secretBox.encrypt(raw.encode())
-
-    parameters = {
-        'dest': uuidIdentifier,
-        'enc': rawToFriendly(enc)
-    }
-
-    be(trusteeCli)
-    do('send ATTRIB dest={dest} enc: {enc}',
-       mapper=parameters, expect=ERROR, within=2)
-
-
-@pytest.mark.skip(reason='INDY-71')
-def testSendAttribFailsForBase64Enc(
-        be, do, poolNodesStarted, trusteeCli):
-
-    uuidIdentifier = createUuidIdentifier()
-    addNym(be, do, trusteeCli, idr=uuidIdentifier)
-
-    raw = json.dumps({
-        'name': 'Alice'
-    })
-
-    secretBox = SecretBox()
-    enc = secretBox.encrypt(raw.encode())
-
-    parameters = {
-        'dest': uuidIdentifier,
-        'enc': b64encode(enc).decode()
-    }
-
-    be(trusteeCli)
-    do('send ATTRIB dest={dest} enc: {enc}',
-       mapper=parameters, expect=ERROR, within=2)
-
-
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfEncIsEmpty(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -989,11 +983,10 @@ def testSendAttribHasInvalidSyntaxIfEncIsEmpty(
     }
 
     be(trusteeCli)
-    do('send ATTRIB dest={dest} enc: {enc}',
+    do('send ATTRIB dest={dest} enc={enc}',
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfRawAndHashPassedAtSameTime(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -1015,7 +1008,6 @@ def testSendAttribHasInvalidSyntaxIfRawAndHashPassedAtSameTime(
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfRawAndEncPassedAtSameTime(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -1035,11 +1027,10 @@ def testSendAttribHasInvalidSyntaxIfRawAndEncPassedAtSameTime(
     }
 
     be(trusteeCli)
-    do('send ATTRIB dest={dest} raw={raw} enc: {enc}',
+    do('send ATTRIB dest={dest} raw={raw} enc={enc}',
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfHashAndEncPassedAtSameTime(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -1060,11 +1051,10 @@ def testSendAttribHasInvalidSyntaxIfHashAndEncPassedAtSameTime(
     }
 
     be(trusteeCli)
-    do('send ATTRIB dest={dest} hash={hash} enc: {enc}',
+    do('send ATTRIB dest={dest} hash={hash} enc={enc}',
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfRawHashAndEncPassedAtSameTime(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -1086,11 +1076,10 @@ def testSendAttribHasInvalidSyntaxIfRawHashAndEncPassedAtSameTime(
     }
 
     be(trusteeCli)
-    do('send ATTRIB dest={dest} raw={raw} hash={hash} enc: {enc}',
+    do('send ATTRIB dest={dest} raw={raw} hash={hash} enc={enc}',
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfUnknownParameterIsPassed(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -1110,7 +1099,6 @@ def testSendAttribHasInvalidSyntaxIfUnknownParameterIsPassed(
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-71')
 def testSendAttribHasInvalidSyntaxIfParametersOrderIsWrong(
         be, do, poolNodesStarted, trusteeCli):
 

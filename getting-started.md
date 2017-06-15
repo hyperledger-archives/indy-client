@@ -32,23 +32,24 @@ If the cryptography and blockchain details feel mysterious, fear not: this guide
 Our goal is to introduce you to many of the concepts of Sovrin, and give you some idea of what happens behind the scenes to make it all work.
 
 We are going to frame the exploration with a story. Alice, a graduate of the fictional Faber College, wants to apply for a job at the fictional company Acme Corp. As soon as she has the job, she wants to apply for a loan so she can buy a car. She would like to use her college transcript as proof of her education on the job application; once hired, Alice would like to use the fact of employment as evidence of her creditworthiness for the loan.
-The sorts of identity and trust interactions required to pull this off are messy in the world today; they are slow, violate privacy, and are susceptible to fraud. We’ll show you how Sovrin is a quantum leap forward.
+
+The sorts of identity and trust interactions required to pull this off are messy in the world today; they are slow, they violate privacy, and they are susceptible to fraud. We’ll show you how Sovrin is a quantum leap forward.
 
 Ready?
 
 ## Alice Gets a Transcript
 
-As a graduate of Faber College, Alice receives an alumni newsletter where she learns that her alma mater is offering digital transcripts. She logs in to the college alumni website and requests her transcript by clicking a *Get Transcript* button.  (Other ways to initiate this request might include scanning a QR code, downloading a transcript package from a published URL, etc.)
+As a graduate of Faber College, Alice receives an alumni newsletter where she learns that her alma mater is offering digital transcripts. She logs in to the college alumni website and requests her transcript by clicking **Get Transcript**.  (Other ways to initiate this request might include scanning a QR code, downloading a transcript package from a published URL, etc.)
 
 Faber College has done some prep work to offer this service to Alice. It has the role of **trust anchor** on Sovrin. A trust anchor is a person or organization that Sovrin already knows about, that is able to help bootstrap others. (It is *not* the same as what cybersecurity experts call a "trusted third party"; think of it more like a facilitator). Becoming a trust anchor is beyond the scope of this guide; for now, we’ll just assume that Faber College has jumped through some hoops and has the status.
 
-Alice doesn’t realize it, yet, but in order to use this digital transcript she will need a new type of identity - - not the traditional identity that Faber College has built for her in its on-campus database, but a new and portable one that belongs to her, independent of all past and future relationships, that nobody can revoke or co-opt or correlate without her permission. This is a **_self-sovereign identity_**, and it is the core feature for which Sovrin was named.
+Alice doesn’t realize it yet, but in order to use this digital transcript she will need a new type of identity -- not the traditional identity that Faber College has built for her in its on-campus database, but a new and portable one that belongs to her, independent of all past and future relationships, that nobody can revoke or co-opt or correlate without her permission. This is a **_self-sovereign identity_** and it is the core feature for which Sovrin was named.
 
-In normal contexts, managing a self - sovereign identity will require a tool such as a desktop or mobile application. It might be a standalone app, or it might leverage a third party service provider that Sovrin calls an **_agency_**. The Sovrin Foundation publishes reference versions of such tools. Faber College will have studied these requirements and will recommend a **_Sovrin app_** to Alice if she doesn’t already have one; this app will install as part of the workflow from the *Get Transcript* button.
+In normal contexts, managing a self - sovereign identity will require a tool such as a desktop or mobile application. It might be a standalone app, or it might leverage a third party service provider that Sovrin calls an **agency**. The Sovrin Foundation publishes reference versions of such tools. Faber College will have studied these requirements and will recommend a **_Sovrin app_** to Alice if she doesn’t already have one; this app will install as part of the workflow from the **Get Transcript** button.
 
-When Alice clicks *Get Transcript*, she will download a file that holds a Sovrin **_link invitation_**. This file, having a .sovrin extension and associated with her Sovrin app, will allow her to establish a secure channel of communication with another party in the Sovrin ecosystem--Faber College.
+When Alice clicks **Get Transcript**, she will download a file that holds a Sovrin **link invitation**. This link invitation file, having a .sovrin extension and associated with her Sovrin app, will allow her to establish a secure channel of communication with another party in the Sovrin ecosystem -- Faber College.
 
-So when Alice clicks *Get Transcript*, she will normally end up installing an app (if needed), launching it, and then being asked by the app whether she wants to accept an invitation to connect with Faber.
+So when Alice clicks **Get Transcript**, she will normally end up installing an app (if needed), launching it, and then being asked by the app whether she wants to accept an invitation to connect with Faber.
 
 For this guide, however, we’ll be using a command - line interface instead of an app, so we can see what happens behind the scenes. We will pretend to be a particularly curious and technically adventurous Alice…
 
@@ -56,25 +57,36 @@ For this guide, however, we’ll be using a command - line interface instead of 
 You can install a Sovrin test network in one of several ways:
 
  - **Automated VM Creation** [Create virtual machines](https://github.com/evernym/sovrin-environments/blob/master/vagrant/training/vb-multi-vm/TestSovrinClusterSetup.md) using VirtualBox and Vagrant.
+
  - **Coming soon:** Use client side docker images to make it easy for you to play with Sovrin.
+
  - **Also coming soon:** Create virtual machines in AWS.
 
-To proceed past this point, you should have a test Sovrin Validator cluster running, either in separate nodes (VMs), or in simulation. You should also have Agent nodes (or a simulation) running with the "Faber College", "Acme Corp", and "Thrift Bank" Agents.  You should also have a CLI client which gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it. See the [Sovrin roadmap](https://github.com/sovrin-foundation/sovrin/wiki/Roadmap).)
+To proceed past this point, you should have a test Sovrin Validator cluster running, either in separate nodes (VMs), or in simulation. You should also have Agent nodes (or a simulation) running with the "Faber College", "Acme Corp", and "Thrift Bank" Agents.  You should also have a CLI client which gives you a command - line interface(CLI) to Sovrin. We are going to use that CLI to explore what Sovrin can do. (Sovrin also has a programmatic API, but it is not yet fully formalized, and this version of the guide doesn’t document it.
 
 ## Using the Sovrin CLI
-After completing the preceeding, you should have a terminal with a Sovrin client CLI prompt:
+After completing the preceding, you should have a terminal with a Sovrin client CLI prompt:
 
 ```
 sovrin>
 ```
 
-The CLI could play the role of multiple **_identity owners_** (a person like Alice, an organization like Faber College, or an IoT - style thing; these are often called "principals" in security circles). In this guide we will just be Alice but to keep things clear and explore functionality let's change the prompt:
+The CLI could play the role of multiple **identity owners** (a person like Alice, an organization like Faber College, or an IoT - style thing; these are often called "principals" in security circles). In this guide we will just be Alice but to keep things clear and explore functionality let's change the prompt:
 
 ```
 sovrin> prompt ALICE
 ALICE>
 ```
-The status command gives general information about the state of the CLI. Alice tries it:
+Next, we will create a new empty keyring for Alice. Creating a new empty keyring basically resets the agent to a clean slate. Because this is the first time you're setting this up, this step is not actually necessary. If you're wanting to do interact with other identifiers held by the agent then this does become necessary.
+
+It's a good habit to get into. Go ahead and create the new keyring now:
+
+```
+new keyring Alice
+```
+
+
+The 'status' command gives general information about the state of the CLI. Alice tries it:
 
 ```
 ALICE> status
@@ -83,7 +95,7 @@ Not connected to Sovrin network. Please connect first.
 Usage:
     connect(test | live)
 ```
-Alice might also try the 'help' command to explore what’s available.
+Alice might also try the 'help' command to see a list of the other commands that are available to her.
 
 ## Evaluate an Invitation
 
@@ -104,7 +116,7 @@ Try Next:
     load sample/faber-invitation.sovrin
 ```
 
-Alice sees a bunch of data that looks interesting but mysterious. She wants Sovrin to tell her if the link invitation file is well formed and has something useful in it, so she uses the load command:
+Alice sees a bunch of data that looks interesting but mysterious. She wants Sovrin to tell her if the link invitation file is well formed and has something useful in it, so she uses the 'load' command:
 
 ```
 ALICE> load sample/faber-invitation.sovrin
@@ -118,13 +130,13 @@ Try Next:
     accept invitation from "Faber College"
 ```
 
-This causes the client to parse and validate the file. Alice would now like to know what’s entailed in accepting the invitation.  She types:
+This causes the client to parse and validate the file in addition to displaying more reader friendly text. Alice would now like to know what’s entailed in accepting the invitation.  She types:
 
 ```
 ALICE> show link Faber
 ```
 
-Unlike the show command for files, this one asks Sovrin to show a link. More details are exposed:
+Unlike the 'show' command for files, this one asks Sovrin to show a link. More details are exposed:
 
 ```
 Expanding Faber to "Faber College"
@@ -158,78 +170,83 @@ This is a friendly name for the link that Alice has been invited to accept. The 
 Identifier: not yet assigned
 ```
 
-Identifier is a unique value that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a pairwise relationship when accepted, and each pairwise relationship uses different identifiers. Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
+**Identifier** is a unique value that gets generated when user tries to accept the invitation, and that identifier will be sent to Faber College, and used by Faber College to reference Alice in secure interactions. Each link invitation on Sovrin establishes a **pairwise relationship** when accepted. A pairwise relationship is a unique relationship between two identity owners (e.g., Faber and Alice). The relationship between them is not shareable with others; it is unique to those two parties in that each pairwise relationship uses different identifiers. (In other circles you may see this defined as two sets of data working in conjunction with each other to perform a specific function, such as in a "public" key and a "private" key working together. This is _not_ how it is defined within Sovrin.) Alice won’t use this identifier with other relationships. By having independent pairwise relationships, Alice reduces the ability for others to correlate her activities across multiple interactions.
 
 ```
 Trust anchor: Faber College(not yet written to Sovrin)
 ```
 
-This gives Alice a friendly name for the entity that will bootstrap the new pairwise relationship onto the Sovrin ecosystem. Trust anchors provide a way for identifiers to be added to Sovrin. They are generally organizations but can be persons as well. Faber College is a trust anchor, and if its invitation is accepted, will write Alice’s identifier to Sovrin.
+This gives Alice a friendly name for the entity that will bootstrap the new pairwise relationship onto the Sovrin ecosystem. **Trust anchors** provide a way for identifiers to be added to Sovrin. They are generally organizations but can be persons as well. Faber College is a trust anchor, and if its invitation is accepted, will write Alice’s identifier to Sovrin.
 
-It is important to understand that this identifier for Alice is not, in and of itself, the same thing as Alice’s self-sovereign identity. Rather, Alice’s identity will-- for her--be the sum total of all the pairwise relationships she has, and all the attributes knowable about those manifestations of her identity, across the full network. If Alice accepts this invitation, she will have a self-sovereign identity by virtue of the fact that she is accessible on the network through at least one relationship, and Faber College will be creating the first relationship participating in Alice’s identity--but Alice’s identity will not be captive to Faber College in any way.
+It is important to understand that this identifier for Alice is not, in and of itself, the same thing as Alice’s self-sovereign identity. Rather, Alice’s identity will -- for her -- be the sum total of **_all_** of the pairwise relationships she has, and **_all_** the attributes knowable about those manifestations of her identity, across the full network.
+
+If Alice accepts this invitation, she will have a self-sovereign identity by virtue of the fact that she is accessible on the network through at least one relationship. In this case Faber College will be creating the first of many independent relationships that will participate in Alice’s overall identity--but Alice’s identity will not be captive to Faber College in any way.
 
 ```
 Verification key: <empty>
 ```
 
-Alice’s **_verification key_** allows Sovrin and Faber College to trust, in cryptographic operations, that interactions with Alice are authentically bound to her as sender or receiver. It is an [ asymmetric public key](https://en.wikipedia.org/wiki/Public-key_cryptography), in cryptographic terms, and the Sovrin CLI generated this value randomly when it loaded the invitation.
+Alice’s **verification key** allows Sovrin and Faber College to trust, in cryptographic operations, that interactions with Alice are authentically bound to her as sender or receiver. It is an [ asymmetric public key](https://en.wikipedia.org/wiki/Public-key_cryptography), in cryptographic terms, and the Sovrin CLI generated this value randomly when it loaded the invitation.
 
-Verification key is a 32 byte Ed25519 verification key. Ed25519 is a particular elliptic curve, and is the default signature scheme for Sovrin.
+The verification key is a 32 byte Ed25519 verification key. Ed25519 is a particular [elliptic curve](https://en.wikipedia.org/wiki/Elliptic_curve_cryptography), and is the default signature scheme for Sovrin.
 
-The Verification key has a subtle relationship with the Identifier value a couple lines above it in the CLI output.
-Identifiers in Sovrin are called **_DIDs_** (**_distributed identifiers_**). These are opaque, unique sequences of bits, like UUIDs or GUIDs.
+The verification key has a subtle relationship with the Identifier value a couple lines above it in the CLI output.
+Identifiers in Sovrin are called **DIDs** (**distributed identifiers**). These are opaque, unique sequences of bits, like UUIDs or GUIDs.
 
-There are three options possible for **_verification key_** associated with a DID:
-- Empty. There are no verkey associated with a DID, and DID is NCID (non-cryptographic identifier).
-In this case, the creator of the Sovrin identity record (called a trust anchor) controls the identifier, and no independent proof-of-existence is possible until either Abbreviated or Full verkey is created.
-- Abbreviated. In this case, there is a verkey starting with a tilde '~' followed by 22 or 23 characters.
-The tilde indicates that the DID itself represents the first 16 bytes of the verkey, and the string following the tilde represents the second 16 bytes of the verkey, both using base58Check encoding.
-- Full. In this case, there is a full 44 character verkey, representing a base58Check encoding of all 32 bytes of a Ed25519 verification key
+There are three options possible for verification key associated with a DID:
+- **Empty.** There is no verkey (verification key) associated with a DID, and the DID is a **NCID** (non-cryptographic identifier).
+In this case, the creator of the Sovrin identity record (the trust anchor) controls the identifier, and no independent proof-of-existence is possible until either an Abbreviated or Full verkey is created.
+- **Abbreviated.** In this case, there is a verkey starting with a tilde '~' followed by 22 or 23 characters. The tilde indicates that the DID itself represents the first 16 bytes of the verkey and the string following the tilde represents the second 16 bytes of the verkey, both using base58Check encoding.
+- **Full.** In this case, there is a full 44 character verkey, representing a base58Check encoding of all 32 bytes of a Ed25519 verification key.
 
-In the current guide Abbreviated key will be created and used by Alice (you will notice `~` prefix for verification key in the guide).
+In this guide, an Abbreviated key will be created and used by Alice (you'll notice the `~` prefix for the verification key later in the guide).
 
-The key that Alice uses to interact with Faber can change if she revokes or rotates it, so accepting this invitation and activating this link doesn’t lock Alice in to permanent use of this key. Key management events are discoverable in the Sovrin ledger by parties such as Faber College; we’ll touch on that later in the guide.
+The key that Alice uses to interact with Faber can change if she revokes or rotates it, so accepting this invitation and activating this link doesn’t lock Alice into permanent use of this key. [Key management events](https://en.wikipedia.org/wiki/Key_management) are discoverable in the Sovrin ledger by parties such as Faber College; we’ll touch on that later in the guide.
 
 ```
 Signing key: < hidden >
 ```
 
-A different **_signing key_** is used by Alice to interact with each party on Sovrin (Faber College in this case). A signing key is an asymmetric private key, in cryptographic terms, and the Sovrin CLI also generated this value when it loaded the invitation. Alice will sign her messages to Faber College with this key, but she will never transmit the signing key anywhere. Because she signs with this key, Faber College can use the associated verification key and know it’s really dealing with Alice. It’s important that this signing key is kept secret, as someone with this key can impersonate Alice. If this key is ever compromised, Alice can replace it with a new one using several methods not covered here.
+A different **signing key** is used by Alice to interact with each party on Sovrin (Faber College in this case). A signing key is an asymmetric private key, in cryptographic terms, and the Sovrin CLI also generated this value when it loaded the invitation. Alice will sign her messages to Faber College with this key, but she will never transmit the signing key anywhere. Because she signs with this key, Faber College can use the associated verification key and know it’s really dealing with Alice.
+
+It’s important that _this signing key is kept secret,_ as someone with this key can impersonate Alice. If this key is ever compromised, Alice can replace it with a new one using several methods not covered here.
 
 ```
 Target: FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB
 ```
 
-**_Target_** is the unique identifier Alice uses to reference Faber College. Faber College provided this value in the invitation. Alice can use it to look up Faber College’s verification key in the Sovrin Ledger to ensure interactions with Faber College are authentic.
+**Target** is the unique identifier Alice uses to reference Faber College. Faber College provided this value in the invitation. Alice can use it to look up Faber College’s verification key in the Sovrin Ledger to ensure interactions with Faber College are authentic.
 
 ```
 Target Verification key: < unknown, waiting for sync >
 ```
 
-Communication from the target can’t be confirmed unless we know its verification key. We know the target is a CID(that’s what the Target line just above told us)--but since key revocations and rotations might happen at any time, we cannot assume that a CID has not updated its verification key. To know the true verification key of an identifier, we have to query Sovrin. Different use cases require different levels of assurance as to how recently we’ve queried Sovrin for any key replacements. In this case we might be comfortable if we know that the key was synchronized in the last hour. But we can see that we’ve never synchronized this link, so we don’t know what the verification key is at all. Until Alice connects to Sovrin, she won’t be able to trust communication from Faber College.
+Communication from the target can’t be confirmed unless we know its verification key. We know the target is a **CID** (a cryptographic identifier, that’s what the Target line just above told us) --  but since key revocations and rotations might happen at any time, we cannot assume that a CID has not updated its verification key. To know the true verification key of an identifier, we have to query Sovrin.
+
+Different use cases require different levels of assurance as to how recently we’ve queried Sovrin for any key replacements. In this case we might be comfortable if we know that the key was synchronized in the last hour. But we can see that we’ve never synchronized this link, so we don’t know what the verification key is at all. Until Alice connects to Sovrin, she won’t be able to trust communication from Faber College.
 ```
 Target endpoint: < unknown, waiting for sync >
 ```
 
-Targets can have endpoints --locations(IRIs / URIs / URLs) on the network where others can contact them. These endpoints can be static, or they can be ephemeral pseudonymous endpoints facilitated by a third party agency. To keep things simple, we’ll just use static endpoints for now.
+Targets can have endpoints -- locations (IRIs / URIs / URLs) on the network where others can contact them. These endpoints can be static or they can be ephemeral pseudonymous endpoints facilitated by a third party agency. To keep things simple, we’ll just use static endpoints for now.
 ```
 Invitation nonce: b1134a647eb818069c089e7694f63e6d
 ```
 
-This is just a big random number that Faber College generated to track the unique invitation. When an invitation is accepted, the invitee digitally signs the nonce such that the inviter can match the acceptance with a prior invitation.
+This **nonce** is just a big random number that Faber College generated to track the unique invitation. A nonce is a random arbitrary number that can only be used one time. When an invitation is accepted, the invitee digitally signs the nonce such that the inviter can match the acceptance with a prior invitation.
 ```
 Invitation status: not verified, target verification key unknown
 ```
 
-Invitations are signed by the target. We have a signature, but we don’t yet know Faber College’s verification key, so the signature can’t be proved authentic.We might have an invitation from someone masquerading as Faber College. We’ll resolve that uncertainty when we sync.
+Invitations are signed by the target. We have a signature, but we don’t yet know Faber College’s verification key, so the signature can’t be proved authentic. We might have an invitation from someone masquerading as Faber College. We’ll resolve that uncertainty when we sync.
 ```
 Last synced: < this link has not yet been synchronized >
 ```
-A link stores when it was last synchronized with the Sovrin network, so we can tell how stale some of the information might be. Ultimately, values will be proved current when a transaction is committed to the ledger, so staleness isn’t dangerous--but it makes Sovrin more efficient when identity owners work with up-to-date data.
+A link stores when it was last synchronized with the Sovrin network, so we can tell how stale some of the information might be. Ultimately, values will be proved current when a transaction is committed to the ledger, so staleness isn’t dangerous -- but it makes Sovrin more efficient when identity owners work with up-to-date data.
 
 ## Accept the Invitation
 
-Alice **_attempts_** to accept the invitation from Faber College.
+Alice _attempts_ to accept the invitation from Faber College.
 
 ```
 ALICE> accept invitation from Faber
@@ -243,9 +260,9 @@ Usage:
     connect <test|live>
 ```
 
-In order to accept an invitation, its origin must be proved. Just because an invitation says the sender is "Faber College" doesn’t make it so; the ease of forging email headers is a reminder of why we can’t just trust what a sender says. Syncing the link with Sovrin will allow us to prove the association between Faber College’s identity and public key, but the CLI must be connected to the Sovrin network to sync-- and we haven’t connected yet.
+In order to accept an invitation, its origin must be proved. Just because an invitation says the sender is "Faber College" doesn’t make it so; the ease of forging email headers is a reminder of why we can’t just trust what a sender says. Syncing the link with Sovrin will allow us to prove the association between Faber College’s identity and public key, but the CLI must be connected to the Sovrin network to sync -- and we haven’t connected yet.
 
-There are two Sovrin networks we might connect to. One is a test network, and the other is live(production). We’ll use the test network for the demo.
+There are two Sovrin networks we might connect to. One is a test network, and the other is live (production). We’ll use the test network for the demo.
 
 ```
 ALICE> connect test
@@ -319,7 +336,7 @@ Alice can see now that the target verification key and target endpoint, as well 
 
 ## Test Secure Interaction
 
-At this point Alice is connected to Faber College, and can interact in a secure way. The Sovrin CLI supports a ping command to test secure pairwise interactions. (This command is partly implemented today, and partly still a stub.)
+At this point Alice is connected to Faber College and can interact in a secure way. The Sovrin CLI supports a ping command to test secure pairwise interactions. (This command is partly implemented today, and partly still a stub.)
 
 ```
 ALICE@test> ping Faber
@@ -348,9 +365,9 @@ She can trust the response from Faber College because (1) she connects to the cu
 
 ## Inspect the Claim
 
-Notice that when Alice last showed the Faber link, there was a new line: ```Available Claim(s): Transcript```. A **_claim_** is a piece of information about an identity - -a name, an age, a credit score… It is information claimed to be true. In this case, the claim is named "Transcript."
+Notice that when Alice last showed the Faber link, there was a new line: ```Available Claim(s): Transcript```. A **claim** is a piece of information about an identity -- a name, an age, a credit score… It is information claimed to be true. In this case, the claim is named, "Transcript".
 
-Claims are offered by an **_issuer_**. An issuer may be any identity owner known to Sovrin, and any issuer may issue a claim about any identity owner it can identify. The usefulness and reliability of a claim are tied to the reputation of the issuer, with respect to the claim at hand. For Alice to self-issue a claim that she likes chocolate ice cream may be perfectly reasonable, but for her to self-issue a claim that she graduated from Faber College should not impress anyone. The value of this transcript is that it is provably issued by Faber College. Alice wants to use that claim. She asks for more information:
+Claims are offered by an **issuer**. An issuer may be any identity owner known to Sovrin and any issuer may issue a claim about any identity owner it can identify. The usefulness and reliability of a claim are tied to the reputation of the issuer with respect to the claim at hand. For Alice to self-issue a claim that she likes chocolate ice cream may be perfectly reasonable, but for her to self-issue a claim that she graduated from Faber College should not impress anyone. The value of this transcript is that it is provably issued by Faber College. Alice wants to use that claim. She asks for more information:
 
 ```
 ALICE@test> show claim Transcript
@@ -369,7 +386,7 @@ Try Next:
     request claim "Transcript"
 ```
 
-Alice sees the attributes the transcript contains. These attributes are known because a schema for Transcript has been written to the ledger (see Appendix). However, the "not yet issued" note means that the transcript has not been delivered to Alice in a usable form. To get the transcript, Alice needs to request it.
+Alice sees the attributes the transcript contains. These attributes are known because a schema for Transcript has been written to the ledger (see [Appendix](#appendix)). However, the "not yet issued" note means that the transcript has not been delivered to Alice in a usable form. To get the transcript, Alice needs to request it.
 
 ```
 ALICE@test> request claim Transcript
@@ -399,9 +416,9 @@ Attributes:
     status: graduated
 ```
 
-# Apply for a Job
+## Apply for a Job
 
-At some time in the future, Alice would like to work for Acme Corp. Normally she would browse to acmecorp.com, where she would click on a hyperlink to apply for a job. Her browser would download a link invitation which her Sovrin app would open; this would trigger a prompt to Alice, asking her to accept the link with Acme Corp. Because we’re using a CLI, the interface is different, but the steps are the same. We do approximately the same things that we did when Alice was accepting Faber College’s link invitation:
+At some time in the future, Alice would like to work for Acme Corp. Normally she would browse to their website, where she would click on a hyperlink to apply for a job. Her browser would download a link invitation which her Sovrin app would open; this would trigger a prompt to Alice, asking her to accept the link with Acme Corp. Because we’re using a CLI, the interface is different, but the steps are the same. We do approximately the same things that we did when Alice was accepting Faber College’s link invitation:
 
 ```
 ALICE@test> show sample/acme-job-application.sovrin
@@ -432,9 +449,11 @@ Try Next:
     load sample/acme-job-application.sovrin
 ```
 
-Notice that this link invitation contains a **_proof request_**. ACME Corp is requesting that Alice provide a Job Application. The Job Application is a rich document type that has a schema defined on the Sovrin ledger; its particulars are outside the scope of this guide, but it will require a name, SSN, and degree, so it overlaps with the transcript we’ve already looked at. This becomes important below.
+Notice that this link invitation contains a **proof request**. A proof request is a request made by the party who needs verifiable proof of certain attributes  that can be provided by other verified claims. (Some attributes can be marked so that they must be verified by other proven claims -- like a SSN -- and some attributes can be self-attested to -- like a nickname.)
 
-Notice that the invitation also identifies an endpoint. This is different from our previous case, where an identity owner’s endpoint was discovered through lookup on the Sovrin ledger. Here, Acme Corp.has decided to short - circuit Sovrin and just directly publish its job application acceptor endpoint with each request. Sovrin supports this.  Alice quickly works through the sequence of commands that establishes a new pairwise connection with Acme:
+In this case, Acme Corp is requesting that Alice provide a Job Application. The Job Application is a rich document type that has a schema defined on the Sovrin ledger; its particulars are outside the scope of this guide, but it will require a name, SSN, and degree, so it overlaps with the transcript we’ve already looked at. This becomes important below.
+
+Notice that the invitation also identifies an endpoint. This is different from our previous case, where an identity owner’s endpoint was discovered through lookup on the Sovrin ledger. Here, Acme has decided to short-circuit Sovrin and just directly publish its job application acceptor endpoint with each request. Sovrin supports this.  Alice quickly works through the sequence of commands that establishes a new pairwise connection with Acme:
 ```
 ALICE@test> load sample/acme-job-application.sovrin
 1 link invitation found for Acme Corp.
@@ -527,9 +546,9 @@ Try Next:
 
 Alice only has one claim that meets proof requirements for this Job Application, so it is associated automatically with the request; this is how some of her attributes are pre-populated.
 
-The pre - population doesn’t create data leakage, though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
+The pre-population doesn’t create data leakage though; the request is still pending. Alice can edit what she is willing to supply for each requested attribute.
 
-Notice that some attributes are verifiable, and some are not. The proof request schema says that ssn, degree, and graduation status in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are currently empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
+Notice that some attributes are verifiable and some are not. The proof request schema says that SSN, degree, and graduation status in the transcript must be formally asserted by an issuer other than Alice. Notice also that the first occurrence of first_name and last_name, plus the only occurrence of phone_number, are currently empty, and are not required to be verifiable. By not tagging these claims with a verifiable status, Acme’s claim request is saying it will accept Alice’s own claim about her names and phone numbers. (This might be done to allow Alice to provide a first name that’s a nickname, for example.) Alice therefore adds the extra attributes now:
 
 ```
 ALICE@test> set first_name to Alice
@@ -664,7 +683,7 @@ Attributes:
 
 She can use it when she applies for her loan, in much the same way that she used her transcript when applying for a job.
 
-There is a disadvantage in this approach to data sharing, though--it may disclose more data than what is strictly necessary. If all Alice needs to do is provide proof of employment, this can be done with an anonymous credential instead. Anonymous credentials may prove certain predicates without disclosing actual values (e.g., Alice is employed full-time, with a salary greater than X--but how much her salary is, and what her hire date is, remain hidden).  A compound proof can be created, drawing from claims from both Faber College and Acme Corp, that discloses only what is necessary.
+There is a disadvantage in this approach to data sharing though, -- it may disclose more data than what is strictly necessary. If all Alice needs to do is provide proof of employment, this can be done with an **anonymous credential** instead. Anonymous credentials may prove certain predicates without disclosing actual values (e.g., Alice is employed full-time, with a salary greater than X, along with her hire date, but her actually salary remains hidden).  A compound proof can be created, drawing from claims from both Faber College and Acme Corp, that discloses only what is necessary.
 
 Alice now loads Thrift Bank's loan application link:
 ```
@@ -736,7 +755,7 @@ Try Next:
     send proof "Loan-Application-Basic" to "Thrift Bank"
 ```
 
-Alice sends just the "Loan-Application-Basic" proof to the bank. This allows her to minimize the PII that she has to share when all she's trying to do right now is prove basic eligibility.
+Alice sends just the "Loan-Application-Basic" proof to the bank. This allows her to minimize the **PII** (personally identifiable information) that she has to share when all she's trying to do right now is prove basic eligibility.
 
 ```
 ALICE@test> send proof Loan-Application-Basic to Thrift Bank
@@ -749,8 +768,7 @@ Response from Thrift Bank (479.17 ms):
     Loan eligibility criteria satisfied, please send another proof 'Loan-Application-KYC'
 ```
 
-Alice now checks the second proof request where she needs to share her
-personal information with bank.
+Alice now checks the second proof request where she needs to share her personal information with the bank.
 
 ```
 ALICE@test> show proof request Loan-Application-KYC

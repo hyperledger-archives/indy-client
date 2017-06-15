@@ -97,7 +97,7 @@ class SovrinCli(PlenumCli):
     name = 'sovrin'
     properName = 'Sovrin'
     fullName = 'Sovrin Identity platform'
-    githubUrl = 'https://github.com/sovrin-foundation/sovrin-client/tree/stable/data'
+    githubUrl = 'https://github.com/sovrin-foundation/sovrin-common/tree/stable/data'
 
     NodeClass = nodeClass
     ClientClass = Client
@@ -204,33 +204,34 @@ class SovrinCli(PlenumCli):
     def actions(self):
         actions = super().actions
         # Add more actions to base class for sovrin CLI
-        actions.extend([self._sendNymAction,
-                        self._sendGetNymAction,
-                        self._sendAttribAction,
-                        self._sendNodeAction,
-                        self._sendPoolUpgAction,
-                        self._sendSchemaAction,
-                        self._sendClaimDefAction,
-                        self._addGenTxnAction,
-                        self._showFile,
-                        self._loadFile,
-                        self._showLink,
-                        self._connectTo,
-                        self._disconnect,
-                        self._syncLink,
-                        self._pingTarget,
-                        self._showClaim,
-                        self._listClaims,
-                        self._listLinks,
-                        self._reqClaim,
-                        self._showProofRequest,
-                        self._acceptInvitationLink,
-                        self._setAttr,
-                        self._sendProofRequest,
-                        self._sendProof,
-                        self._newIdentifier,
-                        self._reqAvailClaims
-                        ])
+        if not self._sendNymAction in actions:
+            actions.extend([self._sendNymAction,
+                            self._sendGetNymAction,
+                            self._sendAttribAction,
+                            self._sendNodeAction,
+                            self._sendPoolUpgAction,
+                            self._sendSchemaAction,
+                            self._sendClaimDefAction,
+                            self._addGenTxnAction,
+                            self._showFile,
+                            self._loadFile,
+                            self._showLink,
+                            self._connectTo,
+                            self._disconnect,
+                            self._syncLink,
+                            self._pingTarget,
+                            self._showClaim,
+                            self._listClaims,
+                            self._listLinks,
+                            self._reqClaim,
+                            self._showProofRequest,
+                            self._acceptInvitationLink,
+                            self._setAttr,
+                            self._sendProofRequest,
+                            self._sendProof,
+                            self._newIdentifier,
+                            self._reqAvailClaims
+                            ])
         return actions
 
     @PlenumCli.activeWallet.setter

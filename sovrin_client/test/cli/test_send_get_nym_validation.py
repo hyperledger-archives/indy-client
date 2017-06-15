@@ -32,10 +32,8 @@ def testSendGetNymSucceedsForExistingUuidDest(
 def testSendGetNymFailsForNotExistingUuidDest(
         be, do, poolNodesStarted, trusteeCli):
 
-    uuidIdentifier = createUuidIdentifier()
-
     parameters = {
-        'dest': uuidIdentifier
+        'dest': createUuidIdentifier()
     }
 
     be(trusteeCli)
@@ -43,28 +41,11 @@ def testSendGetNymFailsForNotExistingUuidDest(
        mapper=parameters, expect=NYM_NOT_FOUND, within=2)
 
 
-def testSendGetNymSucceedsForExistingCryptonymDest(
+def testSendGetNymFailsIfCryptonymIsPassedAsDest(
         be, do, poolNodesStarted, trusteeCli):
 
-    cryptonym = createCryptonym()
-    addNym(be, do, trusteeCli, idr=cryptonym)
-
     parameters = {
-        'dest': cryptonym
-    }
-
-    be(trusteeCli)
-    do('send GET_NYM dest={dest}',
-       mapper=parameters, expect=CURRENT_VERKEY_IS_SAME_AS_IDENTIFIER, within=2)
-
-
-def testSendGetNymFailsForNotExistingCryptonymDest(
-        be, do, poolNodesStarted, trusteeCli):
-
-    cryptonym = createCryptonym()
-
-    parameters = {
-        'dest': cryptonym
+        'dest': createCryptonym()
     }
 
     be(trusteeCli)
@@ -92,8 +73,8 @@ def testSendGetNymFailsIfDestIsPassedInHexFormat(
 def testSendGetNymFailsIfDestIsInvalid(
         be, do, poolNodesStarted, trusteeCli):
 
-    cryptonym = createCryptonym()
-    invalidIdentifier = cryptonym[:-4]
+    uuidIdentifier = createUuidIdentifier()
+    invalidIdentifier = uuidIdentifier[:-4]
 
     parameters = {
         'dest': invalidIdentifier

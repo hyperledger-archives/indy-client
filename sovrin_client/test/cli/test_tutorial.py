@@ -781,6 +781,7 @@ def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
        mapper=mapping)
 
 
+@pytest.mark.skip #INDY-229
 def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
                          showJobCertClaimOut,
                          jobApplicationProofSent):

@@ -43,11 +43,13 @@ class AgentIssuer:
 
         version = body[VERSION]
         origin = body[ORIGIN]
-        claimReq = ClaimRequest.fromStrDict(body[CLAIM_REQ_FIELD])
 
         schemaKey = SchemaKey(name, version, origin)
         schema = await self.issuer.wallet.getSchema(ID(schemaKey))
         schemaId = ID(schemaKey=schemaKey, schemaId=schema.seqId)
+
+        public_key = await self.issuer.wallet.getPublicKey(schemaId)
+        claimReq = ClaimRequest.from_str_dict(body[CLAIM_REQ_FIELD], public_key.N)
 
         self._add_attribute(schemaKey=schemaKey, proverId=claimReq.userId,
                             link=link)

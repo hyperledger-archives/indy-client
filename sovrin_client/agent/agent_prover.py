@@ -70,7 +70,7 @@ class AgentProver:
             NAME: name,
             VERSION: version,
             ORIGIN: origin,
-            CLAIM_REQ_FIELD: claimReq.toStrDict()
+            CLAIM_REQ_FIELD: claimReq.to_str_dict()
         }
 
         self.signAndSendToLink(msg=op, linkName=link.name)

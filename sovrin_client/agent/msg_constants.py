@@ -17,11 +17,14 @@ PROOF = 'PROOF'
 PROOF_STATUS = 'PROOF_STATUS'
 
 
-CLAIM_REQ_FIELD = 'claimReq'
+ISSUER_DID = 'issuer_did'
+CLAIM_DEF_SEQ_NO = 'claim_def_seq_no'
+CLAIM_REQ_FIELD = 'blinded_ms'
 CLAIM_FIELD = 'claim'
 PROOF_FIELD = 'proof'
 PROOF_INPUT_FIELD = 'proofInput'
 REVEALED_ATTRS_FIELD = 'revealedAttrs'
+SCHEMA_SEQ_NO = 'schema_seq_no'
 
 # Proof request schema keys
 PROOF_REQ_SCHEMA_NAME = 'name'

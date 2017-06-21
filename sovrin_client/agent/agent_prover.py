@@ -12,7 +12,7 @@ from anoncreds.protocol.types import SchemaKey, ID, Claims, ProofInput
 from anoncreds.protocol.utils import toDictWithStrValues
 from sovrin_client.agent.msg_constants import CLAIM_REQUEST, PROOF, CLAIM_FIELD, \
     CLAIM_REQ_FIELD, PROOF_FIELD, PROOF_INPUT_FIELD, REVEALED_ATTRS_FIELD, \
-    REQ_AVAIL_CLAIMS
+    REQ_AVAIL_CLAIMS, ISSUER_DID, CLAIM_DEF_SEQ_NO, SCHEMA_SEQ_NO
 from sovrin_client.client.wallet.types import ProofRequest
 from sovrin_client.client.wallet.link import Link
 from sovrin_common.util import getNonceForProof
@@ -64,13 +64,16 @@ class AgentProver:
 
         # TODO link.invitationNonce should not be used here.
         # It has served its purpose by this point. Claim Requests do not need a nonce.
+        public_key = await self.prover.wallet.getPublicKey(ID(schema_key))
+        schema = await self.prover.wallet.getSchema(ID(schema_key))
+
         op = {
-            NONCE: link.invitationNonce,
             TYPE: CLAIM_REQUEST,
-            NAME: name,
-            VERSION: version,
-            ORIGIN: origin,
-            CLAIM_REQ_FIELD: claimReq.toStrDict()
+            NONCE: link.invitationNonce,
+            SCHEMA_SEQ_NO: schema.seqId,
+            ISSUER_DID: origin,
+            CLAIM_REQ_FIELD: claimReq.to_str_dict(),
+            CLAIM_DEF_SEQ_NO: public_key.seqId
         }
 
         self.signAndSendToLink(msg=op, linkName=link.name)

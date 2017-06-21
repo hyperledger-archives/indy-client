@@ -85,7 +85,6 @@ def testSendGetNymFailsIfDestIsInvalid(
        mapper=parameters, expect=NYM_NOT_FOUND, within=2)
 
 
-@pytest.mark.skip(reason='INDY-139')
 def testSendGetNymHasInvalidSyntaxIfDestIsEmpty(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -105,7 +104,6 @@ def testSendGetNymHasInvalidSyntaxIfDestIsOmitted(
     do('send GET_NYM', expect=INVALID_SYNTAX, within=2)
 
 
-@pytest.mark.skip(reason='INDY-139')
 def testSendGetNymHasInvalidSyntaxIfUnknownParameterIsPassed(
         be, do, poolNodesStarted, trusteeCli):
 

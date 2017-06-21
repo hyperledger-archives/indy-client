@@ -65,7 +65,7 @@ class SovrinPublicRepo(PublicRepo):
         data, seqNo = await self._sendGetReq(op)
         return Schema(name=data[NAME],
                       version=data[VERSION],
-                      attrNames=data[ATTR_NAMES].split(","),
+                      attrNames=data[ATTR_NAMES],
                       issuerId=data[ORIGIN],
                       seqId=seqNo) if data else None
 
@@ -81,7 +81,7 @@ class SovrinPublicRepo(PublicRepo):
         if not data:
             return None
         data = data[PRIMARY]
-        pk = PublicKey.fromStrDict(data)._replace(seqId=seqNo)
+        pk = PublicKey.from_str_dict(data)._replace(seqId=seqNo)
         return pk
 
     async def getPublicKeyRevocation(self, id: ID,
@@ -115,7 +115,7 @@ class SovrinPublicRepo(PublicRepo):
         data = {
             NAME: schema.name,
             VERSION: schema.version,
-            ATTR_NAMES: ",".join(schema.attrNames)
+            ATTR_NAMES: schema.attrNames
         }
         op = {
             TXN_TYPE: SCHEMA,
@@ -136,7 +136,7 @@ class SovrinPublicRepo(PublicRepo):
 
         data = {}
         if pk is not None:
-            data[PRIMARY] = pk.toStrDict()
+            data[PRIMARY] = pk.to_str_dict()
         if pkR is not None:
             data[REVOCATION] = pkR.toStrDict()
 

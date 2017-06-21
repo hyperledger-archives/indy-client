@@ -25,20 +25,6 @@ def testSendNymSucceedsForUuidIdentifierAndOmittedVerkey(
        mapper=parameters, expect=NYM_ADDED, within=2)
 
 
-def testSendNymSucceedsForUuidIdentifierAndEmptyVerkey(
-        be, do, poolNodesStarted, trusteeCli):
-
-    parameters = {
-        'dest': createUuidIdentifier(),
-        'verkey': '',
-        'role': Roles.TRUST_ANCHOR.name
-    }
-
-    be(trusteeCli)
-    do('send NYM dest={dest} role={role} verkey={verkey}',
-       mapper=parameters, expect=INVALID_SYNTAX, within=2)
-
-
 def testSendNymSucceedsForUuidIdentifierAndFullVerkey(
         be, do, poolNodesStarted, trusteeCli):
 
@@ -177,21 +163,6 @@ def testSendNymFailsForCryptonymIdentifierAndOmittedVerkey(
 
     be(trusteeCli)
     do('send NYM dest={dest} role={role}',
-       mapper=parameters, expect=ERROR, within=2)
-
-
-@pytest.mark.skip(reason='INDY-210')
-def testSendNymFailsForCryptonymIdentifierAndEmptyVerkey(
-        be, do, poolNodesStarted, trusteeCli):
-
-    parameters = {
-        'dest': createCryptonym(),
-        'verkey': '',
-        'role': Roles.TRUST_ANCHOR.name
-    }
-
-    be(trusteeCli)
-    do('send NYM dest={dest} role={role} verkey={verkey}',
        mapper=parameters, expect=ERROR, within=2)
 
 
@@ -531,6 +502,20 @@ def testSendNymHasInvalidSyntaxIfIdentifierIsOmitted(
 
     be(trusteeCli)
     do('send NYM role={role} verkey={verkey}',
+       mapper=parameters, expect=INVALID_SYNTAX, within=2)
+
+
+def testSendNymHasInvalidSyntaxForUuidIdentifierAndEmptyVerkey(
+        be, do, poolNodesStarted, trusteeCli):
+
+    parameters = {
+        'dest': createUuidIdentifier(),
+        'verkey': '',
+        'role': Roles.TRUST_ANCHOR.name
+    }
+
+    be(trusteeCli)
+    do('send NYM dest={dest} role={role} verkey={verkey}',
        mapper=parameters, expect=INVALID_SYNTAX, within=2)
 
 

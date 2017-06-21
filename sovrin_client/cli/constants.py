@@ -38,7 +38,7 @@ NEW_ID_REG_EX = "(\s* (?P<new_id>new\s+identifier)" \
                 "\s? (as\s+(?P<alias>[a-zA-Z0-9-]+))?)"
 
 GET_NYM_REG_EX = "(\s* (?P<send_get_nym>send\s+{getNym}) " \
-                 "\s+ (?P<dest>dest=)\s*(?P<dest_id>[A-Za-z0-9+=/]*) \s*) ".format(
+                 "\s+ (?P<dest>dest=)\s*(?P<dest_id>[A-Za-z0-9+=/]+) \s*) ".format(
     getNym=SovrinTransactions.GET_NYM.name)
 
 ADD_ATTRIB_REG_EX = \

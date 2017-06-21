@@ -781,14 +781,13 @@ def testShowAcmeLinkAfterClaimSent(be, do, aliceCli, acmeMap,
        mapper=mapping)
 
 
-@pytest.mark.skip #INDY-229
 def testShowJobCertClaim(be, do, aliceCli, jobCertificateClaimMap,
                          showJobCertClaimOut,
                          jobApplicationProofSent):
     be(aliceCli)
     totalSchemasBefore = getTotalSchemas(aliceCli)
     do("show claim {name}",
-       within=2,
+       within=3,
        expect=showJobCertClaimOut,
        mapper=jobCertificateClaimMap)
     assert totalSchemasBefore + 1 == getTotalSchemas(aliceCli)

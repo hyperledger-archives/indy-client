@@ -1,5 +1,5 @@
 from stp_core.types import Identifier
-from plenum.common.constants import TXN_TYPE, NAME, VERSION
+from plenum.common.constants import TXN_TYPE, NAME, VERSION, FORCE
 from sovrin_common.generates_request import GeneratesRequest
 from sovrin_common.constants import POOL_UPGRADE, ACTION, SCHEDULE, \
     SHA256, TIMEOUT, START, JUSTIFICATION
@@ -9,7 +9,7 @@ from sovrin_common.types import Request
 class Upgrade(GeneratesRequest):
     def __init__(self, name: str, version: str, action: str, sha256: str,
                  trustee: Identifier, schedule: dict=None, timeout=None,
-                 justification=None):
+                 justification=None, force=False):
         self.name = name
         self.version = version
         self.action = action
@@ -19,6 +19,7 @@ class Upgrade(GeneratesRequest):
         self.justification = justification
         self.trustee = trustee
         self.seqNo = None
+        self.force = force
 
     def _op(self):
         op = {
@@ -26,7 +27,8 @@ class Upgrade(GeneratesRequest):
             NAME: self.name,
             VERSION: self.version,
             ACTION: self.action,
-            SHA256: self.sha256
+            SHA256: self.sha256,
+            FORCE: self.force
         }
         if self.action == START:
             op.update({

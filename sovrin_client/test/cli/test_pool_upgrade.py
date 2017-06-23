@@ -8,7 +8,7 @@ from plenum.common.constants import VERSION
 from sovrin_common.constants import ACTION, CANCEL, JUSTIFICATION
 from sovrin_node.test.upgrade.helper import checkUpgradeScheduled, \
     checkNoUpgradeScheduled
-from sovrin_node.test.upgrade.conftest import validUpgrade
+from sovrin_node.test.upgrade.conftest import validUpgrade, validUpgradeExpForceFalse, validUpgradeExpForceTrue
 
 
 def send_upgrade_cmd(do, expect, upgrade_data):
@@ -76,3 +76,43 @@ def testPoolUpgradeCancelled(poolUpgradeCancelled, poolNodesStarted):
     poolNodesStarted.looper.run(
         eventually(checkNoUpgradeScheduled,
                    nodes, retryWait=1, timeout=timeout))
+
+
+def send_force_false_upgrade_cmd(do, expect, upgrade_data):
+    do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
+       'action={action} schedule={schedule} timeout={timeout} force=False',
+       within=10,
+       expect=expect, mapper=upgrade_data)
+
+
+def test_force_false_upgrade(be, do, trusteeCli, poolNodesStarted, validUpgradeExpForceFalse):
+    be(trusteeCli)
+    send_force_false_upgrade_cmd(do, ['Sending pool upgrade', 'Pool upgrade successful'], validUpgradeExpForceFalse)
+    poolNodesStarted.looper.run(
+        eventually(checkUpgradeScheduled, poolNodesStarted.nodes.values(),
+                   validUpgradeExpForceFalse[VERSION], retryWait=1, timeout=10))
+
+
+def send_force_true_upgrade_cmd(do, expect, upgrade_data):
+    do('send POOL_UPGRADE name={name} version={version} sha256={sha256} '
+       'action={action} schedule={schedule} timeout={timeout} force=True',
+       within=10,
+       expect=expect, mapper=upgrade_data)
+
+
+def test_force_upgrade(be, do, trusteeCli, poolNodesStarted, validUpgradeExpForceTrue):
+    nodes = poolNodesStarted.nodes.values()
+    for node in nodes:
+        if node.name in ["Delta", "Gamma"]:
+            node.stop()
+            poolNodesStarted.looper.removeProdable(node)
+    be(trusteeCli)
+    send_force_true_upgrade_cmd(do, ['Sending pool upgrade'], validUpgradeExpForceTrue)
+
+    def checksched():
+        for node in nodes:
+            if node.name not in ["Delta", "Gamma"]:
+                assert node.upgrader.scheduledUpgrade
+                assert node.upgrader.scheduledUpgrade[0] == validUpgradeExpForceTrue[VERSION]
+
+    poolNodesStarted.looper.run(eventually(checksched, retryWait=1, timeout=10))

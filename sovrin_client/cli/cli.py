@@ -26,7 +26,7 @@ from plenum.cli.helper import getClientGrams
 from plenum.cli.phrase_word_completer import PhraseWordCompleter
 from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID
+from plenum.common.constants import NAME, VERSION, TYPE, VERKEY, DATA, TXN_ID, FORCE
 from plenum.common.txn_util import createGenesisTxnFile
 from plenum.common.types import f
 from plenum.common.util import randomString, getWalletFilePath
@@ -587,10 +587,10 @@ class SovrinCli(PlenumCli):
                                     req.key, self.activeClient, out)
 
     def _sendPoolUpgTxn(self, name, version, action, sha256, schedule=None,
-                        justification=None, timeout=None):
+                        justification=None, timeout=None, force=False):
         upgrade = Upgrade(name, version, action, sha256, schedule=schedule,
                           trustee=self.activeIdentifier, timeout=timeout,
-                          justification=justification)
+                          justification=justification, force=force)
         self.activeWallet.doPoolUpgrade(upgrade)
         reqs = self.activeWallet.preparePending()
         req, = self.activeClient.submitReqs(*reqs)
@@ -679,6 +679,8 @@ class SovrinCli(PlenumCli):
             timeout = matchedVars.get(TIMEOUT)
             schedule = matchedVars.get(SCHEDULE)
             justification = matchedVars.get(JUSTIFICATION)
+            force = matchedVars.get(FORCE, "False")
+            force = force == "True"
             if action == START:
                 if not schedule:
                     self.print('{} need to be provided'.format(SCHEDULE),
@@ -698,7 +700,7 @@ class SovrinCli(PlenumCli):
                 timeout = int(timeout.strip())
             self._sendPoolUpgTxn(name, version, action, sha256,
                                  schedule=schedule, timeout=timeout,
-                                 justification=justification)
+                                 justification=justification, force=force)
             return True
 
     def _sendSchemaAction(self, matchedVars):

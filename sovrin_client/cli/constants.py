@@ -137,7 +137,8 @@ SEND_POOL_UPG_REG_EX = "(\s*(?P<send_pool_upg>send\s+{poolUpgrade})" \
                        "(\s+ (?P<action_key>action=)\s*(?P<action>start|cancel))" \
                        '(\s+ (?P<justification_key>justification=)\s*(?P<justification>\"[a-zA-z0-9-_\s]+\") \s*)? ' \
                        "(\s+ (?P<schedule_key>schedule=)\s*(?P<schedule>\{{\s*.*\}}) \s*)? " \
-                       "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)".format(poolUpgrade=SovrinTransactions.POOL_UPGRADE.name)
+                       "(\s+ (?P<timeout_key>timeout=)\s*(?P<timeout>[0-9+]+))?)" \
+                       "(\s+ (?P<force_key>force=)\s*(?P<force>True|False))?".format(poolUpgrade=SovrinTransactions.POOL_UPGRADE.name)
 
 REQ_AVAIL_CLAIMS_REG_EX = '(\s*(?P<req_avail_claims>request \s+ available \s+ claims \s+ from) ' \
                           '\s+ (?P<link_name>[A-Za-z0-9-." ]+) \s*)'

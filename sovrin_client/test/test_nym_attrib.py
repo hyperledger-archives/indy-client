@@ -188,7 +188,7 @@ def test_nym_addition_fails_with_empty_verkey(looper, addedTrustAnchor,
     looper.run(eventually(checkNacks,
                           trustAnchor,
                           reqs[0].reqId,
-                          'validation error: empty string',
+                          'validation error: b58 decoded value length 0 should be one of [32]',
                           retryWait=1, timeout=timeout))
 
 

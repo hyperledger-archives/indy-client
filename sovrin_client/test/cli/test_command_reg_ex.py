@@ -235,7 +235,7 @@ def testSendProof(grammar):
 def testSendPoolUpgrade(grammar):
     # Testing for start
     getMatchedVariables(grammar, "send POOL_UPGRADE name=upgrade-13 "
-                                 "version=0.0.6 sha256=aad1242 action=start "
+                                 "version=0.0.6 sha256=f284bdc3c1c9e24a494e285cb387c69510f28de51c15bb93179d9c7f28705398 action=start "
                                  "schedule={'AtDfpKFe1RPgcr5nnYBw1Wxkgyn8Zjyh5MzFoEUTeoV3': "
                                  "'2017-01-25T12:49:05.258870+00:00', "
                                  "'4yC546FFzorLPgTNTc6V43DnpFrR8uHvtunBxb2Suaa2': "

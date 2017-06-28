@@ -3,15 +3,22 @@ from copy import copy
 
 import pytest
 
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.test.cli.conftest import nymAddedOut
 from sovrin_common.roles import Roles
 
+
+def id_and_seed():
+    s = SimpleSigner()
+    return s.identifier, s.seed
+
+
 vals = {
-    'newTrusteeIdr': [(s.identifier, s.seed) for s in [SimpleSigner()]][0],
-    'newTGBIdr': [(s.identifier, s.seed) for s in [SimpleSigner()]][0],
-    'newStewardIdr': [(s.identifier, s.seed) for s in [SimpleSigner()]][0],
-    'newTrustAnchorIdr': [(s.identifier, s.seed) for s in [SimpleSigner()]][0],
+    'newTrusteeIdr': id_and_seed(),
+    'newTGBIdr': id_and_seed(),
+    'newStewardIdr': id_and_seed(),
+    'newTrustAnchorIdr': id_and_seed(),
 }
 
 
@@ -103,7 +110,7 @@ def testTrusteeSuspendingTrustAnchor(be, do, trusteeCli, trustAnchorAdded,
     do('send NYM dest={remote} role=',
        within=5,
        expect=nymAddedOut, mapper=trustAnchorAdded)
-    s = SimpleSigner().identifier
+    s = DidSigner().identifier
     be(trustAnchorCli)
     errorMsg = "UnauthorizedClientRequest('None role cannot add None role'"
     do('send NYM dest={remote}',

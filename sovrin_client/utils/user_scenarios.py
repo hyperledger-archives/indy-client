@@ -4,7 +4,8 @@ from abc import abstractmethod, ABCMeta
 from collections import namedtuple
 from functools import partial
 
-from stp_core.common.log import getlogger
+from stp_core.common.log import getlogger, Logger
+from stp_core.crypto.util import randomSeed
 from stp_core.loop.eventually import eventually
 from stp_core.loop.looper import Looper
 from stp_core.network.port_dispenser import genHa
@@ -20,7 +21,10 @@ logger = getlogger()
 
 
 class UserScenario(metaclass=ABCMeta):
-    def __init__(self, seed):
+    def __init__(self, seed, logFileName=None):
+        if logFileName:
+            Logger().enableFileLogging(logFileName)
+
         self._seed = seed
 
         self._client = None
@@ -133,8 +137,8 @@ class UserScenario(metaclass=ABCMeta):
 
 
 class NymsCreationScenario(UserScenario):
-    def __init__(self, seed, nymsIdsAndVerkeys):
-        super().__init__(seed)
+    def __init__(self, seed, nymsIdsAndVerkeys, logFileName=None):
+        super().__init__(seed, logFileName)
         self.nymsIdsAndVerkeys = nymsIdsAndVerkeys
 
     def do(self):
@@ -152,8 +156,8 @@ class NymsCreationScenario(UserScenario):
 
 
 class KeyRotationAndReadScenario(UserScenario):
-    def __init__(self, seed, iterations):
-        super().__init__(seed)
+    def __init__(self, seed, iterations, logFileName=None):
+        super().__init__(seed, logFileName)
         self.iterations = iterations
 
     def do(self):
@@ -188,8 +192,8 @@ class KeyRotationAndReadScenario(UserScenario):
 
 
 class KeyRotationScenario(UserScenario):
-    def __init__(self, seed, iterations):
-        super().__init__(seed)
+    def __init__(self, seed, iterations, logFileName=None):
+        super().__init__(seed, logFileName)
         self.iterations = iterations
 
     def do(self):
@@ -209,8 +213,8 @@ class KeyRotationScenario(UserScenario):
 
 
 class ForeignKeysReadScenario(UserScenario):
-    def __init__(self, seed, nymsIds, iterations):
-        super().__init__(seed)
+    def __init__(self, seed, nymsIds, iterations, logFileName=None):
+        super().__init__(seed, logFileName)
         self.nymsIds = nymsIds
         self.iterations = iterations
 
@@ -232,7 +236,7 @@ class ForeignKeysReadScenario(UserScenario):
 
 
 def generateNymsData(count):
-    signers = [SimpleSigner() for i in range(count)]
+    signers = [SimpleSigner(seed=randomSeed()) for i in range(count)]
     Nym = namedtuple("Nym", ["seed", "identifier", "verkey"])
     return [Nym(signer.seed, signer.identifier, signer.verkey)
             for signer in signers]

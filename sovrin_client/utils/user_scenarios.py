@@ -51,15 +51,22 @@ class UserScenario(metaclass=ABCMeta):
         cls(*args, **kwargs).run()
 
     def run(self):
-        self._createClientAndWallet()
-
-        self._looper = Looper(debug=True)
         try:
-            self._startClient()
-            self.do()
-        finally:
-            self._looper.shutdownSync()
-            self._looper = None
+            self._createClientAndWallet()
+
+            self._looper = Looper(debug=True)
+            try:
+                self._startClient()
+                self.do()
+            finally:
+                self._looper.shutdownSync()
+                self._looper = None
+
+        except BaseException as ex:
+            logger.exception(
+                "User scenario throws out exception: {}".format(ex),
+                exc_info=ex)
+            raise ex
 
     @abstractmethod
     def do(self):

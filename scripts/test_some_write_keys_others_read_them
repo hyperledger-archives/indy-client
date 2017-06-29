@@ -15,7 +15,7 @@ Examples:
 
 test_some_write_keys_others_read_them -w 2 -r 8 -i 10 -t 30
 
-test_some_write_keys_others_read_them --writers 4 --readers 20 --iteration 50
+test_some_write_keys_others_read_them --writers 4 --readers 20 --iterations 50
 """
 
 import argparse
@@ -85,7 +85,7 @@ def main(args):
                             nymsIdsAndVerkeys=usersIdsAndVerkeys,
                             logFileName = os.path.join(
                                 logDir,
-                                "nyms-creator-{}".format(
+                                "nyms-creator-{}.log".format(
                                     STEWARD1_SEED.decode())))
 
         nymsCreationScenarioFuture.result(timeout=timeout)
@@ -97,7 +97,7 @@ def main(args):
                              iterations=numOfIterations,
                              logFileName=os.path.join(
                                  logDir,
-                                 "writer-{}".format(writer.seed.decode())))
+                                 "writer-{}.log".format(writer.seed.decode())))
              for writer in writers]
 
         writersIds = [writer.identifier for writer in writers]
@@ -109,7 +109,7 @@ def main(args):
                              iterations=numOfIterations,
                              logFileName=os.path.join(
                                  logDir,
-                                 "reader-{}".format(reader.seed.decode())))
+                                 "reader-{}.log".format(reader.seed.decode())))
              for reader in readers]
 
         futures.wait(keyRotationScenariosFutures +
@@ -122,7 +122,7 @@ def main(args):
             ex = future.exception(timeout=0)
             if ex:
                 failed = True
-                logger.exception(ex)
+                logger.exception(ex, exc_info=ex)
 
         if failed:
             logger.error("Scenarios of some writers or readers failed")

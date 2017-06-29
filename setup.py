@@ -58,7 +58,7 @@ class EnhancedInstallDev(develop):
 
 
 setup(
-    name='sovrin-client-simple-election',
+    name='sovrin-client-dev',
     version=__version__,
     description='Sovrin client',
     url='https://github.com/sovrin-foundation/sovrin-client.git',
@@ -72,7 +72,7 @@ setup(
         '': ['*.txt', '*.md', '*.rst', '*.json', '*.conf', '*.html',
              '*.css', '*.ico', '*.png', 'LICENSE', 'LEGAL', '*.sovrin']},
     include_package_data=True,
-    install_requires=['sovrin-common-simple-election==0.2.1', 'anoncreds-dev==0.3.10'],
+    install_requires=['sovrin-common-dev==0.2.96', 'anoncreds-dev==0.3.10'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest', 'sovrin-node-dev==0.3.160'],
     scripts=['scripts/sovrin', 'scripts/change_node_ha',

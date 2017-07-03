@@ -63,7 +63,7 @@ def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
     doSendNodeCmd(do, newNodeVals)
 
     for node in poolNodesStarted.nodes.values():
-        txn = list(node.poolLedger.getAllTxn().values())[-1]
+        txn = [t for _, t in node.poolLedger.getAllTxn()][-1]
         assert txn[TARGET_NYM] == nodeId
         assert SERVICES not in txn[DATA]
 
@@ -72,6 +72,6 @@ def testSuspendNodeWhichWasNeverActive(be, do, trusteeCli, nymAddedOut,
     doSendNodeCmd(do, newNodeVals)
 
     for node in poolNodesStarted.nodes.values():
-        txn = list(node.poolLedger.getAllTxn().values())[-1]
+        txn = [t for _, t in node.poolLedger.getAllTxn()][-1]
         assert txn[TARGET_NYM] == nodeId
         assert SERVICES in txn[DATA] and txn[DATA][SERVICES] == []

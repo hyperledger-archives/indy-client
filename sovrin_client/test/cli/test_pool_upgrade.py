@@ -18,11 +18,6 @@ def send_upgrade_cmd(do, expect, upgrade_data):
        expect=expect, mapper=upgrade_data)
 
 
-@pytest.fixture(scope='module')
-def nodeIds(poolNodesStarted):
-    return next(iter(poolNodesStarted.nodes.values())).poolManager.nodeIds
-
-
 @pytest.fixture(scope="module")
 def poolUpgradeSubmitted(be, do, trusteeCli, validUpgrade):
     be(trusteeCli)

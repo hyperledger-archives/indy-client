@@ -1416,3 +1416,8 @@ def newNodeAdded(be, do, poolNodesStarted, philCli, newStewardCli,
                                                poolNodesStarted.nodes.values()),
                                            timeout=timeout))
     return newNodeVals
+
+
+@pytest.fixture(scope='module')
+def nodeIds(poolNodesStarted):
+    return next(iter(poolNodesStarted.nodes.values())).poolManager.nodeIds

@@ -1,30 +1,21 @@
-# Sovrin Client    
+# Indy Client    
 
 [![Build Status](https://jenkins.evernym.com/buildStatus/icon?job=Sovrin%20Client/master)](https://jenkins.evernym.com/job/Sovrin%20Client/job/master/)    
 
+Indy Client provides a command-line tool and underlying interfaces to interact with
+a [self-sovereign identity](https://sovrin.org) ecosystem on top of distributed ledger technology.
+This codebase will eventually be subsumed by (Indy SDK)[https://github.com/hyperledger/indy-sdk);
+if you are looking to build a client or agent, we recommend that you use the SDK instead, because
+the encapsulation and documentation here are not as clean.
 
-Sovrin Client to interact with Sovrin Network (public/permissioned distributed ledger)
+[Indy Node](https://github.com/hyperledger/indy-node) is more "core" to Indy; if you want to
+understand how Indy works, starting there may be better.
 
-This codebase contains the code to run the CLI that interacts with the ledger.
+All bugs, backlog, and stories for Indy (except the SDK) are managed in [Hyperledger's Jira](https://jira.hyperledger.org); use project name INDY.
 
-Developers should explore the [Getting Started Guide](https://github.com/sovrin-foundation/sovrin-client/blob/master/getting-started.md) to learn how Sovrin works.
+Developers may want to explore Sovrin's [Getting Started Guide](https://github.com/sovrin-foundation/sovrin-client/blob/master/getting-started.md) to learn about how Indy works. (Sovrin is the public, open ecosystem
+built on top of Indy technology; for more info, see [https://sovrin.org].)
 
 Have a look at [Setup Instructions](https://github.com/sovrin-foundation/sovrin-client/blob/master/setup.md)
 to understand how to work with the code. Note that setup instructions are still changing hour-by-hour as we identify install preconditions.
 
-To learn more about the Sovrin Identity Network and the Sovrin Foundation, see [sovrin.org](https://www.sovrin.org).
-
-----
-   Copyright 2016 Sovrin Foundation
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.

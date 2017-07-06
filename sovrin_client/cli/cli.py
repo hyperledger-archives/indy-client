@@ -489,6 +489,10 @@ class SovrinCli(PlenumCli):
 
         def getNymReply(reply, err, *args):
             try:
+                if err:
+                    self.print("Error: {}".format(err), Token.BoldOrange)
+                    return
+
                 if reply and reply[DATA]:
                     data=json.loads(reply[DATA])
                     if data:

@@ -67,7 +67,7 @@ def testSendGetNymFailsIfDestIsPassedInHexFormat(
 
     be(trusteeCli)
     do('send GET_NYM dest={dest}',
-       mapper=parameters, expect=NYM_NOT_FOUND, within=2)
+       mapper=parameters, expect="should not contain the following chars", within=2)
 
 
 def testSendGetNymFailsIfDestIsInvalid(
@@ -82,7 +82,7 @@ def testSendGetNymFailsIfDestIsInvalid(
 
     be(trusteeCli)
     do('send GET_NYM dest={dest}',
-       mapper=parameters, expect=NYM_NOT_FOUND, within=2)
+       mapper=parameters, expect="b58 decoded value length", within=2)
 
 
 def testSendGetNymHasInvalidSyntaxIfDestIsEmpty(

@@ -1,4 +1,4 @@
-from plenum.common.signer_simple import SimpleSigner
+from plenum.common.signer_did import DidSigner
 from sovrin_client.agent.helper import bootstrap_schema
 from sovrin_client.client.wallet.wallet import Wallet
 from stp_core.common.log import getlogger
@@ -18,6 +18,9 @@ logger = getlogger()
 schema_id = None
 
 ACME_SEED = b'Acme0000000000000000000000000000'
+ACME_ID = DidSigner(seed=ACME_SEED).identifier
+ACME_VERKEY = DidSigner(seed=ACME_SEED).verkey
+ACME_SIGNER = DidSigner(seed=ACME_SEED)
 
 class AcmeAgent(WalletedAgent):
     async def postProofVerif(self, claimName, link, frm):
@@ -33,6 +36,7 @@ class AcmeAgent(WalletedAgent):
                     claims = self.get_available_claim_list(link)
                     self.sendNewAvailableClaimsData(claims, frm, link)
 
+
 def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=None):
     if client is None:
         client = create_client(base_dir_path=None, client_class=TestClient)
@@ -42,7 +46,7 @@ def create_acme(name=None, wallet=None, base_dir_path=None, port=6666, client=No
         endpoint_args['seed'] = wallet._signerById(wallet.defaultId).seed
     else:
         wallet = Wallet(name)
-        wallet.addIdentifier(signer=SimpleSigner(seed=ACME_SEED))
+        wallet.addIdentifier(signer=ACME_SIGNER)
         endpoint_args['seed'] = ACME_SEED
 
     agent = AcmeAgent(name=name or "Acme Corp",

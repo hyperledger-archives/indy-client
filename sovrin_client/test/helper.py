@@ -13,8 +13,7 @@ from sovrin_client.test.client.TestClient import TestClient
 
 from stp_core.common.log import getlogger
 from plenum.common.signer_did import DidSigner
-from plenum.common.signer_simple import SimpleSigner
-from plenum.common.constants import REQNACK, OP_FIELD_NAME, REJECT
+from plenum.common.constants import REQNACK, OP_FIELD_NAME, REJECT, REPLY
 from plenum.common.types import f, HA
 from stp_core.types import Identifier
 
@@ -64,10 +63,10 @@ def buildStewardClient(looper, tdir, stewardWallet):
     return s
 
 
-def addRole(looper, creatorClient, creatorWallet, name, useDid=True,
+def addRole(looper, creatorClient, creatorWallet, name,
             addVerkey=True, role=None):
     wallet = Wallet(name)
-    signer = DidSigner() if useDid else SimpleSigner()
+    signer = DidSigner()
     idr, _ = wallet.addIdentifier(signer=signer)
     verkey = wallet.getVerkey(idr) if addVerkey else None
     createNym(looper, idr, creatorClient, creatorWallet, verkey=verkey,
@@ -122,17 +121,41 @@ def checkRejects(client, reqId, contains='', nodeCount=4):
                   nodeCount=nodeCount)
 
 
+def checkAccpets(client, reqId, nodeCount=4):
+    checkErrorMsg(REPLY, client, reqId, contains='',
+                  nodeCount=nodeCount)
+
+
 def submitAndCheckRejects(looper, client, wallet, op, identifier,
-                          contains='UnauthorizedClientRequest'):
+                          contains='UnauthorizedClientRequest', check_func=checkRejects):
+
+    reqId = submit(wallet, op, identifier, client)
+    timeout = waits.expectedReqNAckQuorumTime()
+    looper.run(eventually(check_func,
+                          client,
+                          reqId,
+                          contains,
+                          retryWait=1,
+                          timeout=timeout))
+
+def submitAndCheckAccepts(looper, client, wallet, op, identifier):
+
+    reqId = submit(wallet, op, identifier, client)
+    timeout = waits.expectedReqNAckQuorumTime()
+    looper.run(eventually(checkAccpets,
+                          client,
+                          reqId,
+                          retryWait=1,
+                          timeout=timeout))
+
+
+def submit(wallet, op, identifier, client):
     req = wallet.signOp(op, identifier=identifier)
     wallet.pendRequest(req)
     reqs = wallet.preparePending()
     client.submitReqs(*reqs)
-    timeout = waits.expectedReqNAckQuorumTime()
-    looper.run(eventually(checkRejects,
-                          client,
-                          req.reqId,
-                          contains, retryWait=1, timeout=timeout))
+
+    return req.reqId
 
 
 def genTestClient(nodes = None,
@@ -187,10 +210,10 @@ def clientFromSigner(signer, looper, nodeSet, tdir):
     return s
 
 
-def addUser(looper, creatorClient, creatorWallet, name, useDid=True,
+def addUser(looper, creatorClient, creatorWallet, name,
             addVerkey=True):
     wallet = Wallet(name)
-    signer = DidSigner() if useDid else SimpleSigner()
+    signer = DidSigner()
     idr, _ = wallet.addIdentifier(signer=signer)
     verkey = wallet.getVerkey(idr) if addVerkey else None
     createNym(looper, idr, creatorClient, creatorWallet, verkey=verkey)

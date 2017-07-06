@@ -80,19 +80,17 @@ def checkConnectedToEnv(cli):
     assert "now connected to" in cli.lastCmdOutput
 
 
-def ensureConnectedToTestEnv(cli):
-    if not cli.activeEnv:
-        cli.enterCmd("connect test")
-        timeout = waits.expectedClientConnectionTimeout(
-            util.getMaxFailures(len(cli.nodeReg))
-        )
-        cli.looper.run(
-            eventually(checkConnectedToEnv, cli, retryWait=1,
-                       timeout=timeout))
+
+def ensureConnectedToTestEnv(be, do, cli):
+    be(cli)
+    if not cli._isConnectedToAnyEnv():
+        timeout = waits.expectedClientToPoolConnectionTimeout(len(cli.nodeReg))
+        do('connect test', within=timeout,
+           expect=['Connected to test'])
 
 
-def ensureNymAdded(cli, nym, role=None):
-    ensureConnectedToTestEnv(cli)
+def ensureNymAdded(be, do, cli, nym, role=None):
+    ensureConnectedToTestEnv(be, do, cli)
     cmd = "send NYM {dest}={nym}".format(dest=TARGET_NYM, nym=nym)
     if role:
         cmd += " {ROLE}={role}".format(ROLE=ROLE, role=role)
@@ -320,21 +318,21 @@ def wallet_state(totalLinks=0,
     return locals()
 
 
-def addAgent(be, do, userCli, mapper, connectExpMsgs, nymAddExpMsgs):
-    be(userCli)
-    if not userCli._isConnectedToAnyEnv():
-        do('connect test', within=3,
-           expect=connectExpMsgs)
-
-    do('send NYM dest={{remote}} role={role}'.format(
-        role=Roles.TRUST_ANCHOR.name),
-       within=3,
-       expect=nymAddExpMsgs, mapper=mapper)
+def addAgent(be, do, userCli, mapper):
+    addNym(be,
+           do,
+           userCli,
+           mapper['remote'],
+           verkey=mapper.get('remote-verkey', None),
+           role=Roles.TRUST_ANCHOR.name)
     return userCli
 
 
 def addNym(be, do, userCli, idr, verkey=None, role=None):
     be(userCli)
+
+    ensureConnectedToTestEnv(be, do, userCli)
+
     cmd = 'send NYM dest={}'.format(idr)
     if role is not None:
         cmd += ' role={}'.format(role)

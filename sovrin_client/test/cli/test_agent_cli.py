@@ -9,7 +9,7 @@ from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
 from sovrin_client.test.agent.helper import buildAcmeWallet
 from sovrin_client.test.cli.helper import getCliBuilder, getAgentCliHelpString
 from sovrin_client.test.cli.test_tutorial import acmeWithEndpointAdded,\
-    connectIfNotAlreadyConnected
+    connectIfNotAlreadyConnected, faberCli, acmeCli, thriftCli
 
 
 @spyable(methods=[AgentCli.print, AgentCli.printTokens])

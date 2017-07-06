@@ -12,7 +12,7 @@ from stp_core.crypto.util import randomSeed
 from sovrin_client.test.cli.conftest import trusteeCli
 from sovrin_client.test.cli.constants import ERROR, INVALID_SYNTAX
 from sovrin_client.test.cli.helper import addNym, newKey, \
-    createUuidIdentifier, createCryptonym
+    createUuidIdentifier, createCryptonym, createHalfKeyIdentifierAndAbbrevVerkey
 
 ATTRIBUTE_ADDED = 'Attribute added for nym {dest}'
 
@@ -64,18 +64,18 @@ def testSendAttribFailsForNotExistingUuidDest(
        mapper=parameters, expect=ERROR, within=2)
 
 
-def testSendAttribSucceedsForExistingCryptonymDest(
+def testSendAttribSucceedsForExistingDidDest(
         be, do, poolNodesStarted, localTrusteeCli):
 
     seed = randomSeed()
-    cryptonym = createCryptonym(seed=seed)
+    idr, verkey = createHalfKeyIdentifierAndAbbrevVerkey(seed=seed)
 
     userCli = localTrusteeCli
-    addNym(be, do, userCli, idr=cryptonym)
+    addNym(be, do, userCli, idr=idr, verkey=verkey)
     newKey(be, do, userCli, seed=seed.decode())
 
     sendAttribParameters = {
-        'dest': cryptonym,
+        'dest': idr,
         'raw': json.dumps({
             'name': 'Alice'
         })

@@ -19,9 +19,9 @@ except ImportError as e:
     print(str(e), file=sys.stderr)
     sys.exit(-1)
 
-from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
-from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
-from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme, ACME_VERKEY, ACME_ID
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber, FABER_VERKEY, FABER_ID
+from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift, THRIFT_VERKEY, THRIFT_ID
 from sovrin_common.constants import TRUST_ANCHOR
 from sovrin_common.identity import Identity
 
@@ -153,18 +153,20 @@ FABER_INVITE = """
 {
   "link-invitation": {
     "name": "Faber College",
-    "identifier": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
+    "identifier": "%s",
+    "verkey": "%s",
     "nonce": "b1134a647eb818069c089e7694f63e6d",
     "endpoint": "127.0.0.1:5555"
   },
   "sig": "4QKqkwv9gXmc3Sw7YFkGm2vdF6ViZz9FKZcNJGh6pjnjgBXRqZ17Sk8bUDSb6hsXHoPxrzq2F51eDn1DKAaCzhqP"
-}"""
+}""" % (FABER_ID, FABER_VERKEY)
 
 THRIFT_INVITE = """
 {
   "link-invitation": {
     "name": "Thrift Bank",
-    "identifier": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
+    "identifier": "%s",
+    "verkey": "%s",
     "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "127.0.0.1:7777"
   },
@@ -196,28 +198,16 @@ THRIFT_INVITE = """
     }],
   "sig": "D1vU5fbtJbqWKdCoVJgqHBLLhh5CYspikuEXdnBVVyCnLHiYC9ZsZrDWpz3GkFFGvfC4RQ4kuB64vUFLo3F7Xk6"
 }
-"""
+""" % (THRIFT_ID, THRIFT_VERKEY)
 
 ACME_INVITE = """
 {
     "link-invitation": {
         "name": "Acme Corp",
-        "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
+        "identifier": "%s",
+        "verkey": "%s",
         "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
         "endpoint": "127.0.0.1:6666"
     },
-    "proof-requests": [{
-      "name": "Job-Application",
-      "version": "0.2",
-      "attributes": {
-          "first_name": "string",
-          "last_name": "string",
-          "phone_number": "string",
-          "degree": "string",
-          "status": "string",
-          "ssn": "string"
-      },
-      "verifiableAttributes": ["degree", "status", "ssn"]
-    }],
     "sig": "sdf"
-}"""
+}""" % (ACME_ID, ACME_VERKEY)

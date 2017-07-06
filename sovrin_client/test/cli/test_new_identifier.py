@@ -70,30 +70,3 @@ def testNewId(be, do, aliceCLI):
     checkWalletState(aliceCLI, totalIds=totalIds+1, isAbbr=False, isCrypto=False)
 
 
-def testNewIdAbbr(be, do, aliceCLI):
-    totalIds = getTotalIds(aliceCLI)
-    be(aliceCLI)
-    do("new identifier abbr",
-       expect=["Current identifier set to"])
-    checkWalletState(aliceCLI, totalIds=totalIds+1, isAbbr=True, isCrypto=False)
-
-
-def testNewIdCrypto(be, do, aliceCLI):
-    totalIds = getTotalIds(aliceCLI)
-    be(aliceCLI)
-    do("new identifier crypto",
-       expect=["Current identifier set to"])
-    checkWalletState(aliceCLI, totalIds=totalIds+1, isAbbr=False, isCrypto=True)
-
-
-def testNewIdWithAlias(be, do, aliceCLI):
-    totalIds = getTotalIds(aliceCLI)
-    be(aliceCLI)
-    do("new identifier crypto",
-       expect=["Current identifier set to"])
-    do("new identifier crypto",
-       expect=["Current identifier set to"])
-    checkWalletState(aliceCLI, totalIds=totalIds + 2, isAbbr=False,
-                     isCrypto=True)
-
-

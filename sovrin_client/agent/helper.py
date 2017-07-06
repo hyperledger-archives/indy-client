@@ -1,6 +1,6 @@
 import os
 
-from plenum.common.signer_simple import SimpleSigner
+from plenum.common.signer_did import DidSigner
 from plenum.common.util import friendlyToRaw, rawToFriendly
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_common.config_util import getConfig
@@ -57,7 +57,7 @@ def build_wallet_core(wallet_name, seed_file):
     wallet = Wallet(wallet_name)
 
     seed = bytes(seed, encoding='utf-8')
-    wallet.addIdentifier(signer=SimpleSigner(seed=seed))
+    wallet.addIdentifier(signer=DidSigner(seed=seed))
 
     return wallet
 
@@ -77,5 +77,5 @@ async def bootstrap_schema(agent, attrib_def_name, schema_name, schema_version, 
 
 def buildAgentWallet(name, seed):
     wallet = Wallet(name)
-    wallet.addIdentifier(signer=SimpleSigner(seed=seed))
+    wallet.addIdentifier(signer=DidSigner(seed=seed))
     return wallet

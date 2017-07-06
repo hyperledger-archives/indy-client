@@ -50,6 +50,7 @@ from sovrin_common.identity import Identity
 from sovrin_common.constants import ENDPOINT
 from sovrin_common.util import ensureReqCompleted
 from sovrin_common.config import agentLoggingLevel
+from sovrin_common.exceptions import InvalidLinkException
 from plenum.common.constants import PUBKEY
 
 logger = getlogger()
@@ -735,8 +736,12 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if link is None:
             link = self.wallet.getLink(linkName, required=True)
         ha = link.getRemoteEndpoint(required=True)
-        verKeyRaw = friendlyToRaw(link.remoteVerkey) if link.remoteVerkey else None
+        verKeyRaw = friendlyToRaw(link.full_remote_verkey) if link.full_remote_verkey else None
         publicKeyRaw = friendlyToRaw(link.remotePubkey) if link.remotePubkey else None
+
+        if verKeyRaw is None and publicKeyRaw is None:
+            raise InvalidLinkException("verkey or publicKey is required for connection.")
+
         if publicKeyRaw is None:
             publicKeyRaw = rawVerkeyToPubkey(verKeyRaw)
         self.endpoint.connectIfNotConnected(
@@ -923,12 +928,15 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         return _
 
     def _updateLinkWithLatestInfo(self, link: Link, reply):
-        link.remoteVerkey = DidVerifier(reply[VERKEY],
-                                        identifier=link.remoteIdentifier).verkey
         if DATA in reply and reply[DATA]:
             data = json.loads(reply[DATA])
+
+            verkey = data.get(VERKEY)
+            if verkey is not None:
+                link.remoteVerkey = data[VERKEY]
+
             ep = data.get(ENDPOINT)
-            if ep:
+            if isinstance(ep, dict):
                 # TODO: Validate its an IP port pair or a malicious entity
                 # can crash the code
                 if 'ha' in ep:
@@ -938,15 +946,10 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
                     link.remotePubkey = ep[PUBKEY]
                 else:
                     link.remotePubkey = friendlyVerkeyToPubkey(
-                        link.remoteVerkey) if link.remoteVerkey else None
+                        link.full_remote_verkey) if link.full_remote_verkey else None
 
-        link.linkLastSynced = datetime.now()
-        self.notifyMsgListener("    Link {} synced".format(link.name))
-        # TODO need to move this to after acceptance,
-        # unless we want to support an anonymous ping
-        # if link.remoteEndPoint:
-        #     reqId = self._pingToEndpoint(link.name, link.remoteEndPoint)
-        #     return reqId
+            link.linkLastSynced = datetime.now()
+            self.notifyMsgListener("    Link {} synced".format(link.name))
 
     def _pingToEndpoint(self, name, endpoint):
         self.notifyMsgListener("\nPinging target endpoint: {}".
@@ -958,34 +961,36 @@ class Walleted(AgentIssuer, AgentProver, AgentVerifier):
         if not self.client.isReady():
             raise NotConnectedToNetwork
         link = self.wallet.getLink(linkName, required=True)
-        nym = getCryptonym(link.remoteIdentifier)
-        # identity = Identity(identifier=nym)
-        # req = self.wallet.requestIdentity(identity,
-        #                                   sender=self.wallet.defaultId)
-        # self.client.submitReqs(req)
-        #
-        # if doneCallback:
-        #     self.loop.call_later(.2,
-        #                          ensureReqCompleted,
-        #                          self.loop,
-        #                          req.key,
-        #                          self.client,
-        #                          self._handleSyncNymResp(link, doneCallback))
+        identifier = link.remoteIdentifier
+        identity = Identity(identifier=identifier)
+        req = self.wallet.requestIdentity(identity,
+                                          sender=self.wallet.defaultId)
+
+
+        self.client.submitReqs(req)
+
+        self.loop.call_later(.2,
+                             ensureReqCompleted,
+                             self.loop,
+                             req.key,
+                             self.client,
+                             self._handleSyncResp(link, None))
 
         attrib = Attribute(name=ENDPOINT,
                            value=None,
-                           dest=nym,
+                           dest=identifier,
                            ledgerStore=LedgerStore.RAW)
+
         req = self.wallet.requestAttribute(attrib, sender=self.wallet.defaultId)
         self.client.submitReqs(req)
 
-        # if doneCallback:
         self.loop.call_later(.2,
                              ensureReqCompleted,
                              self.loop,
                              req.key,
                              self.client,
                              self._handleSyncResp(link, doneCallback))
+
 
     def executeWhenResponseRcvd(self, startTime, maxCheckForMillis,
                                 loop, reqId, respType,

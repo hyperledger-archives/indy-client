@@ -1,14 +1,22 @@
 import pytest
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.client.wallet.wallet import Wallet
-from sovrin_client.test.cli.helper import prompt_is, addNym
+from sovrin_client.test.cli.helper import prompt_is, addNym, ensureConnectedToTestEnv
 from sovrin_common.roles import Roles
-from sovrin_node.test.did.conftest import wallet, abbrevVerkey, abbrevIdr
+from sovrin_node.test.did.conftest import wallet, abbrevVerkey
+
+TRUST_ANCHOR_SEED = b'TRUST0NO0ONE00000000000000000000'
 
 
 @pytest.fixture("module")
-def trustAnchorSigner():
-    return SimpleSigner()
+def trust_anchor_did_signer():
+    return DidSigner(seed=TRUST_ANCHOR_SEED)
+
+
+@pytest.fixture("module")
+def trust_anchor_cid_signer():
+    return SimpleSigner(seed=TRUST_ANCHOR_SEED)
 
 
 @pytest.fixture("module")
@@ -20,26 +28,6 @@ def trustAnchorWallet(trustAnchorSigner):
 
 def testPoolNodesStarted(poolNodesStarted):
     pass
-
-
-@pytest.fixture(scope="module")
-def philCli(be, do, poolNodesStarted, philCLI, connectedToTest):
-    be(philCLI)
-    do('prompt Phil', expect=prompt_is('Phil'))
-
-    do('new keyring Phil', expect=['New keyring Phil created',
-                                   'Active keyring set to "Phil"'])
-
-    mapper = {
-        'seed': '11111111111111111111111111111111',
-        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
-    do('new key with seed {seed}', expect=['Key created in keyring Phil',
-                                           'Identifier for key is {idr}',
-                                           'Current identifier set to {idr}'],
-       mapper=mapper)
-
-    do('connect test', within=3, expect=connectedToTest)
-    return philCLI
 
 
 @pytest.fixture(scope="module")
@@ -73,14 +61,16 @@ def getNymNotFoundExpectedMsgs(idr):
     return ["NYM {} not found".format(idr)]
 
 
-def testGetDIDWithoutAddingIt(be, do, philCli, abbrevIdr):
-    getNym(be, do, philCli, abbrevIdr,
-           getNymNotFoundExpectedMsgs(abbrevIdr))
+def testGetDIDWithoutAddingIt(be, do, philCli, trust_anchor_did_signer):
+    ensureConnectedToTestEnv(be, do, philCli)
+    getNym(be, do, philCli, trust_anchor_did_signer.identifier,
+           getNymNotFoundExpectedMsgs(trust_anchor_did_signer.identifier))
 
 
-def testGetCIDWithoutAddingIt(be, do, philCli, trustAnchorSigner):
-    getNym(be, do, philCli, trustAnchorSigner.identifier,
-           getNymNotFoundExpectedMsgs(trustAnchorSigner.identifier))
+def testGetCIDWithoutAddingIt(be, do, philCli, trust_anchor_cid_signer):
+    ensureConnectedToTestEnv(be, do, philCli)
+    getNym(be, do, philCli, trust_anchor_cid_signer.identifier,
+           getNymNotFoundExpectedMsgs(trust_anchor_cid_signer.identifier))
 
 
 def addAndActivateCLIWallet(cli, wallet):
@@ -89,8 +79,12 @@ def addAndActivateCLIWallet(cli, wallet):
 
 
 @pytest.fixture(scope="module")
-def didAdded(be, do, philCli, abbrevIdr):
-    addNym(be, do, philCli, abbrevIdr, role=Roles.TRUST_ANCHOR.name)
+def didAdded(be, do, philCli, trust_anchor_did_signer):
+    ensureConnectedToTestEnv(be, do, philCli)
+    addNym(be, do, philCli,
+           trust_anchor_did_signer.identifier,
+           role=Roles.TRUST_ANCHOR.name
+           )
     return philCli
 
 
@@ -99,8 +93,8 @@ def testAddDID(didAdded):
 
 
 @pytest.fixture(scope="module")
-def cidAdded(be, do, philCli, trustAnchorSigner):
-    addNym(be, do, philCli, trustAnchorSigner.identifier, role=Roles.TRUST_ANCHOR.name)
+def cidAdded(be, do, philCli, trust_anchor_cid_signer):
+    addNym(be, do, philCli, trust_anchor_cid_signer.identifier, role=Roles.TRUST_ANCHOR.name)
     return philCli
 
 
@@ -112,23 +106,24 @@ def getNoVerkeyEverAssignedMsgs(idr):
     return ["No verkey ever assigned to the identifier {}".format(idr)]
 
 
-def testGetDIDWithoutVerkey(be, do, philCli, didAdded, abbrevIdr):
-    getNym(be, do, philCli, abbrevIdr,
-           getNoVerkeyEverAssignedMsgs(abbrevIdr))
+def testGetDIDWithoutVerkey(be, do, philCli, didAdded, trust_anchor_did_signer):
+    getNym(be, do, philCli, trust_anchor_did_signer.identifier,
+           getNoVerkeyEverAssignedMsgs(trust_anchor_did_signer.identifier))
 
 
 def getVerkeyIsSameAsIdentifierMsgs(idr):
     return ["Current verkey is same as identifier {}".format(idr)]
 
 
-def testGetCIDWithoutVerkey(be, do, philCli, cidAdded, trustAnchorSigner):
-    getNym(be, do, philCli, trustAnchorSigner.identifier,
-           getVerkeyIsSameAsIdentifierMsgs(trustAnchorSigner.identifier))
+def testGetCIDWithoutVerkey(be, do, philCli, cidAdded, trust_anchor_cid_signer):
+    getNym(be, do, philCli, trust_anchor_cid_signer.identifier,
+           getVerkeyIsSameAsIdentifierMsgs(trust_anchor_cid_signer.identifier))
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToDID(be, do, philCli, didAdded, abbrevIdr, abbrevVerkey):
-    addNym(be, do, philCli, abbrevIdr, abbrevVerkey)
+def verkeyAddedToDID(be, do, philCli, didAdded, trust_anchor_did_signer):
+    addNym(be, do, philCli, trust_anchor_did_signer.identifier,
+           trust_anchor_did_signer.verkey)
 
 
 def testAddVerkeyToExistingDID(verkeyAddedToDID):
@@ -136,13 +131,12 @@ def testAddVerkeyToExistingDID(verkeyAddedToDID):
 
 
 @pytest.fixture(scope="module")
-def verkeyAddedToCID(be, do, philCli, cidAdded, trustAnchorWallet):
-    newSigner = SimpleSigner()
-    addNym(be, do, philCli, trustAnchorWallet.defaultId, newSigner.identifier)
-    # Updating the identifier of the new signer to match the one in wallet
-    newSigner._identifier = trustAnchorWallet.defaultId
-    trustAnchorWallet.updateSigner(trustAnchorWallet.defaultId, newSigner)
-    return newSigner
+def verkeyAddedToCID(be, do, philCli, cidAdded, trust_anchor_cid_signer):
+    # newSigner = SimpleSigner(identifier=trust_anchor_cid_signer.identifier)
+    # new_verkey = newSigner.verkey
+
+    addNym(be, do, philCli, trust_anchor_cid_signer.identifier, verkey=trust_anchor_cid_signer.verkey)
+    return trust_anchor_cid_signer
 
 
 def testAddVerkeyToExistingCID(verkeyAddedToCID):
@@ -154,16 +148,17 @@ def getCurrentVerkeyIsgMsgs(idr, verkey):
 
 
 def testGetDIDWithVerKey(be, do, philCli, verkeyAddedToDID,
-                            abbrevIdr, abbrevVerkey):
-    getNym(be, do, philCli, abbrevIdr,
-           getCurrentVerkeyIsgMsgs(abbrevIdr, abbrevVerkey))
+                         trust_anchor_did_signer):
+    getNym(be, do, philCli, trust_anchor_did_signer.identifier,
+           getCurrentVerkeyIsgMsgs(trust_anchor_did_signer.identifier,
+                                   trust_anchor_did_signer.verkey))
 
 
 def testGetCIDWithVerKey(be, do, philCli, verkeyAddedToCID,
-                            trustAnchorSigner):
-    getNym(be, do, philCli, trustAnchorSigner.identifier,
-           getCurrentVerkeyIsgMsgs(trustAnchorSigner.identifier,
-                                   verkeyAddedToCID.verkey))
+                         trust_anchor_cid_signer):
+    getNym(be, do, philCli, trust_anchor_cid_signer.identifier,
+           getCurrentVerkeyIsgMsgs(trust_anchor_cid_signer.identifier,
+                                   trust_anchor_cid_signer.verkey))
 
 
 def getNoActiveVerkeyFoundMsgs(idr):
@@ -176,15 +171,15 @@ def addAttribToNym(be, do, userCli, idr, raw):
        within=5,
        expect=["Attribute added for nym {}".format(idr)])
 
-
-def testSendAttribForDID(be, do, verkeyAddedToDID, abbrevIdr, aliceCli):
+@pytest.mark.skip("INDY- This should not have worked")
+def testSendAttribForDID(be, do, verkeyAddedToDID, trust_anchor_did_signer, aliceCli):
     raw = '{"name": "Alice"}'
-    addAttribToNym(be, do, aliceCli, abbrevIdr, raw)
+    addAttribToNym(be, do, aliceCli, trust_anchor_did_signer.identifier, raw)
 
-
-def testSendAttribForCID(be, do, verkeyAddedToCID, trustAnchorSigner, trustAnchorCli):
+@pytest.mark.skip("INDY- This should not have worked")
+def testSendAttribForCID(be, do, verkeyAddedToCID, trust_anchor_cid_signer, trustAnchorCli):
     raw = '{"name": "Earl"}'
-    addAttribToNym(be, do, trustAnchorCli, trustAnchorSigner.identifier, raw)
+    addAttribToNym(be, do, trustAnchorCli, trust_anchor_cid_signer.identifier, raw)
 
 
 @pytest.fixture(scope="module")
@@ -218,7 +213,7 @@ def testRemoveVerkeyFromCID(verkeyRemovedFromExistingCID):
                          "itself can change it")
 def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
                             verkeyRemovedFromExistingDID):
-    newSigner = SimpleSigner()
+    newSigner = DidSigner()
     addNym(be, do, philCli, abbrevIdr, newSigner.verkey)
     getNym(be, do, philCli, abbrevIdr,
            getCurrentVerkeyIsgMsgs(abbrevIdr, newSigner.verkey))
@@ -229,7 +224,7 @@ def testNewverkeyAddedToDID(be, do, philCli, abbrevIdr,
                          "itself can change it")
 def testNewverkeyAddedToCID(be, do, philCli, trustAnchorSigner,
                             verkeyRemovedFromExistingCID):
-    newSigner = SimpleSigner()
+    newSigner = DidSigner()
     addNym(be, do, philCli, trustAnchorSigner.identifier, newSigner.verkey)
     getNym(be, do, philCli, trustAnchorSigner.identifier,
            getCurrentVerkeyIsgMsgs(trustAnchorSigner.identifier, newSigner.verkey))

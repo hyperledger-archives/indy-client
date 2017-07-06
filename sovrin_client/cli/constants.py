@@ -33,7 +33,7 @@ ADD_GENESIS_NYM_REG_EX = TXN_NYM.format(cmdName='add_genesis',
                                         cmd='add \s+ genesis \s+ transaction')
 
 NEW_ID_REG_EX = "(\s* (?P<new_id>new\s+identifier)" \
-                "\s? (?P<id_or_abbr_or_crypto>([A-Za-z0-9+=/]+|abbr|crypto))? " \
+                "\s? (?P<id>([A-Za-z0-9+=/]+))? " \
                 "\s? (with\s+seed\s+(?P<seed>[a-zA-Z0-9]+))? " \
                 "\s? (as\s+(?P<alias>[a-zA-Z0-9-]+))?)"
 

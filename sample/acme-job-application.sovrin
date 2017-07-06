@@ -1,7 +1,7 @@
 {
   "link-invitation": {
     "name": "Acme Corp",
-    "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
+    "identifier": "CzkavE58zgX7rUMrzSinLr",
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "127.0.0.1:1213"
   },

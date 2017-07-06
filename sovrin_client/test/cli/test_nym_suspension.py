@@ -2,15 +2,15 @@ from binascii import hexlify
 from copy import copy
 
 import pytest
-
 from plenum.common.signer_did import DidSigner
+
 from plenum.common.signer_simple import SimpleSigner
 from sovrin_client.test.cli.conftest import nymAddedOut
 from sovrin_common.roles import Roles
 
 
 def id_and_seed():
-    s = SimpleSigner()
+    s = DidSigner()
     return s.identifier, s.seed
 
 
@@ -63,8 +63,9 @@ def trustAnchorAdded(be, do, trusteeCli, nymAddedOut):
     global vals
     v = copy(vals)
     v['remote'] = vals['newTrustAnchorIdr'][0]
+    v['remote_verkey'] = DidSigner(seed=vals['newTrustAnchorIdr'][1]).verkey
     be(trusteeCli)
-    do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
+    do('send NYM dest={{remote}} role={role} verkey={{remote_verkey}}'.format(role=Roles.TRUST_ANCHOR.name),
        within=5,
        expect=nymAddedOut, mapper=v)
     return v

@@ -7,7 +7,7 @@ from plenum.common.constants import PUBKEY
 
 from anoncreds.protocol.types import SchemaKey, ID
 from sovrin_client.test import waits
-from sovrin_client.test.agent.faber import create_faber, bootstrap_faber
+from sovrin_client.test.agent.faber import create_faber, bootstrap_faber, FABER_ID, FABER_VERKEY
 
 from sovrin_common.roles import Roles
 from stp_core.loop.eventually import eventually
@@ -18,10 +18,10 @@ from sovrin_client.agent.runnable_agent import RunnableAgent
 from sovrin_common.setup_util import Setup
 from sovrin_common.constants import ENDPOINT
 
-from sovrin_client.test.agent.acme import create_acme, bootstrap_acme
+from sovrin_client.test.agent.acme import create_acme, bootstrap_acme, ACME_ID, ACME_VERKEY
 from sovrin_client.test.agent.helper import buildFaberWallet, buildAcmeWallet, \
     buildThriftWallet
-from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift
+from sovrin_client.test.agent.thrift import create_thrift, bootstrap_thrift, THRIFT_ID, THRIFT_VERKEY
 from sovrin_client.test.cli.conftest import faberMap, acmeMap, \
     thriftMap
 from sovrin_client.test.cli.helper import newCLI
@@ -62,7 +62,7 @@ def testGettingStartedTutorialAgainstSandbox(newGuyCLI, be, do):
 
 
 @pytest.mark.skipif('sys.platform == "win32"', reason='SOV-384')
-def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
+def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCli,
                connectedToTest, nymAddedOut, attrAddedOut,
                aliceCLI, newKeyringOut, aliceMap,
                tdir, syncLinkOutWithEndpoint, jobCertificateClaimMap,
@@ -72,7 +72,7 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
 
     # Create steward and add nyms and endpoint attributes of all agents
     _, stewardSeed = poolTxnStewardData
-    be(philCLI)
+    be(philCli)
     do('new keyring Steward', expect=['New keyring Steward created',
                                       'Active keyring set to "Steward"'])
 
@@ -93,22 +93,28 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     faberHa = "{}:{}".format(agentIpAddress, faberAgentPort)
     acmeHa = "{}:{}".format(agentIpAddress, acmeAgentPort)
     thriftHa = "{}:{}".format(agentIpAddress, thriftAgentPort)
-    faberId = 'FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB'
-    acmeId = '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21'
-    thriftId = '9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW'
+    faberId = FABER_ID
+    acmeId = ACME_ID
+    thriftId = THRIFT_ID
+    faberVerkey = FABER_VERKEY
+    acmeVerkey = ACME_VERKEY
+    thriftVerkey = THRIFT_VERKEY
     faberPk = '5hmMA64DDQz5NzGJNVtRzNwpkZxktNQds21q3Wxxa62z'
     acmePk = 'C5eqjU7NMVMGGfGfx2ubvX5H9X346bQt5qeziVAo3naQ'
     thriftPk = 'AGBjYvyM3SFnoiDGAEzkSLHvqyzVkXeMZfKDvdpEsC2x'
-    for nym, ha, pk in [(faberId, faberHa, faberPk),
-                    (acmeId, acmeHa, acmePk),
-                    (thriftId, thriftHa, thriftPk)]:
-        m = {'remote': nym, 'endpoint': json.dumps({ENDPOINT:
-                                                    {'ha': ha, PUBKEY: pk}})}
+    for nym, verkey, ha, pk in [(faberId, faberVerkey, faberHa, faberPk),
+                    (acmeId, acmeVerkey, acmeHa, acmePk),
+                    (thriftId, thriftVerkey, thriftHa, thriftPk)]:
+        m = {'remote': nym, 'remote-verkey': verkey, 'endpoint': json.dumps({ENDPOINT:
+                                                                            {'ha': ha, PUBKEY: pk}})}
         do('send NYM dest={{remote}} role={role}'.format(role=Roles.TRUST_ANCHOR.name),
             within=5,
             expect=nymAddedOut, mapper=m)
         do('send ATTRIB dest={remote} raw={endpoint}', within=5,
            expect=attrAddedOut, mapper=m)
+        do('send NYM dest={{remote}} role={role} verkey={{remote-verkey}}'.format(role=Roles.TRUST_ANCHOR.name),
+           within=5,
+           expect=nymAddedOut, mapper=m)
 
     # Start Faber Agent and Acme Agent
 
@@ -128,9 +134,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
     for create_agent_fuc, agentName, agentPort, buildAgentWalletFunc, bootstrap_func in agentParams:
         agent = create_agent_fuc(name=agentName, wallet=buildAgentWalletFunc(),
                                  base_dir_path=tdir, port=agentPort)
-        RunnableAgent.run_agent(agent, bootstrap=bootstrap_func(agent), looper=philCLI.looper)
+        RunnableAgent.run_agent(agent, bootstrap=bootstrap_func(agent), looper=philCli.looper)
 
-    for p in philCLI.looper.prodables:
+    for p in philCli.looper.prodables:
         if p.name == 'Faber College':
             faberAgent = p
         if p.name == 'Acme Corp':
@@ -160,9 +166,9 @@ def testManual(do, be, poolNodesStarted, poolTxnStewardData, philCLI,
         assert issuerPublicKey.seqId
 
     timeout = waits.expectedTranscriptWritten()
-    philCLI.looper.run(eventually(checkTranscriptWritten, timeout=timeout))
+    philCli.looper.run(eventually(checkTranscriptWritten, timeout=timeout))
     timeout = waits.expectedJobCertWritten()
-    philCLI.looper.run(eventually(checkJobCertWritten, timeout=timeout))
+    philCli.looper.run(eventually(checkJobCertWritten, timeout=timeout))
 
     # Defining inner method for closures
     def executeGstFlow(name, userCLI, userMap, be, connectedToTest, do, fMap,

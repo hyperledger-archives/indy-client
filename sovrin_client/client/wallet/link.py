@@ -1,8 +1,9 @@
 from typing import List
 
 from plenum.common.constants import NAME, NONCE
+from plenum.common.signer_did import DidIdentity
 from plenum.common.types import f
-from plenum.common.util import prettyDateDifference
+from plenum.common.util import prettyDateDifference, friendlyToRaw
 from plenum.common.verifier import DidVerifier
 from sovrin_client.client.wallet.types import AvailableClaim
 
@@ -215,9 +216,19 @@ class Link:
         # This property should be used to fetch verkey compared to
         # remoteVerkey, its a more consistent name and takes care of
         # abbreviated verkey
-        v = DidVerifier(verkey=self._remoteVerkey,
-                        identifier=self.remoteIdentifier)
-        return v.verkey
+        i = DidIdentity(self.remoteIdentifier, verkey=self._remoteVerkey)
+
+        return i.verkey
+
+    @property
+    def full_remote_verkey(self):
+        verkey = self.remoteVerkey
+        if verkey is None:
+            return None
+
+        i = DidIdentity(self.remoteIdentifier, verkey=verkey)
+        full_verkey = i.full_verkey
+        return full_verkey
 
     @remoteVerkey.setter
     def remoteVerkey(self, new_val):

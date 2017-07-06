@@ -4,6 +4,7 @@ from typing import Dict
 from typing import Tuple
 
 from plenum.common.motor import Motor
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.startable import Status
 from plenum.common.types import HA
@@ -186,7 +187,7 @@ def createAgent(agentClass, name, wallet=None, basedirpath=None, port=None,
 
     if not wallet:
         wallet = Wallet(name)
-        wallet.addIdentifier(signer=SimpleSigner(
+        wallet.addIdentifier(signer=DidSigner(
             seed=randomString(32).encode('utf-8')))
     if not basedirpath:
         basedirpath = config.baseDir

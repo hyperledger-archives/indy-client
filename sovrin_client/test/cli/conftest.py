@@ -6,6 +6,12 @@ from copy import copy
 from typing import List
 
 import pytest
+from plenum.common.signer_did import DidSigner
+from sovrin_client.test.agent.acme import ACME_ID, ACME_SEED
+from sovrin_client.test.agent.acme import ACME_VERKEY
+from sovrin_client.test.agent.faber import FABER_ID, FABER_VERKEY, FABER_SEED
+from sovrin_client.test.agent.thrift import THRIFT_ID, THRIFT_VERKEY, THRIFT_SEED
+
 from stp_core.crypto.util import randomSeed
 from stp_core.network.port_dispenser import genHa
 
@@ -37,7 +43,7 @@ from plenum.test.cli.helper import newKeyPair, waitAllNodesStarted, \
 
 from sovrin_common.config_util import getConfig
 from sovrin_client.test.cli.helper import ensureNodesCreated, getLinkInvitation, \
-    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, doSendNodeCmd
+    getPoolTxnData, newCLI, getCliBuilder, P, prompt_is, addAgent, doSendNodeCmd, addNym
 from sovrin_client.test.agent.conftest import faberIsRunning as runningFaber, \
     acmeIsRunning as runningAcme, thriftIsRunning as runningThrift, emptyLooper,\
     faberWallet, acmeWallet, thriftWallet, agentIpAddress, \
@@ -120,7 +126,9 @@ def faberMap(agentIpAddress, faberAgentPort):
             'invite': "sample/faber-invitation.sovrin",
             'invite-not-exists': "sample/faber-invitation.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "remote": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
+            'seed': FABER_SEED.decode(),
+            "remote": FABER_ID,
+            "remote-verkey": FABER_VERKEY,
             "nonce": "b1134a647eb818069c089e7694f63e6d",
             ENDPOINT: ha,
             "invalidEndpointAttr": json.dumps({ENDPOINT: {'ha': ' 127.0.0.1:11'}}),
@@ -128,6 +136,7 @@ def faberMap(agentIpAddress, faberAgentPort):
             "claims": "Transcript",
             "claim-to-show": "Transcript",
             "proof-req-to-match": "Transcript",
+            'keyring-name': 'Faber'
             }
 
 
@@ -142,7 +151,9 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'invite-no-pr': 'sample/acme-job-application-no-pr.sovrin',
             'invite-not-exists': 'sample/acme-job-application.sovrin.not.exists',
             'inviter-not-exists': 'non-existing-inviter',
-            'remote': '7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21',
+            'seed': ACME_SEED.decode(),
+            "remote": ACME_ID,
+            "remote-verkey": ACME_VERKEY,
             'nonce': '57fbf9dc8c8e6acde33de98c6d747b28c',
             'proof-requests': 'Job-Application',
             'proof-request-to-show': 'Job-Application',
@@ -154,7 +165,8 @@ def acmeMap(agentIpAddress, acmeAgentPort):
             'rcvd-claim-transcript-version': '1.2',
             'send-proof-target': 'Alice',
             'pr-name': 'Job-Application',
-            'pr-schema-version': '0.2'
+            'pr-schema-version': '0.2',
+            'keyring-name': 'Acme'
             }
 
 
@@ -165,7 +177,9 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             'invite': "sample/thrift-loan-application.sovrin",
             'invite-not-exists': "sample/thrift-loan-application.sovrin.not.exists",
             'inviter-not-exists': "non-existing-inviter",
-            "remote": "9jegUr9vAMqoqQQUEAiCBYNQDnUbTktQY9nNspxfasZW",
+            'seed': THRIFT_SEED.decode(),
+            "remote": THRIFT_ID,
+            "remote-verkey": THRIFT_VERKEY,
             "nonce": "77fbf9dc8c8e6acde33de98c6d747b28c",
             ENDPOINT: ha,
             "endpointAttr": json.dumps({ENDPOINT: {'ha': ha}}),
@@ -174,7 +188,8 @@ def thriftMap(agentIpAddress, thriftAgentPort):
             "rcvd-claim-job-certificate-name": "Job-Certificate",
             "rcvd-claim-job-certificate-version": "0.2",
             "rcvd-claim-job-certificate-provider": "Acme Corp",
-            "claim-ver-req-to-show": "0.1"
+            "claim-ver-req-to-show": "0.1",
+            'keyring-name': 'Thrift'
             }
 
 
@@ -797,7 +812,7 @@ def showAcceptedLinkOut():
             "Identifier: {identifier}",
             "Verification key: {verkey}",
             "Remote: {remote}",
-            "Remote Verification key: <same as Remote>",
+            "Remote Verification key: {remote-verkey}",
             "Trust anchor: {inviter} (confirmed)",
             "Invitation nonce: {nonce}",
             "Invitation status: Accepted"]
@@ -852,6 +867,10 @@ def poolCLI_baby(CliBuilder):
 def aliceCLI(CliBuilder):
     yield from CliBuilder("alice")
 
+@pytest.yield_fixture(scope="module")
+def devinCLI(CliBuilder):
+    yield from CliBuilder("devin")
+
 
 @pytest.yield_fixture(scope="module")
 def bobCLI(CliBuilder):
@@ -871,6 +890,21 @@ def susanCLI(CliBuilder):
 @pytest.yield_fixture(scope="module")
 def philCLI(CliBuilder):
     yield from CliBuilder("phil")
+
+
+@pytest.yield_fixture(scope="module")
+def faberCLI(CliBuilder):
+    yield from CliBuilder("faber")
+
+
+@pytest.yield_fixture(scope="module")
+def acmeCLI(CliBuilder):
+    yield from CliBuilder("acme")
+
+@pytest.yield_fixture(scope="module")
+def thriftCLI(CliBuilder):
+    yield from CliBuilder("thrift")
+
 
 
 @pytest.fixture(scope="module")
@@ -1276,20 +1310,29 @@ def poolNodesStarted(be, do, poolCLI):
 
 
 @pytest.fixture(scope="module")
-def philCli(be, do, philCLI):
+def philCli(be, do, philCLI, trusteeCli):
+
     be(philCLI)
+
     do('prompt Phil', expect=prompt_is('Phil'))
 
     do('new keyring Phil', expect=['New keyring Phil created',
                                    'Active keyring set to "Phil"'])
+    phil_seed = '11111111111111111111111111111111'
+    phil_signer = DidSigner(seed=phil_seed.encode())
 
     mapper = {
-        'seed': '11111111111111111111111111111111',
-        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
+        'seed': phil_seed,
+        'idr': phil_signer.identifier}
     do('new key with seed {seed}', expect=['Key created in keyring Phil',
                                            'Identifier for key is {idr}',
                                            'Current identifier set to {idr}'],
        mapper=mapper)
+
+    addNym(be, do, trusteeCli,
+           phil_signer.identifier,
+           verkey=phil_signer.verkey,
+           role=Roles.TRUSTEE.name)
 
     return philCLI
 
@@ -1297,28 +1340,29 @@ def philCli(be, do, philCLI):
 @pytest.fixture(scope="module")
 def faberAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                      nymAddedOut, faberMap):
-    return addAgent(be, do, philCli, faberMap, connectedToTest, nymAddedOut)
+    return addAgent(be, do, philCli, faberMap)
 
 
 @pytest.fixture(scope="module")
 def acmeAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                     nymAddedOut, acmeMap):
-    return addAgent(be, do, philCli, acmeMap, connectedToTest, nymAddedOut)
+    return addAgent(be, do, philCli, acmeMap)
 
 
 @pytest.fixture(scope="module")
 def thriftAddedByPhil(be, do, poolNodesStarted, philCli, connectedToTest,
                       nymAddedOut, thriftMap):
-    return addAgent(be, do, philCli, thriftMap, connectedToTest, nymAddedOut)
+    return addAgent(be, do, philCli, thriftMap)
 
 
 @pytest.fixture(scope='module')
 def newStewardVals():
     newStewardSeed = randomSeed()
-
+    signer = DidSigner(seed=newStewardSeed)
     return {
         'newStewardSeed': newStewardSeed.decode(),
-        'newStewardIdr': SimpleSigner(seed=newStewardSeed).identifier,
+        'newStewardIdr': signer.identifier,
+        'newStewardVerkey': signer.verkey
     }
 
 
@@ -1357,7 +1401,7 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli, connectedToTest,
         do('connect test', within=3,
            expect=connectedToTest)
 
-    do('send NYM dest={{newStewardIdr}} role={role}'
+    do('send NYM dest={{newStewardIdr}} role={role} verkey={{newStewardVerkey}}'
        .format(role=Roles.STEWARD.name),
        within=3,
        expect='Nym {newStewardIdr} added',

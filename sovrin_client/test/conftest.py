@@ -1,6 +1,11 @@
 import logging
 
+import base58
+
+from anoncreds.protocol.utils import randomString
 from plenum.common.keygen_utils import initLocalKeys
+from plenum.common.signer_did import DidSigner
+from plenum.common.util import friendlyToRaw
 from plenum.test import waits as plenumWaits
 from stp_core.common.log import Logger
 
@@ -12,6 +17,8 @@ from copy import deepcopy
 from sovrin_common import strict_types
 
 # typecheck during tests
+from stp_core.network.port_dispenser import genHa
+
 strict_types.defaultShouldCheck = True
 
 import pytest
@@ -67,9 +74,10 @@ def primes2():
 def updatedPoolTxnData(poolTxnData):
     data = deepcopy(poolTxnData)
     trusteeSeed = 'thisistrusteeseednotsteward12345'
-    signer = SimpleSigner(seed=trusteeSeed.encode())
+    signer = DidSigner(seed=trusteeSeed.encode())
     t = {
-        TARGET_NYM: signer.verkey,
+        TARGET_NYM: signer.identifier,
+        VERKEY: signer.verkey,
         ROLE: TRUSTEE,
         TYPE: NYM,
         ALIAS: "Trustee1",
@@ -94,7 +102,7 @@ def trusteeData(poolTxnTrusteeNames, updatedPoolTxnData):
 def trusteeWallet(trusteeData):
     name, sigseed, txn = trusteeData[0]
     wallet = Wallet('trustee')
-    signer = SimpleSigner(seed=sigseed)
+    signer = DidSigner(seed=sigseed)
     wallet.addIdentifier(signer=signer)
     return wallet
 
@@ -111,7 +119,7 @@ def trustee(nodeSet, looper, tdir, up, trusteeWallet):
 def stewardWallet(poolTxnStewardData):
     name, sigseed = poolTxnStewardData
     wallet = Wallet('steward')
-    signer = SimpleSigner(seed=sigseed)
+    signer = DidSigner(seed=sigseed)
     wallet.addIdentifier(signer=signer)
     return wallet
 
@@ -167,8 +175,11 @@ def nodeSet(tconf, updatedPoolTxnData, updatedDomainTxnFile, txnPoolNodeSet):
 @pytest.fixture(scope="module")
 def client1Signer():
     seed = b'client1Signer secret key........'
-    signer = SimpleSigner(seed=seed)
-    assert signer.verkey == '6JvpZp2haQgisbXEXE9NE6n3Tuv77MZb5HdF9jS5qY8m'
+    signer = DidSigner(seed=seed)
+    testable_verkey = friendlyToRaw(signer.identifier)
+    testable_verkey += friendlyToRaw(signer.verkey[1:])
+    testable_verkey = base58.b58encode(testable_verkey)
+    assert testable_verkey == '6JvpZp2haQgisbXEXE9NE6n3Tuv77MZb5HdF9jS5qY8m'
     return signer
 
 
@@ -230,13 +241,13 @@ def addedTrustAnchor(nodeSet, steward, stewardWallet, looper,
 
 @pytest.fixture(scope="module")
 def userWalletA(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
-    return addRole(looper, trustAnchor, trustAnchorWallet, 'userA', useDid=False,
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userA',
                    addVerkey=False)
 
 
 @pytest.fixture(scope="module")
 def userWalletB(nodeSet, addedTrustAnchor, trustAnchorWallet, looper, trustAnchor):
-    return addRole(looper, trustAnchor, trustAnchorWallet, 'userB', useDid=False,
+    return addRole(looper, trustAnchor, trustAnchorWallet, 'userB',
                    addVerkey=False)
 
 
@@ -290,7 +301,7 @@ def nodeThetaAdded(looper, nodeSet, tdirWithPoolTxns, tconf, steward,
                                                           newStewardName, STEWARD)
 
     sigseed = randomString(32).encode()
-    nodeSigner = SimpleSigner(seed=sigseed)
+    nodeSigner = DidSigner(seed=sigseed)
 
     (nodeIp, nodePort), (clientIp, clientPort) = genHa(2)
 

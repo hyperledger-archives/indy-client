@@ -7,7 +7,8 @@ import pytest
 
 from plenum.common.constants import ENC, REPLY, TXN_TIME, TXN_ID, \
     OP_FIELD_NAME, NYM, TARGET_NYM, \
-    TXN_TYPE, ROLE, NONCE
+    TXN_TYPE, ROLE, NONCE, VERKEY
+from plenum.common.signer_did import DidSigner
 from plenum.common.signer_simple import SimpleSigner
 from plenum.common.types import f
 from plenum.common.util import adict
@@ -16,7 +17,7 @@ from sovrin_client.client.client import Client
 from sovrin_client.client.wallet.attribute import Attribute, LedgerStore
 from sovrin_client.client.wallet.wallet import Wallet
 from sovrin_client.test.helper import checkNacks, submitAndCheckRejects, \
-    genTestClient, createNym, checkRejects, addRole
+    genTestClient, createNym, checkRejects, addRole, submit, submitAndCheckAccepts, makePendingTxnsRequest
 from sovrin_common.constants import SKEY
 from sovrin_common.identity import Identity
 from sovrin_common.txn_util import ATTRIB, TRUST_ANCHOR
@@ -84,7 +85,7 @@ def addedEncryptedAttribute(userIdA, trustAnchor, trustAnchorWallet, looper,
 @pytest.fixture(scope="module")
 def nonTrustAnchor(looper, nodeSet, tdir):
     sseed = b'a secret trust anchor seed......'
-    signer = SimpleSigner(seed=sseed)
+    signer = DidSigner(seed=sseed)
     c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     w = Wallet(c.name)
     w.addIdentifier(signer=signer)
@@ -97,7 +98,7 @@ def nonTrustAnchor(looper, nodeSet, tdir):
 @pytest.fixture(scope="module")
 def anotherTrustAnchor(nodeSet, steward, stewardWallet, tdir, looper):
     sseed = b'1 secret trust anchor seed......'
-    signer = SimpleSigner(seed=sseed)
+    signer = DidSigner(seed=sseed)
     c, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     w = Wallet(c.name)
     w.addIdentifier(signer=signer)
@@ -122,23 +123,41 @@ def whitelistextras(*msg):
     [whitelistArray.remove(m) for m, _in in ins.items() if not _in]
 
 
-def testNonStewardCannotCreateATrustAnchor(nodeSet, client1, wallet1, looper):
+def add_nym_operation(signer=None, seed=None, role=None):
+    if signer is None:
+        signer = DidSigner(seed=seed)
+
+    op = {
+        TARGET_NYM: signer.identifier,
+        VERKEY: signer.verkey,
+        TXN_TYPE: NYM,
+    }
+
+    if role is not None:
+        op[ROLE] = role
+
+    return op
+
+
+def test_non_steward_cannot_create_trust_anchor(nodeSet, trustAnchor, addedTrustAnchor, client1, looper):
 
     with whitelistextras("UnknownIdentifier"):
-        seed = b'a secret trust anchor seed......'
-        trustAnchorSigner = SimpleSigner(seed=seed)
+        non_permission = Wallet()
+        signer = DidSigner()
+        non_permission.addIdentifier(signer=signer)
 
-        trustAnchorNym = trustAnchorSigner.identifier
+        createNym(looper,
+                  non_permission.defaultId,
+                  trustAnchor,
+                  addedTrustAnchor,
+                  role=None,
+                  verkey=non_permission.getVerkey())
 
-        op = {
-            TARGET_NYM: trustAnchorNym,
-            TXN_TYPE: NYM,
-            ROLE: TRUST_ANCHOR
-        }
+        op = add_nym_operation(seed=b'a secret trust anchor seed......', role=TRUST_ANCHOR)
 
-        submitAndCheckRejects(looper=looper, client=client1, wallet=wallet1, op=op,
-                              identifier=wallet1.defaultId,
-                              contains="UnknownIdentifier")
+        submitAndCheckRejects(looper=looper, client=client1, wallet=non_permission, op=op,
+                              identifier=non_permission.defaultId,
+                              contains="UnauthorizedClientRequest")
 
 
 def testStewardCreatesATrustAnchor(steward, addedTrustAnchor):
@@ -153,22 +172,24 @@ def testStewardCreatesAnotherTrustAnchor(nodeSet, steward, stewardWallet, looper
     return trustAnchorWallet
 
 
-def testNonTrustAnchorCannotCreateAUser(nodeSet, looper, nonTrustAnchor):
+def test_non_trust_anchor_cannot_create_user(nodeSet, looper, trustAnchor, addedTrustAnchor, client1):
     with whitelistextras("UnknownIdentifier"):
-        client, wallet = nonTrustAnchor
-        useed = b'this is a secret apricot seed...'
-        userSigner = SimpleSigner(seed=useed)
+        non_trust_anchor = Wallet()
+        signer = DidSigner()
+        non_trust_anchor.addIdentifier(signer=signer)
 
-        userNym = userSigner.identifier
+        createNym(looper,
+                  non_trust_anchor.defaultId,
+                  trustAnchor,
+                  addedTrustAnchor,
+                  role=None,
+                  verkey=non_trust_anchor.getVerkey())
 
-        op = {
-            TARGET_NYM: userNym,
-            TXN_TYPE: NYM
-        }
+        op = add_nym_operation(seed=b'a secret trust anchor seed......')
 
-        submitAndCheckRejects(looper, client, wallet, op,
-                              identifier=wallet.defaultId,
-                              contains="UnknownIdentifier")
+        submitAndCheckRejects(looper=looper, client=client1, wallet=non_trust_anchor, op=op,
+                              identifier=non_trust_anchor.defaultId,
+                              contains="UnauthorizedClientRequest")
 
 
 def testTrustAnchorCreatesAUser(steward, userWalletA):
@@ -177,25 +198,22 @@ def testTrustAnchorCreatesAUser(steward, userWalletA):
 
 def test_nym_addition_fails_with_empty_verkey(looper, addedTrustAnchor,
                                               trustAnchor, trustAnchorWallet):
-    new_wallet = addRole(looper, trustAnchor, trustAnchorWallet, 'userC',
-                         useDid=False, addVerkey=False)
-    idy = Identity(identifier=new_wallet.defaultId, verkey='')
-    trustAnchorWallet.updateTrustAnchoredIdentity(idy)
-    reqs = trustAnchorWallet.preparePending()
-    reqs = trustAnchor.submitReqs(*reqs)
 
-    timeout = waits.expectedReqNAckQuorumTime()
-    looper.run(eventually(checkNacks,
-                          trustAnchor,
-                          reqs[0].reqId,
-                          'validation error: b58 decoded value length 0 should be one of [32]',
-                          retryWait=1, timeout=timeout))
+    op = add_nym_operation(seed=b'a secret trust anchor seed......')
+    op[VERKEY] = ''
+    submitAndCheckRejects(looper=looper,
+                          client=trustAnchor,
+                          wallet=trustAnchorWallet,
+                          op=op,
+                          identifier=trustAnchorWallet.defaultId,
+                          contains='validation error [ClientNYMOperation]: b58 decoded value length 0 should be one of [32]',
+                          check_func=checkNacks)
 
 
 @pytest.fixture(scope="module")
 def nymsAddedInQuickSuccession(nodeSet, addedTrustAnchor, looper,
                                trustAnchor, trustAnchorWallet):
-    usigner = SimpleSigner()
+    usigner = DidSigner()
     nym = usigner.verkey
     idy = Identity(identifier=nym)
     trustAnchorWallet.addTrustAnchoredIdentity(idy)
@@ -299,10 +317,18 @@ def testTrustAnchorGetAttrsForUser(checkAddAttribute):
     pass
 
 
-def testNonTrustAnchorCannotAddAttributeForUser(nodeSet, nonTrustAnchor, userIdA,
+def test_non_trust_anchor_cannot_add_attribute_for_user(nodeSet, nonTrustAnchor, trustAnchor, addedTrustAnchor, userIdA,
                                             looper, attributeData):
     with whitelistextras('UnauthorizedClientRequest'):
         client, wallet = nonTrustAnchor
+
+        createNym(looper,
+                  wallet.defaultId,
+                  trustAnchor,
+                  addedTrustAnchor,
+                  role=None,
+                  verkey=wallet.getVerkey())
+
         attrib = Attribute(name='test1 attribute',
                            origin=wallet.defaultId,
                            value=attributeData,
@@ -447,7 +473,7 @@ def testGetTxnsSeqNo(nodeSet, addedTrustAnchor, tdir, trustAnchorWallet, looper)
 
 def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
                                    trustAnchorWallet, tdir, looper):
-    signer = SimpleSigner()
+    signer = DidSigner()
     someClient, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
     wallet = Wallet(someClient.name)
     wallet.addIdentifier(signer=signer)
@@ -460,8 +486,15 @@ def testNonTrustAnchoredNymCanDoGetNym(nodeSet, addedTrustAnchor,
     looper.run(eventually(someClient.hasNym, needle, retryWait=1, timeout=timeout))
 
 
-def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
-                               userIdA, attributeData):
+def test_user_add_attrs_for_herself(nodeSet, looper, userClientA, userWalletA,
+                               userIdA, trustAnchor, addedTrustAnchor, attributeData):
+    createNym(looper,
+              userWalletA.defaultId,
+              trustAnchor,
+              addedTrustAnchor,
+              role=None,
+              verkey=userWalletA.getVerkey())
+
     attr1 = json.dumps({'age': "25"})
     attrib = Attribute(name='test4 attribute',
                        origin=userIdA,
@@ -471,14 +504,29 @@ def testUserAddAttrsForHerSelf(nodeSet, looper, userClientA, userWalletA,
     addAttributeAndCheck(looper, userClientA, userWalletA, attrib)
 
 
-def testAttrWithNoDestAdded(nodeSet, looper, userClientA, userWalletA,
-                               userIdA, attributeData):
+def test_attr_with_no_dest_added(nodeSet, tdir, looper,
+                                 trustAnchor, addedTrustAnchor, attributeData):
+    user_wallet = Wallet()
+    signer = DidSigner()
+    user_wallet.addIdentifier(signer=signer)
+
+    client, _ = genTestClient(nodeSet, tmpdir=tdir, usePoolLedger=True)
+    client.registerObserver(user_wallet.handleIncomingReply)
+    looper.add(client)
+    looper.run(client.ensureConnectedToNodes())
+    makePendingTxnsRequest(client, user_wallet)
+
+    createNym(looper,
+              user_wallet.defaultId,
+              trustAnchor,
+              addedTrustAnchor,
+              role=None,
+              verkey=user_wallet.getVerkey())
+
     attr1 = json.dumps({'age': "24"})
     attrib = Attribute(name='test4 attribute',
-                       origin=userIdA,
+                       origin=user_wallet.defaultId,
                        value=attr1,
                        dest=None,
                        ledgerStore=LedgerStore.RAW)
-    addAttributeAndCheck(looper, userClientA, userWalletA, attrib)
-
-
+    addAttributeAndCheck(looper, client, user_wallet, attrib)

@@ -106,7 +106,7 @@ ALICE> show sample/faber-invitation.sovrin
 {
   "link-invitation": {
     "name": "Faber College",
-    "identifier": "FuN98eH2eZybECWkofW6A9BKJxxnTatBCopfUiNxo6ZB",
+    "identifier": "ULtgFQJe6bjiFbs7ke3NJD",
     "nonce": "b1134a647eb818069c089e7694f63e6d"
   },
   "sig": "4QKqkwv9gXmc3Sw7YFkGm2vdF6ViZz9FKZcNJGh6pjnjgBXRqZ17Sk8bUDSb6hsXHoPxrzq2F51eDn1DKAaCzhqP"
@@ -425,7 +425,7 @@ ALICE@test> show sample/acme-job-application.sovrin
 {
   "link-invitation": {
     "name": "Acme Corp",
-    "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
+    "identifier": "CzkavE58zgX7rUMrzSinLr",
     "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
     "endpoint": "127.0.0.1:1213"
   },
@@ -472,7 +472,7 @@ Link (not yet accepted)
     Trust anchor: Acme Corp (not yet written to Sovrin)
     Verification key: <empty>
     Signing key: <hidden>
-    Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
+    Target: CzkavE58zgX7rUMrzSinLr
     Target Verification key: <unknown, waiting for sync>
     Target endpoint: 127.0.0.1:1213
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c
@@ -615,7 +615,7 @@ Link
     Trust anchor: Acme Corp (confirmed)
     Verification key: ~KdJUJwAq6Wj8To8pJgGHqE
     Signing key: <hidden>
-    Target: 7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21
+    Target: CzkavE58zgX7rUMrzSinLr
     Target Verification key: <same as target>
     Target endpoint: 10.20.30.102:6666
     Invitation nonce: 57fbf9dc8c8e6acde33de98c6d747b28c

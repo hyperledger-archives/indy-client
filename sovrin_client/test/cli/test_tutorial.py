@@ -8,17 +8,18 @@ from plenum.test.cli.helper import exitFromCli, \
     createAndAssertNewKeyringCreation
 from sovrin_common.exceptions import InvalidLinkException
 from sovrin_common.constants import ENDPOINT
+from plenum.common.signer_did import DidSigner
 
 from sovrin_client.client.wallet.link import Link, constant
 from sovrin_client.test.cli.helper import getFileLines, prompt_is, doubleBraces, \
-    getTotalLinks, getTotalSchemas, getTotalClaimsRcvd, getTotalAvailableClaims
-
+    getTotalLinks, getTotalSchemas, getTotalClaimsRcvd, getTotalAvailableClaims, \
+    newKey, ensureConnectedToTestEnv
 
 def getSampleLinkInvitation():
     return {
         "link-invitation": {
             "name": "Acme Corp",
-            "identifier": "7YD5NKn3P4wVJLesAmA1rr7sLPqW9mR1nhFdKD518k21",
+            "identifier": "CzkavE58zgX7rUMrzSinLr",
             "nonce": "57fbf9dc8c8e6acde33de98c6d747b28c",
             "endpoint": "127.0.0.1:1213"
         },
@@ -37,25 +38,6 @@ def getSampleLinkInvitation():
         "sig": "KDkI4XUePwEu1K01u0DpDsbeEfBnnBfwuw8e4DEPK+MdYXv"
                "VsXdSmBJ7yEfQBm8bSJuj6/4CRNI39fFul6DcDA=="
     }
-
-
-@pytest.fixture(scope="module")
-def philCli(be, do, philCLI):
-    be(philCLI)
-    do('prompt Phil', expect=prompt_is('Phil'))
-
-    do('new keyring Phil', expect=['New keyring Phil created',
-                                   'Active keyring set to "Phil"'])
-
-    mapper = {
-        'seed': '11111111111111111111111111111111',
-        'idr': '5rArie7XKukPCaEwq5XGQJnM9Fc5aZE3M9HAPVfMU2xC'}
-    do('new key with seed {seed}', expect=['Key created in keyring Phil',
-                                           'Identifier for key is {idr}',
-                                           'Current identifier set to {idr}'],
-       mapper=mapper)
-
-    return philCLI
 
 
 def checkIfInvalidAttribIsRejected(do, map):
@@ -97,7 +79,7 @@ def checkIfInvalidEndpointIsRejected(do, map):
 
     for invalidEndpoint, invalid_part in invalidEndpoints:
         errorMsg = "client request invalid: InvalidClientRequest(" \
-                   "'validation error: invalid endpoint {} (ha={})',)" \
+                   "'validation error [ClientAttribOperation]: invalid endpoint {} (ha={})',)" \
                    "".format(invalid_part, invalidEndpoint)
         endpoint = json.dumps({ENDPOINT: {'ha': invalidEndpoint}})
         map["invalidEndpointAttr"] = endpoint
@@ -107,33 +89,39 @@ def checkIfInvalidEndpointIsRejected(do, map):
            mapper=map)
 
 
-def agentWithEndpointAdded(be, do, stewardCli, agentMap, attrAddedOut):
-    be(stewardCli)
-    checkIfInvalidEndpointIsRejected(do, agentMap)
-    checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
+def agentWithEndpointAdded(be, do, agentCli, agentMap, attrAddedOut):
+    be(agentCli)
+
+    ensureConnectedToTestEnv(be, do, agentCli)
+
+    # TODO these belong in there own test, not
+    # TODO part of standing up agents
+
+    # checkIfInvalidEndpointIsRejected(do, agentMap)
+    # checkIfValidEndpointIsAccepted(do, agentMap, attrAddedOut)
     do('send ATTRIB dest={remote} raw={endpointAttr}',
        within=5,
        expect=attrAddedOut,
        mapper=agentMap)
-    return stewardCli
+    return agentCli
 
 
 @pytest.fixture(scope="module")
-def faberWithEndpointAdded(be, do, philCli, faberAddedByPhil,
+def faberWithEndpointAdded(be, do, faberCli, faberAddedByPhil,
                            faberMap, attrAddedOut):
-    agentWithEndpointAdded(be, do, philCli, faberMap, attrAddedOut)
+    agentWithEndpointAdded(be, do, faberCli, faberMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
-def acmeWithEndpointAdded(be, do, philCli, acmeAddedByPhil,
+def acmeWithEndpointAdded(be, do, acmeCli, acmeAddedByPhil,
                           acmeMap, attrAddedOut):
-    agentWithEndpointAdded(be, do, philCli, acmeMap, attrAddedOut)
+    agentWithEndpointAdded(be, do, acmeCli, acmeMap, attrAddedOut)
 
 
 @pytest.fixture(scope="module")
-def thriftWithEndpointAdded(be, do, philCli, thriftAddedByPhil,
+def thriftWithEndpointAdded(be, do, thriftCli, thriftAddedByPhil,
                             thriftMap, attrAddedOut):
-    agentWithEndpointAdded(be, do, philCli, thriftMap, attrAddedOut)
+    agentWithEndpointAdded(be, do, thriftCli, thriftMap, attrAddedOut)
 
 
 def connectIfNotAlreadyConnected(do, expectMsgs, userCli, userMap):
@@ -188,6 +176,30 @@ def bobCli(preRequisite, be, do, bobCLI, newKeyringOut, bobMap):
     setPromptAndKeyring(do, "Bob", newKeyringOut, bobMap)
     return bobCLI
 
+@pytest.fixture(scope="module")
+def faberCli(be, do, faberCLI, newKeyringOut, faberMap):
+    be(faberCLI)
+    setPromptAndKeyring(do, "Faber", newKeyringOut, faberMap)
+    newKey(be, do, faberCLI, seed=faberMap['seed'])
+
+    return faberCLI
+
+@pytest.fixture(scope="module")
+def acmeCli(be, do, acmeCLI, newKeyringOut, acmeMap):
+    be(acmeCLI)
+    setPromptAndKeyring(do, "Acme", newKeyringOut, acmeMap)
+    newKey(be, do, acmeCLI, seed=acmeMap['seed'])
+
+    return acmeCLI
+
+
+@pytest.fixture(scope="module")
+def thriftCli(be, do, thriftCLI, newKeyringOut, thriftMap):
+    be(thriftCLI)
+    setPromptAndKeyring(do, "Thrift", newKeyringOut, thriftMap)
+    newKey(be, do, thriftCLI, seed=thriftMap['seed'])
+
+    return thriftCLI
 
 def testNotConnected(be, do, aliceCli, notConnectedStatus):
     be(aliceCli)
@@ -333,7 +345,7 @@ def testShowSyncedFaberInvite(be, do, aliceCli, faberMap, linkNotYetSynced,
 def syncInvite(be, do, userCli, expectedMsgs, mapping):
     be(userCli)
 
-    do('sync {inviter}', within=2,
+    do('sync {inviter}', within=3,
        expect=expectedMsgs,
        mapper=mapping)
 
@@ -358,7 +370,7 @@ def testShowSyncedFaberInviteWithEndpoint(be, do, aliceCLI, faberMap,
     be(aliceCLI)
     cp = faberMap.copy()
     cp.update(last_synced='just now')
-    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut, mapper=cp)
+    do('show link {inviter}', expect=showSyncedLinkWithEndpointOut, mapper=cp, within=3)
 
 
 def testPingBeforeAccept(be, do, aliceCli, faberMap, connectedToTest,

@@ -1,4 +1,6 @@
 import pytest
+from plenum.common.signer_did import DidSigner
+
 from stp_core.crypto.util import randomSeed
 
 from plenum.common.constants import NODE_IP, NODE_PORT, CLIENT_IP, CLIENT_PORT, \
@@ -39,9 +41,9 @@ def newStewardCli(be, do, poolNodesStarted, trusteeCli,
 
 def ensurePoolIsOperable(be, do, cli):
     randomNymMapper = {
-        'remote': SimpleSigner(seed=randomSeed()).identifier
+        'remote': DidSigner(seed=randomSeed()).identifier
     }
-    addAgent(be, do, cli, randomNymMapper, CONNECTED_TO_TEST, NYM_ADDED)
+    addAgent(be, do, cli, randomNymMapper)
 
 
 def testSendNodeSucceedsIfServicesIsArrayWithValidatorValueOnly(

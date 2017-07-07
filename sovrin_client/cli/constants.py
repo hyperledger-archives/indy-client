@@ -41,6 +41,11 @@ GET_NYM_REG_EX = "(\s* (?P<send_get_nym>send\s+{getNym}) " \
                  "\s+ (?P<dest>dest=)\s*(?P<dest_id>[A-Za-z0-9+=/]+) \s*) ".format(
     getNym=SovrinTransactions.GET_NYM.name)
 
+GET_ATTR_REG_EX = \
+    "(\s* (?P<send_get_attr>send\s+{attrib}) " \
+    "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+=/]+) " \
+    "\s+ raw=(?P<raw>[A-Za-z0-9+=/]+) \s*) ".format(attrib=SovrinTransactions.GET_ATTR.name)
+
 ADD_ATTRIB_REG_EX = \
     "(\s* (?P<send_attrib>send\s+{attrib}) " \
     "\s+ dest=\s*(?P<dest_id>[A-Za-z0-9+=/]+) " \
@@ -52,10 +57,22 @@ SEND_SCHEMA_REG_EX = "(\s*(?P<send_schema>send\s+{schema})" \
                      "\s+(?P<keys_key>keys=)\s*(?P<keys>[0-9a-zA-Z-_,\s]+)\s*)".format(
     schema=SovrinTransactions.SCHEMA.name)
 
+GET_SCHEMA_REG_EX = "(\s*(?P<send_get_schema>send\s+{getSchema})" \
+                     "\s+(?P<dest>dest=) \s* (?P<dest_id>[A-Za-z0-9+=/]*)" \
+                     "\s+(?P<name_key>name=)\s*(?P<name>[A-Za-z0-9-_]+)" \
+                     "\s*(?P<version_key>version=)\s*(?P<version>[0-9.]+)\s*)".format(
+    getSchema=SovrinTransactions.GET_SCHEMA.name)
+
+
 SEND_CLAIM_DEF_REG_EX = "(\s*(?P<send_claim_def>send\s+{issKey})" \
                         "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)"\
                         "\s*(?P<signature_type_key>signature_type=)\s*(?P<signature_type>[A-Z0-9]+)" \
     .format(issKey=SovrinTransactions.CLAIM_DEF.name)
+
+GET_CLAIM_DEF_REG_EX = "(\s*(?P<send_get_claim_def>send\s+{issKey})" \
+                       "\s+(?P<ref_key>ref=)\s*(?P<ref>[0-9]+)\s*)"\
+                       "\s*(?P<signature_type_key>signature_type=)\s*(?P<signature_type>[A-Z0-9]+)" \
+    .format(issKey=SovrinTransactions.GET_CLAIM_DEF.name)
 
 
 ADD_ATTRS_PROVER_REG_EX = "(\s*(?P<add_attrs>attribute \s+ known \s+ to) " \
@@ -145,9 +162,12 @@ REQ_AVAIL_CLAIMS_REG_EX = '(\s*(?P<req_avail_claims>request \s+ available \s+ cl
 
 SEND_NYM_FORMATTED_REG_EX = getPipedRegEx(SEND_NYM_REG_EX)
 GET_NYM_FORMATTED_REG_EX = getPipedRegEx(GET_NYM_REG_EX)
+GET_ATTR_FORMATTED_REG_EX = getPipedRegEx(GET_ATTR_REG_EX)
 ADD_ATTRIB_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRIB_REG_EX)
 SEND_SCHEMA_FORMATTED_REG_EX = getPipedRegEx(SEND_SCHEMA_REG_EX)
+GET_SCHEMA_FORMATTED_REG_EX = getPipedRegEx(GET_SCHEMA_REG_EX)
 SEND_CLAIM_DEF_FORMATTED_REG_EX = getPipedRegEx(SEND_CLAIM_DEF_REG_EX)
+GET_CLAIM_DEF_FORMATTED_REG_EX = getPipedRegEx(GET_CLAIM_DEF_REG_EX)
 ADD_GENESIS_FORMATTED_REG_EX = getPipedRegEx(ADD_GENESIS_NYM_REG_EX)
 INIT_ATTR_REPO_FORMATTED_REG_EX = getPipedRegEx(INIT_ATTR_REPO_REG_EX)
 ADD_ATTRS_FORMATTED_REG_EX = getPipedRegEx(ADD_ATTRS_REG_EX)

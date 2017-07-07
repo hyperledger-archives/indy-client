@@ -5,10 +5,13 @@ from sovrin_common.transactions import SovrinTransactions
 nymName = SovrinTransactions.NYM.name
 getNymName = SovrinTransactions.GET_NYM.name
 attribName = SovrinTransactions.ATTRIB.name
+getAttrName = SovrinTransactions.GET_ATTR.name
 nodeName = SovrinTransactions.NODE.name
 schemaName = SovrinTransactions.SCHEMA.name
+getSchemaName = SovrinTransactions.GET_SCHEMA.name
 poolUpgradeName = SovrinTransactions.POOL_UPGRADE.name
 claimDefName = SovrinTransactions.CLAIM_DEF.name
+getClaimDefName = SovrinTransactions.GET_CLAIM_DEF.name
 
 sendNymCmd = Command(
     id="send {nym}".format(nym=nymName),
@@ -31,6 +34,12 @@ sendAttribCmd = Command(
     usage="send {attrib} dest=<target identifier> [raw={{<json-data>}}] [hash=<hashed-data>] [enc: <encrypted-data>]".format(
         attrib=attribName),
     examples='send {attrib} dest=33A18XMqWqTzDpLHXLR5nT raw={{"endpoint": "127.0.0.1:5555"}}'.format(attrib=attribName))
+
+sendGetAttrCmd = Command(
+    id="send {getAttr}".format(getAttr=getAttrName),
+    title="Get ATTR from sovrin",
+    usage="send {getAttr} dest=<target identifier>".format(getAttr=getAttrName),
+    examples="send {getAttr} dest=33A18XMqWqTzDpLHXLR5nT".format(getAttr=getAttrName))
 
 sendNodeCmd = Command(
     id="send {node}".format(node=nodeName),
@@ -63,11 +72,23 @@ sendSchemaCmd = Command(
     usage="send {schema} name=<schema-name> version=<version> keys=<comma separated attributes>".format(schema=schemaName),
     examples="send {schema} name=Degree version=1.0 keys=undergrad,last_name,first_name,birth_date,postgrad,expiry_date".format(schema=schemaName))
 
+sendGetSchemaCmd = Command(
+    id="send {getSchema}".format(getSchema=getSchemaName),
+    title="Gets schema from sovrin",
+    usage="send {getSchema} dest=<target identifier> name=<schema-name> version=<version>".format(getSchema=getSchemaName),
+    examples="send {getSchema} name=Degree version=1.0".format(getSchema=getSchemaName))
+
 sendClaimDefCmd = Command(
     id="send {claimDef}".format(claimDef=claimDefName),
     title="Adds claim definition for given schema",
     usage="send {claimDef} ref=<ref-no-of-SCHEMA-txn> signature_type=<type>".format(claimDef=claimDefName),
     examples="send {claimDef} ref=10 signature_type=CL".format(claimDef=claimDefName))
+
+sendGetClaimDefCmd = Command(
+    id="send {getClaimDef}".format(getClaimDef=getClaimDefName),
+    title="Gets claim definition from sovrin",
+    usage="send {getClaimDef} ref=<ref-no-of-SCHEMA-txn> signature_type=<type>".format(getClaimDef=getClaimDefName),
+    examples="send {getClaimDef} ref=10 signature_type=CL".format(getClaimDef=getClaimDefName))
 
 sendProofRequestCmd = Command(
     id="send proofreq",

@@ -12,7 +12,7 @@ from plenum.common.did_method import DidMethods
 from plenum.common.util import randomString
 from stp_core.common.log import getlogger
 from plenum.common.constants import TXN_TYPE, TARGET_NYM, DATA, \
-    IDENTIFIER, NYM, ROLE, VERKEY, NODE
+    IDENTIFIER, NYM, ROLE, VERKEY, NODE, NAME, VERSION, ORIGIN
 from plenum.common.types import f
 
 from sovrin_client.client.wallet.attribute import Attribute, AttributeKey, \
@@ -23,9 +23,10 @@ from sovrin_client.client.wallet.trustAnchoring import TrustAnchoring
 from sovrin_client.client.wallet.upgrade import Upgrade
 from sovrin_common.did_method import DefaultDidMethods
 from sovrin_common.exceptions import LinkNotFound
+from sovrin_common.types import Request
 from sovrin_common.identity import Identity
 from sovrin_common.constants import ATTRIB, GET_TXNS, GET_ATTR, \
-    GET_NYM, POOL_UPGRADE
+    GET_NYM, POOL_UPGRADE, GET_SCHEMA, GET_CLAIM_DEF, REF, SIGNATURE_TYPE
 from stp_core.types import Identifier
 
 ENCODING = "utf-8"
@@ -297,6 +298,40 @@ class Wallet(PWallet, TrustAnchoring):
         req = attrib.getRequest(sender)
         if req:
             return self.prepReq(req, key=attrib.key())
+
+    def requestSchema(self, nym, name, version, sender):
+        """
+        Used to get a schema from Sovrin
+        :param nym: nym that schema is attached to
+        :param name: name of schema
+        :param version: version of schema
+        :return: req object
+        """
+        operation = { TARGET_NYM: nym,
+                      TXN_TYPE: GET_SCHEMA,
+                      DATA: {NAME : name,
+                             VERSION: version}
+        }
+
+        req = Request(sender, operation=operation)
+        return self.prepReq(req)
+
+    def requestClaimDef(self, seqNo, signature, sender):
+        """
+        Used to get a claim def from Sovrin
+        :param seqNo: reference number of schema
+        :param signature: CL is only supported option currently
+        :return: req object
+        """
+        operation = { TXN_TYPE: GET_CLAIM_DEF,
+                      ORIGIN: sender,
+                      REF : seqNo,
+                      SIGNATURE_TYPE : signature
+                    }
+
+        req = Request(sender, operation=operation)
+        return self.prepReq(req)
+
 
     # TODO: sender by default should be `self.defaultId`
     def requestIdentity(self, identity: Identity, sender):

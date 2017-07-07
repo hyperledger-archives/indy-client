@@ -70,3 +70,7 @@ class AgentCli(SovrinCli):
     @activeWallet.setter
     def activeWallet(self, wallet):
         pass
+
+    @property
+    def walletSaver(self):
+        return self.agent.walletSaver

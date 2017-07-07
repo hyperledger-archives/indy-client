@@ -19,7 +19,7 @@ from plenum.common.util import libnacl
 from plenum.server.router import Router
 from stp_core.network.auth_mode import AuthMode
 from stp_raet.rstack import SimpleRStack
-from stp_zmq.zstack import SimpleZStack
+from stp_zmq.simple_zstack import SimpleZStack
 
 from sovrin_common.constants import TXN_TYPE, ATTRIB, DATA, GET_NYM, ROLE, \
     NYM, GET_TXNS, LAST_TXN, TXNS, SCHEMA, CLAIM_DEF, SKEY, DISCLO,\

@@ -10,7 +10,7 @@ from plenum.common.util import randomString
 from stp_core.crypto.util import randomSeed
 from stp_raet.rstack import SimpleRStack
 from stp_core.types import HA
-from stp_zmq.zstack import SimpleZStack
+from stp_zmq.simple_zstack import SimpleZStack
 
 logger = getlogger()
 
